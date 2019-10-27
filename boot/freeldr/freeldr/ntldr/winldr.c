@@ -1250,7 +1250,7 @@ LoadAndBootWindowsCommon(
     WinLdrSetupMemoryLayout(LoaderBlock);
 
     /* Set processor context */
-    WinLdrSetProcessorContext();
+    WinLdrSetProcessorContext(OperatingSystemVersion);
 
     /* Save final value of LoaderPagesSpanned */
     LoaderBlock->Extension->LoaderPagesSpanned = LoaderPagesSpanned;
