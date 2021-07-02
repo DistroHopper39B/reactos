@@ -28,7 +28,7 @@ extern PVOID TempPageTableAddr;
 extern PVOID APEntryCpuState;
 
 /* TODO: MaxAPCount should be assigned by a Multi APIC table */
-ULONG MaxAPCount = 2;
+ULONG MaxAPCount = 8;
 ULONG StartedProcessorCount = 1;
 
 typedef struct _AP_ENTRY_CPU_STATE

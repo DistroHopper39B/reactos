@@ -530,7 +530,8 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     else
     {
         /* FIXME */
-        DPRINT1("SMP Boot support not yet present\n");
+        DPRINT1("Starting CPU#%u - you are brave!\n", Number);
+        KeLowerIrql(DISPATCH_LEVEL);
     }
 
     /* Setup the Idle Thread */
@@ -688,6 +689,11 @@ KiSystemStartupBootStack(VOID)
     /* Set the right wait IRQL */
     Thread->WaitIrql = DISPATCH_LEVEL;
 
+    if (KeNumberProcessors > 1)
+    {
+        DPRINT1(" Going to idle loop");
+    }
+
     /* Jump into the idle loop */
     KiIdleLoop();
 }
@@ -817,9 +823,11 @@ AppCpuInit:
     __writefsdword(KPCR_SET_MEMBER, 1 << Cpu);
     __writefsdword(KPCR_SET_MEMBER_COPY, 1 << Cpu);
     __writefsdword(KPCR_PRCB_SET_MEMBER, 1 << Cpu);
-
-    KiVerifyCpuFeatures(Pcr->Prcb);
-
+    if(Cpu < 1)
+    {
+        /* Err check me.. */
+        KiVerifyCpuFeatures(Pcr->Prcb);
+    }
     /* Initialize the Processor with HAL */
     HalInitializeProcessor(Cpu, KeLoaderBlock);
 
