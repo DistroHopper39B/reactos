@@ -1,17 +1,22 @@
 /*
  * PROJECT:     ReactOS HAL
  * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
- * FILE:        hal/halx86/apic/apicsmp.c
  * PURPOSE:     SMP specific APIC code
- * PROGRAMMERS: Copyright 2021 Timo Kreuzer (timo.kreuzer@reactos.org)
+ * COPYRIGHT:   Copyright 2021 Timo Kreuzer <timo.kreuzer@reactos.org>
+ *              Copyright 2023 Justin Miller <justin.miller@reactos.org>
  */
 
 /* INCLUDES *******************************************************************/
 
 #include <hal.h>
 #include "apicp.h"
+#include <smp.h>
+
 #define NDEBUG
 #include <debug.h>
+
+
+extern PPROCESSOR_IDENTITY HalpProcessorIdentity;
 
 /* INTERNAL FUNCTIONS *********************************************************/
 
@@ -36,7 +41,7 @@
             local APIC(s) specified in Destination field. Vector specifies
             the startup address.
         APIC_MT_ExtInt - Delivers an external interrupt to the target local
-            APIC specified in Destination field. 
+            APIC specified in Destination field.
 
     \param TriggerMode - The trigger mode of the interrupt. Can be:
         APIC_TGM_Edge - The interrupt is edge triggered.
@@ -64,6 +69,12 @@ ApicRequestGlobalInterrupt(
 {
     APIC_INTERRUPT_COMMAND_REGISTER Icr;
 
+    /* Wait for the APIC to be idle */
+    do
+    {
+        Icr.Long0 = ApicRead(APIC_ICR0);
+    } while (Icr.DeliveryStatus);
+
     /* Setup the command register */
     Icr.LongLong = 0;
     Icr.Vector = Vector;
@@ -84,13 +95,35 @@ ApicRequestGlobalInterrupt(
 
 /* SMP SUPPORT FUNCTIONS ******************************************************/
 
-// Should be called by SMP version of HalRequestIpi
 VOID
 NTAPI
-HalpRequestIpi(KAFFINITY TargetProcessors)
+HalpRequestIpi(_In_ KAFFINITY TargetProcessors)
 {
     UNIMPLEMENTED;
     __debugbreak();
 }
 
-// APIC specific SMP code here
+VOID
+ApicStartApplicationProcessor(
+    _In_ ULONG NTProcessorNumber,
+    _In_ PHYSICAL_ADDRESS StartupLoc)
+{
+    ASSERT(StartupLoc.HighPart == 0);
+    ASSERT((StartupLoc.QuadPart & 0xFFF) == 0);
+    ASSERT((StartupLoc.QuadPart & 0xFFF00FFF) == 0);
+
+    /* Init IPI */
+    ApicRequestGlobalInterrupt(HalpProcessorIdentity[NTProcessorNumber].LapicId, 0,
+        APIC_MT_INIT, APIC_TGM_Edge, APIC_DSH_Destination);
+
+    /* De-Assert Init IPI */
+    ApicRequestGlobalInterrupt(HalpProcessorIdentity[NTProcessorNumber].LapicId, 0,
+        APIC_MT_INIT, APIC_TGM_Level, APIC_DSH_Destination);
+
+    /* Stall execution for a bit to give APIC time: MPS Spec - B.4 */
+    KeStallExecutionProcessor(200);
+
+    /* Startup IPI */
+    ApicRequestGlobalInterrupt(HalpProcessorIdentity[NTProcessorNumber].LapicId, (StartupLoc.LowPart) >> 12,
+        APIC_MT_Startup, APIC_TGM_Edge, APIC_DSH_Destination);
+}
