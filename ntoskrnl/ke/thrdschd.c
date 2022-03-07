@@ -32,7 +32,7 @@ FASTCALL
 KiIdleSchedule(IN PKPRCB Prcb)
 {
     /* FIXME: TODO */
-    ASSERTMSG("SMP: Not yet implemented\n", FALSE);
+   // ASSERTMSG("SMP: Not yet implemented\n", FALSE);
     return NULL;
 }
 
@@ -341,7 +341,7 @@ KiSelectNextThread(IN PKPRCB Prcb)
         Prcb->IdleSchedule = TRUE;
 
         /* FIXME: SMT support */
-        ASSERTMSG("SMP: Not yet implemented\n", FALSE);
+       // ASSERTMSG("SMP: Not yet implemented\n", FALSE);
     }
 
     /* Sanity checks and return the thread */
@@ -706,7 +706,7 @@ KiSetAffinityThread(IN PKTHREAD Thread,
     {
 #ifdef CONFIG_SMP
         /* FIXME: TODO */
-        DPRINT1("Affinity support disabled!\n");
+    //    DPRINT1("Affinity support disabled!\n");
 #endif
     }
 

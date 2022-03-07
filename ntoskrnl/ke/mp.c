@@ -133,12 +133,10 @@ KeStartAllProcessors()
         APInfo->TssNMI.Esp = (ULONG_PTR)&APInfo->DoubleFaultStack;
 
         // Push LOADER_BLOCK on stack as a parameter
-        KernelStack = (PVOID)((ULONG_PTR)KernelStack - sizeof(PVOID));
-        *(PVOID *)KernelStack = KeLoaderBlock;
+        ((PULONG)KernelStack)[-1] = (ULONG)KeLoaderBlock;
 
         // Push NULL address on stack as a "return" addr
-        KernelStack = (PVOID)((ULONG_PTR)KernelStack - sizeof(PVOID));
-        *(PVOID *)KernelStack = NULL;
+        ((PULONG)KernelStack)[-2] = (ULONG)NULL;
         
         // Fill the processor state
         PKPROCESSOR_STATE ProcessorState = &APInfo->Pcr.Prcb->ProcessorState;
@@ -161,7 +159,7 @@ KeStartAllProcessors()
 
         ProcessorState->SpecialRegisters.Tr = KGDT_TSS;
 
-        ProcessorState->ContextFrame.Esp = (ULONG_PTR)KernelStack;
+        ProcessorState->ContextFrame.Esp = (ULONG_PTR)(&((PULONG)KernelStack)[-2]);
         ProcessorState->ContextFrame.Eip = (ULONG_PTR)KiSystemStartup;
         ProcessorState->ContextFrame.EFlags = __readeflags() & ~EFLAGS_INTERRUPT_MASK;
 

@@ -675,11 +675,13 @@ KiGetCacheInformation(VOID)
 
     /* Set the cache line */
     if (CacheLine > KeLargestCacheLine) KeLargestCacheLine = CacheLine;
+    #if 0
     DPRINT1("Prefetch Cache: %lu bytes\tL2 Cache: %lu bytes\tL2 Cache Line: %lu bytes\tL2 Cache Associativity: %lu\n",
             KePrefetchNTAGranularity,
             Pcr->SecondLevelCacheSize,
             KeLargestCacheLine,
             Pcr->SecondLevelCacheAssociativity);
+    #endif
 }
 
 CODE_SEG("INIT")
@@ -1402,7 +1404,7 @@ KeFlushEntireTb(IN BOOLEAN Invalid,
         ASSERT(Prcb == KeGetCurrentPrcb());
 
         /* FIXME: TODO */
-        ASSERTMSG("Not yet implemented\n", FALSE);
+        //ASSERTMSG("Not yet implemented\n", FALSE);
     }
 #endif
 

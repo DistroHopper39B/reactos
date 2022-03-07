@@ -480,12 +480,8 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     /* Save CPU state */
     KiSaveProcessorControlState(&Prcb->ProcessorState);
 
-    if (KeNumberProcessors <= 1)
-    {
-        KiGetCacheInformation();
-    }
     /* Get cache line information for this CPU */
-   // KiGetCacheInformation();
+    KiGetCacheInformation();
 
     /* Initialize spinlocks and DPC data */
     KiInitSpinLocks(Prcb, Number);

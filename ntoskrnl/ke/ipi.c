@@ -47,7 +47,7 @@ KiIpiSendPacket(IN KAFFINITY TargetProcessors,
                 IN PULONG Count)
 {
     /* FIXME: TODO */
-    ASSERTMSG("Not yet implemented\n", FALSE);
+   // ASSERTMSG("Not yet implemented\n", FALSE);
 }
 
 VOID
@@ -55,7 +55,7 @@ FASTCALL
 KiIpiSignalPacketDone(IN PKIPI_CONTEXT PacketContext)
 {
     /* FIXME: TODO */
-    ASSERTMSG("Not yet implemented\n", FALSE);
+   // ASSERTMSG("Not yet implemented\n", FALSE);
 }
 
 VOID
@@ -64,7 +64,7 @@ KiIpiSignalPacketDoneAndStall(IN PKIPI_CONTEXT PacketContext,
                               IN volatile PULONG ReverseStall)
 {
     /* FIXME: TODO */
-    ASSERTMSG("Not yet implemented\n", FALSE);
+   // ASSERTMSG("Not yet implemented\n", FALSE);
 }
 
 #if 0
@@ -148,7 +148,7 @@ NTAPI
 KiIpiServiceRoutine(IN PKTRAP_FRAME TrapFrame,
                     IN PKEXCEPTION_FRAME ExceptionFrame)
 {
-    #if 0
+
 #ifdef CONFIG_SMP
     PKPRCB Prcb;
     ASSERT(KeGetCurrentIrql() == IPI_LEVEL);
@@ -186,85 +186,36 @@ KiIpiServiceRoutine(IN PKTRAP_FRAME TrapFrame,
 #endif // _M_ARM
     }
 #endif
-#endif
+
    return TRUE;
 }
 
 /*
- * @implemented
+ * @unimplemented
  */
 ULONG_PTR
 NTAPI
 KeIpiGenericCall(IN PKIPI_BROADCAST_WORKER Function,
                  IN ULONG_PTR Argument)
 {
-    #if 0
     ULONG_PTR Status;
     KIRQL OldIrql, OldIrql2;
-#ifdef CONFIG_SMP
-    KAFFINITY Affinity;
-    ULONG Count;
-    PKPRCB Prcb = KeGetCurrentPrcb();
-#endif
 
     /* Raise to DPC level if required */
     OldIrql = KeGetCurrentIrql();
     if (OldIrql < DISPATCH_LEVEL) KeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
 
-#ifdef CONFIG_SMP
-    /* Get current processor count and affinity */
-    Count = KeNumberProcessors;
-    Affinity = KeActiveProcessors;
-
-    /* Exclude ourselves */
-    Affinity &= ~Prcb->SetMember;
-#endif
-
     /* Acquire the IPI lock */
     KeAcquireSpinLockAtDpcLevel(&KiReverseStallIpiLock);
 
-#ifdef CONFIG_SMP
-    /* Make sure this is MP */
-    if (Affinity)
-    {
-        /* Send an IPI */
-        KiIpiSendPacket(Affinity,
-                        KiIpiGenericCallTarget,
-                        Function,
-                        Argument,
-                        &Count);
-
-        /* Spin until the other processors are ready */
-        while (Count != 1)
-        {
-            YieldProcessor();
-            KeMemoryBarrierWithoutFence();
-        }
-    }
-#endif
 
     /* Raise to IPI level */
     KeRaiseIrql(IPI_LEVEL, &OldIrql2);
 
-#ifdef CONFIG_SMP
-    /* Let the other processors know it is time */
-    Count = 0;
-#endif
 
     /* Call the function */
     Status = Function(Argument);
 
-#ifdef CONFIG_SMP
-    /* If this is MP, wait for the other processors to finish */
-    if (Affinity)
-    {
-        /* Sanity check */
-        ASSERT(Prcb == KeGetCurrentPrcb());
-
-        /* FIXME: TODO */
-        ASSERTMSG("Not yet implemented\n", FALSE);
-    }
-#endif
 
     /* Release the lock */
     KeReleaseSpinLockFromDpcLevel(&KiReverseStallIpiLock);
@@ -272,6 +223,4 @@ KeIpiGenericCall(IN PKIPI_BROADCAST_WORKER Function,
     /* Lower IRQL back */
     KeLowerIrql(OldIrql);
     return Status;
-    #endif
-    return 0;
 }
