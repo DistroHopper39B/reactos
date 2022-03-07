@@ -1127,7 +1127,7 @@ KeSetSystemAffinityThread(IN KAFFINITY Affinity)
     /* Restore the affinity and enable system affinity */
     CurrentThread->Affinity = Affinity;
     CurrentThread->SystemAffinityActive = TRUE;
-
+#if 0
     /* Check if the ideal processor is part of the affinity */
 #ifdef CONFIG_SMP
     if (!(Affinity & AFFINITY_MASK(CurrentThread->IdealProcessor)))
@@ -1150,6 +1150,8 @@ KeSetSystemAffinityThread(IN KAFFINITY Affinity)
         BitScanReverse(&NodeMask, AffinitySet);
         CurrentThread->IdealProcessor = (UCHAR)NodeMask;
     }
+#endif
+
 #endif
 
     /* Get the current PRCB and check if it doesn't match this affinity */
@@ -1329,10 +1331,11 @@ KeSetPriorityThread(IN PKTHREAD Thread,
 {
     KIRQL OldIrql;
     KPRIORITY OldPriority;
-    ASSERT_THREAD(Thread);
-    ASSERT_IRQL_LESS_OR_EQUAL(DISPATCH_LEVEL);
-    ASSERT((Priority <= HIGH_PRIORITY) && (Priority >= LOW_PRIORITY));
-    ASSERT(KeIsExecutingDpc() == FALSE);
+
+   //ASSERT_THREAD(Thread);
+    //ASSERT_IRQL_LESS_OR_EQUAL(DISPATCH_LEVEL);
+   // ASSERT((Priority <= HIGH_PRIORITY) && (Priority >= LOW_PRIORITY));
+   // ASSERT(KeIsExecutingDpc() == FALSE);
 
     /* Lock the Dispatcher Database */
     OldIrql = KiAcquireDispatcherLock();

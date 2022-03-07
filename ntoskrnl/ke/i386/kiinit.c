@@ -480,8 +480,12 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     /* Save CPU state */
     KiSaveProcessorControlState(&Prcb->ProcessorState);
 
+    if (KeNumberProcessors <= 1)
+    {
+        KiGetCacheInformation();
+    }
     /* Get cache line information for this CPU */
-    KiGetCacheInformation();
+   // KiGetCacheInformation();
 
     /* Initialize spinlocks and DPC data */
     KiInitSpinLocks(Prcb, Number);
@@ -530,7 +534,7 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     else
     {
         /* FIXME */
-        DPRINT1("Starting CPU#%u - you are brave!\n", Number);
+       // DPRINT1("Starting CPU#%u - you are brave!\n", Number);
         KeLowerIrql(DISPATCH_LEVEL);
     }
 
@@ -548,7 +552,7 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     InitThread->State = Running;
     InitThread->Affinity = 1 << Number;
     InitThread->WaitIrql = DISPATCH_LEVEL;
-    InitProcess->ActiveProcessors = 1 << Number;
+    InitProcess->ActiveProcessors |= 1 << Number;
 
     /* HACK for MmUpdatePageDir */
     ((PETHREAD)InitThread)->ThreadsProcess = (PEPROCESS)InitProcess;
@@ -608,6 +612,7 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     /* Raise to Dispatch */
     KeRaiseIrql(DISPATCH_LEVEL, &DummyIrql);
 
+    //HEREME
     /* Set the Idle Priority to 0. This will jump into Phase 1 */
     KeSetPriorityThread(InitThread, 0);
 
@@ -688,11 +693,6 @@ KiSystemStartupBootStack(VOID)
 
     /* Set the right wait IRQL */
     Thread->WaitIrql = DISPATCH_LEVEL;
-
-    if (KeNumberProcessors > 1)
-    {
-        DPRINT1(" Going to idle loop");
-    }
 
     /* Jump into the idle loop */
     KiIdleLoop();
@@ -811,12 +811,14 @@ KiSystemStartup(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     RtlCopyMemory(&Idt[8], &DoubleFaultEntry, sizeof(KIDTENTRY));
 
 AppCpuInit:
+#if 0
     /* Loop until we can release the freeze lock */
     do
     {
         /* Loop until execution can continue */
         while (*(volatile PKSPIN_LOCK*)&KiFreezeExecutionLock == (PVOID)1);
     } while(InterlockedBitTestAndSet((PLONG)&KiFreezeExecutionLock, 0));
+#endif
 
     /* Setup CPU-related fields */
     __writefsdword(KPCR_NUMBER, Cpu);

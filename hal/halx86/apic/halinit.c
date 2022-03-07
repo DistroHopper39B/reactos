@@ -64,7 +64,10 @@ VOID
 HalpInitPhase1(VOID)
 {
     /* Initialize DMA. NT does this in Phase 0 */
-    HalpInitDma();
+    if (KeNumberProcessors <= 1)
+    {
+        HalpInitDma();
+    }
 }
 
 /* EOF */

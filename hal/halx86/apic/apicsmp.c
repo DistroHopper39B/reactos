@@ -54,7 +54,7 @@
 
  */
 FORCEINLINE
-VOID
+BOOLEAN
 ApicRequestGlobalInterrupt(
     _In_ UCHAR DestinationProcessor,
     _In_ UCHAR Vector,
@@ -79,6 +79,9 @@ ApicRequestGlobalInterrupt(
     /* Write the low dword last to send the interrupt */
     ApicWrite(APIC_ICR1, Icr.Long1);
     ApicWrite(APIC_ICR0, Icr.Long0);
+
+    /* TODO: change this.. */
+    return TRUE;
 }
 
 
@@ -91,18 +94,18 @@ HalpRequestIpi(KAFFINITY TargetProcessors)
     UNIMPLEMENTED;
     __debugbreak();
 }
+BOOLEAN
+ApicInitApplicationProcessor(ULONG NTProcessorNumber, PHYSICAL_ADDRESS StartupLoc)
+{
+    return ApicRequestGlobalInterrupt(NTProcessorNumber, 0,
+        APIC_MT_INIT, APIC_TGM_Edge, APIC_DSH_Destination);
+}
 
-VOID
+BOOLEAN
 ApicStartApplicationProcessor(ULONG NTProcessorNumber, PHYSICAL_ADDRESS StartupLoc)
 {
-    /* Init IPI */
-    ApicRequestGlobalInterrupt(NTProcessorNumber, 0,
-        APIC_MT_INIT, APIC_TGM_Edge, APIC_DSH_Destination);
-
-    /* Stall execution for a bit to give APIC time */
-    KeStallExecutionProcessor(1000);
 
     /* Startup IPI */
-    ApicRequestGlobalInterrupt(NTProcessorNumber, (StartupLoc.LowPart) >> 12,
-        APIC_MT_Startup, APIC_TGM_Edge, APIC_DSH_Destination);
+    return ApicRequestGlobalInterrupt(NTProcessorNumber, (StartupLoc.LowPart) >> 12,
+        APIC_MT_Startup, APIC_TGM_Level, APIC_DSH_Destination);
 }

@@ -28,7 +28,7 @@ extern PVOID TempPageTableAddr;
 extern PVOID APEntryCpuState;
 
 /* TODO: MaxAPCount should be assigned by a Multi APIC table */
-ULONG MaxAPCount = 8;
+ULONG MaxAPCount = 4;
 ULONG StartedProcessorCount = 1;
 
 typedef struct _AP_ENTRY_CPU_STATE
@@ -113,7 +113,7 @@ HalpInitTempPageTable(
     // Map IDT
     HalpMapAddressFlat(pageDirectory, (PVOID)ProcessorState->SpecialRegisters.Idtr.Base, NULL);
 
-    // __debugbreak();
+    //__debugbreak();
 
     return MmGetPhysicalAddress(pageDirectory);
 }
@@ -126,6 +126,7 @@ HalStartNextProcessor(
 {
     if (MaxAPCount > StartedProcessorCount)
     { 
+        BOOLEAN ApicResult = FALSE;
         // Initalize the temporary page table
         // TODO: clean it up after an AP boots successfully
         ULONG_PTR initialCr3 = HalpInitTempPageTable(ProcessorState).QuadPart;
@@ -159,15 +160,16 @@ HalStartNextProcessor(
             .SegGs = ProcessorState->ContextFrame.SegGs,
             .SpecialRegisters = ProcessorState->SpecialRegisters,
         };
-
-        ApicStartApplicationProcessor(StartedProcessorCount, HalpLowStubPhysicalAddress);
-
+        ApicResult = ApicInitApplicationProcessor(StartedProcessorCount, HalpLowStubPhysicalAddress);
+        ApicResult = ApicStartApplicationProcessor(StartedProcessorCount, HalpLowStubPhysicalAddress);
+    
         StartedProcessorCount++;
-
         return TRUE;
+
+        //return TRUE;
     }
-    else
-    {
+    else{
+    
         return FALSE;
     }
 }

@@ -148,6 +148,7 @@ NTAPI
 KiIpiServiceRoutine(IN PKTRAP_FRAME TrapFrame,
                     IN PKEXCEPTION_FRAME ExceptionFrame)
 {
+    #if 0
 #ifdef CONFIG_SMP
     PKPRCB Prcb;
     ASSERT(KeGetCurrentIrql() == IPI_LEVEL);
@@ -185,6 +186,7 @@ KiIpiServiceRoutine(IN PKTRAP_FRAME TrapFrame,
 #endif // _M_ARM
     }
 #endif
+#endif
    return TRUE;
 }
 
@@ -196,6 +198,7 @@ NTAPI
 KeIpiGenericCall(IN PKIPI_BROADCAST_WORKER Function,
                  IN ULONG_PTR Argument)
 {
+    #if 0
     ULONG_PTR Status;
     KIRQL OldIrql, OldIrql2;
 #ifdef CONFIG_SMP
@@ -269,4 +272,6 @@ KeIpiGenericCall(IN PKIPI_BROADCAST_WORKER Function,
     /* Lower IRQL back */
     KeLowerIrql(OldIrql);
     return Status;
+    #endif
+    return 0;
 }
