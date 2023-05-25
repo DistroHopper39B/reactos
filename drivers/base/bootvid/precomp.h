@@ -14,6 +14,9 @@
 #include <drivers/bootvid/bootvid.h>
 
 /* Arch-specific includes */
+#if defined(BOOT_FB)
+    #include "framebuf/framebuf.h"
+#else
 #if defined(_M_IX86)
 #if defined(SARCH_PC98)
     #include "i386/pc98/pc98.h"
@@ -30,6 +33,7 @@
 #else
     #error Unknown architecture
 #endif
+#endif // BOOT_FB
 
 #ifndef TEXT_VGA
 
