@@ -18,14 +18,20 @@
 
 #include <freeldr.h>
 #include <drivers/xbox/superio.h>
+#include <drivers/bootvid/framebuf.h>
 
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(HWDETECT);
 
 #define MAX_XBOX_COM_PORTS    2
 
+/* From xboxvideo.c */
+extern ULONG NvBase;
 extern ULONG_PTR FrameBuffer;
 extern ULONG FrameBufferSize;
+extern ULONG ScreenWidth;
+extern ULONG ScreenHeight;
+extern ULONG BytesPerPixel;
 
 BOOLEAN
 XboxFindPciBios(PPCI_REGISTRY_INFO BusData)
@@ -156,12 +162,15 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     PCONFIGURATION_COMPONENT_DATA ControllerKey;
     PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
     PCM_PARTIAL_RESOURCE_DESCRIPTOR PartialDescriptor;
+    PCM_FRAMEBUF_DEVICE_DATA FramebufferData;
     ULONG Size;
 
     if (FrameBufferSize == 0)
         return;
 
-    Size = sizeof(CM_PARTIAL_RESOURCE_LIST);
+    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) +
+           2 * sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) +
+           sizeof(CM_FRAMEBUF_DEVICE_DATA);
     PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
     if (PartialResourceList == NULL)
     {
@@ -173,15 +182,52 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     RtlZeroMemory(PartialResourceList, Size);
     PartialResourceList->Version = 1;
     PartialResourceList->Revision = 1;
-    PartialResourceList->Count = 1;
+    PartialResourceList->Count = 3;
+
+    /* Set IO Control Port */
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
+    PartialDescriptor->Type = CmResourceTypePort;
+    PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
+    PartialDescriptor->Flags = CM_RESOURCE_PORT_MEMORY;
+    PartialDescriptor->u.Port.Start.LowPart = NvBase;
+    PartialDescriptor->u.Port.Start.HighPart = 0;
+    PartialDescriptor->u.Port.Length = (16 * 1024 * 1024);
 
     /* Set Memory */
-    PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
     PartialDescriptor->Type = CmResourceTypeMemory;
     PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
     PartialDescriptor->Flags = CM_RESOURCE_MEMORY_READ_WRITE;
     PartialDescriptor->u.Memory.Start.LowPart = (FrameBuffer & 0x0FFFFFFF);
     PartialDescriptor->u.Memory.Length = FrameBufferSize;
+
+    /* Set framebuffer-specific data */
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[2];
+    PartialDescriptor->Type = CmResourceTypeDeviceSpecific;
+    PartialDescriptor->ShareDisposition = CmResourceShareUndetermined;
+    PartialDescriptor->Flags = 0;
+    PartialDescriptor->u.DeviceSpecificData.DataSize =
+        sizeof(CM_FRAMEBUF_DEVICE_DATA);
+
+    /* Get pointer to framebuffer-specific data */
+    FramebufferData = (PVOID)(PartialDescriptor + 1);
+    RtlZeroMemory(FramebufferData, sizeof(*FramebufferData));
+    FramebufferData->Version  = 2;
+    FramebufferData->Revision = 0;
+
+    FramebufferData->VideoClock = 0; // FIXME: Use EDID
+
+    /* Horizontal and Vertical resolution in pixels */
+    FramebufferData->ScreenWidth  = ScreenWidth;
+    FramebufferData->ScreenHeight = ScreenHeight;
+
+    /* Number of pixel elements per video memory line */
+    FramebufferData->PixelsPerScanLine = ScreenWidth;
+
+    /* Physical format of the pixel */
+    FramebufferData->BitsPerPixel = (8 * BytesPerPixel);
+    RtlZeroMemory(&FramebufferData->PixelInformation,
+                  sizeof(FramebufferData->PixelInformation));
 
     FldrCreateComponentKey(BusKey,
                            ControllerClass,
@@ -240,7 +286,6 @@ DetectIsaBios(
     /* Detect ISA/BIOS devices */
     DetectBiosDisks(SystemKey, BusKey);
     DetectSerialPorts(Options, BusKey, XboxGetSerialPort, MAX_XBOX_COM_PORTS);
-    DetectDisplayController(BusKey);
 
     /* FIXME: Detect more ISA devices */
 }
@@ -276,9 +321,44 @@ XboxHwDetect(
     GetHarddiskConfigurationData = XboxGetHarddiskConfigurationData;
     FindPciBios = XboxFindPciBios;
 
-    /* TODO: Build actual xbox's hardware configuration tree */
+    /* TODO: Build actual Xbox's hardware configuration tree */
     DetectPciBios(SystemKey, &BusNumber);
     DetectIsaBios(Options, SystemKey, &BusNumber);
+
+    /* On XBOX, the display controller is on PCI bus #1 */
+    {
+    PCONFIGURATION_COMPONENT_DATA BusKey;
+    ULONG NumPciBus = 0;
+    ULONG PciBusToFind = 1;
+
+    /* PCI buses are under the System Key (i.e. siblings) */
+    for (BusKey = SystemKey->Child; BusKey; BusKey = BusKey->Sibling)
+    {
+        ERR("** XBOX: Current bus '%s' **\n", BusKey->ComponentEntry.Identifier);
+
+        /* Try to get a match */
+        if ((BusKey->ComponentEntry.Class == AdapterClass) &&
+            (BusKey->ComponentEntry.Type  == MultiFunctionAdapter) &&
+            /* Verify it's a PCI key */
+            (BusKey->ComponentEntry.Identifier &&
+             !_stricmp(BusKey->ComponentEntry.Identifier, "PCI")))
+        {
+            /* Got a PCI bus, check whether it's the one to find */
+            if (NumPciBus == PciBusToFind)
+            {
+                ERR("** XBOX: PCI bus #%lu found!\n **\n", PciBusToFind);
+                break;
+            }
+            /* Nope, continue */
+            ++NumPciBus;
+        }
+    }
+    if (BusKey)
+    {
+        ERR("** XBOX: Adding Display Controller on PCI #1 **\n");
+        DetectDisplayController(BusKey);
+    }
+    }
 
     TRACE("DetectHardware() Done\n");
     return SystemKey;

@@ -28,6 +28,9 @@ DBG_DEFAULT_CHANNEL(UI);
 ULONG NvBase = 0xFD000000;
 ULONG_PTR FrameBuffer;
 ULONG FrameBufferSize;
+ULONG ScreenWidth;
+ULONG ScreenHeight;
+ULONG BytesPerPixel;
 extern multiboot_info_t * MultibootInfoPtr;
 #define FB_SIZE_MB 4
 
@@ -95,14 +98,11 @@ XboxGetFramebufferSize(
 VOID
 XboxVideoInit(VOID)
 {
-    ULONG ScreenWidth;
-    ULONG ScreenHeight;
-    ULONG BytesPerPixel;
-
     /* Reuse framebuffer that was set up by firmware */
     FrameBuffer = (ULONG_PTR)READ_REGISTER_ULONG(NvBase + NV2A_CRTC_FRAMEBUFFER_START);
     /* Verify that framebuffer address is page-aligned */
     ASSERT(FrameBuffer % PAGE_SIZE == 0);
+ERR("XBOX framebuffer at 0x%p\n", FrameBuffer);
 
     /* Obtain framebuffer memory size from multiboot memory map */
     if ((FrameBufferSize = XboxGetFramebufferSize(FrameBuffer)) == 0)
