@@ -536,6 +536,11 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     else
     {
         ///DPRINT1("Starting CPU#%u - you are brave\n", Number);
+        LoaderBlock->Prcb = 0;
+        for(;;)
+        {
+            
+        }
     }
 
     /* Setup the Idle Thread */
@@ -842,6 +847,7 @@ AppCpuInit:
     /* Set active processors */
     if (!Cpu)
         KeActiveProcessors |= __readfsdword(KPCR_SET_MEMBER);
+    
     KeNumberProcessors++;
 
     /* Check if this is the boot CPU */
