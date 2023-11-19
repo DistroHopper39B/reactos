@@ -53,3 +53,8 @@ VOID
 NTAPI
 HalpRequestIpi(
     _In_ KAFFINITY TargetProcessors);
+
+VOID
+FASTCALL
+HalpIpiInterruptHandler(
+        _In_ PKTRAP_FRAME TrapFrame);
