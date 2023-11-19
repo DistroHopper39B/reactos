@@ -85,13 +85,6 @@ KeFreezeExecution(IN PKTRAP_FRAME TrapFrame,
 #endif
 
 #ifdef CONFIG_SMP
-    /* Acquire lock */
-    while (InterlockedBitTestAndSet((PLONG)&KiFreezeExecutionLock, 0))
-    {
-        /* Loop until lock is free */
-        while ((*(volatile KSPIN_LOCK*)&KiFreezeExecutionLock) & 1);
-    }
-
     Prcb = KeGetCurrentPrcb();
     TargetAffinity = KeActiveProcessors;
     TargetAffinity &= ~Prcb->SetMember;
@@ -136,10 +129,6 @@ KeThawExecution(IN BOOLEAN Enable)
     Prcb = KeGetCurrentPrcb();
     TargetAffinity = KeActiveProcessors;
     TargetAffinity &= ~Prcb->SetMember;
-
-
-    /* Release lock */
-    InterlockedAnd((PLONG)&KiFreezeExecutionLock, 0);
 
     /* Loop through every processor */
     for (i = 0, Current = 1; i < KeNumberProcessors; i++, Current <<= 1)
