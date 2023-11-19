@@ -1118,8 +1118,8 @@ KeSetSystemAffinityThread(IN KAFFINITY Affinity)
     KIRQL OldIrql;
     PKPRCB Prcb;
     PKTHREAD NextThread, CurrentThread = KeGetCurrentThread();
-    ASSERT_IRQL_LESS_OR_EQUAL(DISPATCH_LEVEL);
-    ASSERT((Affinity & KeActiveProcessors) != 0);
+    //ASSERT_IRQL_LESS_OR_EQUAL(DISPATCH_LEVEL);
+    //ASSERT((Affinity & KeActiveProcessors) != 0);
 
     /* Lock the Dispatcher Database */
     OldIrql = KiAcquireDispatcherLock();

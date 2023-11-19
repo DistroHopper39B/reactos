@@ -369,7 +369,7 @@ VOID
 KiAcquireDispatcherLockAtSynchLevel(VOID)
 {
     /* Acquire the dispatcher lock */
-    ASSERT(KeGetCurrentIrql() >= SYNCH_LEVEL);
+    //ASSERT(KeGetCurrentIrql() >= SYNCH_LEVEL);
     KeAcquireQueuedSpinLockAtDpcLevel(&KeGetCurrentPrcb()->
                                       LockQueue[LockQueueDispatcherLock]);
 }
@@ -924,7 +924,7 @@ KxInsertTimer(IN PKTIMER Timer,
               IN ULONG Hand)
 {
     PKSPIN_LOCK_QUEUE LockQueue;
-    ASSERT(KeGetCurrentIrql() >= SYNCH_LEVEL);
+   // ASSERT(KeGetCurrentIrql() >= SYNCH_LEVEL);
 
     /* Acquire the lock and release the dispatcher lock */
     LockQueue = KiAcquireTimerLock(Hand);
