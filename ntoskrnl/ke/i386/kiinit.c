@@ -811,24 +811,12 @@ KiSystemStartup(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     RtlCopyMemory(&Idt[8], &DoubleFaultEntry, sizeof(KIDTENTRY));
 
 AppCpuInit:
-    //TODO: We don't setup IPIs yet so freeze other processors here.
-    if (Cpu)
-    {
-        KeMemoryBarrier();
-        LoaderBlock->Prcb = 0;
-
-        for (;;)
-        {
-            YieldProcessor();
-        }
-    }
-
     /* Loop until we can release the freeze lock */
     do
     {
         /* Loop until execution can continue */
         while (*(volatile PKSPIN_LOCK*)&KiFreezeExecutionLock == (PVOID)1);
-    } while(InterlockedBitTestAndSet((PLONG)&KiFreezeExecutionLock, 0));
+    } while(InterlockedAnd((PLONG)&KiFreezeExecutionLock, 0));
 
     /* Setup CPU-related fields */
     __writefsdword(KPCR_NUMBER, Cpu);
@@ -836,7 +824,8 @@ AppCpuInit:
     __writefsdword(KPCR_SET_MEMBER_COPY, 1 << Cpu);
     __writefsdword(KPCR_PRCB_SET_MEMBER, 1 << Cpu);
 
-    KiVerifyCpuFeatures(Pcr->Prcb);
+    if (!Cpu)
+        KiVerifyCpuFeatures(Pcr->Prcb);
 
     /* Initialize the Processor with HAL */
     HalInitializeProcessor(Cpu, KeLoaderBlock);
@@ -861,6 +850,18 @@ AppCpuInit:
 
     /* Raise to HIGH_LEVEL */
     KeRaiseIrql(HIGH_LEVEL, &DummyIrql);
+
+    //TODO: We don't setup IPIs yet so freeze other processors here.
+    if (Cpu)
+    {
+        KeMemoryBarrier();
+        LoaderBlock->Prcb = 0;
+
+        for (;;)
+        {
+            YieldProcessor();
+        }
+    }
 
     /* Switch to new kernel stack and start kernel bootstrapping */
     KiSwitchToBootStack(InitialStack & ~3);
