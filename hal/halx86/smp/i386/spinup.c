@@ -44,6 +44,7 @@ typedef struct _AP_ENTRY_DATA
     ULONG PageTableRoot;
     PKPROCESSOR_STATE ProcessorState;
     KDESCRIPTOR Gdtr;
+    KDESCRIPTOR Idtr;
 } AP_ENTRY_DATA, *PAP_ENTRY_DATA;
 
 /* FUNCTIONS *****************************************************************/
@@ -109,6 +110,7 @@ HalStartNextProcessor(
         .PageTableRoot = initialCr3,
         .ProcessorState = ProcessorState,
         .Gdtr = ProcessorState->SpecialRegisters.Gdtr,
+        .Idtr = ProcessorState->SpecialRegisters.Idtr,
     };
 
     ApicStartApplicationProcessor(HalpStartedProcessorCount, HalpLowStubPhysicalAddress);

@@ -535,8 +535,7 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     }
     else
     {
-        /* FIXME */
-        DPRINT1("Starting CPU#%u - you are brave\n", Number);
+        ///DPRINT1("Starting CPU#%u - you are brave\n", Number);
     }
 
     /* Setup the Idle Thread */
@@ -674,7 +673,17 @@ NTAPI
 KiSystemStartupBootStack(VOID)
 {
     PKTHREAD Thread;
-
+    if (KeNumberProcessors > 1)
+    {
+    KiInitializeKernel(&KiInitialProcess.Pcb,
+                       (PKTHREAD)__readfsdword(KPCR_CURRENT_THREAD),
+                       (PVOID)(KeLoaderBlock->KernelStack & ~3),
+                       (PKPRCB)__readfsdword(KPCR_PRCB),
+                       KeNumberProcessors - 1,
+                       KeLoaderBlock);
+    }
+    else
+    {
     /* Initialize the kernel for the current CPU */
     KiInitializeKernel(&KiInitialProcess.Pcb,
                        (PKTHREAD)KeLoaderBlock->Thread,
@@ -682,7 +691,7 @@ KiSystemStartupBootStack(VOID)
                        (PKPRCB)__readfsdword(KPCR_PRCB),
                        KeNumberProcessors - 1,
                        KeLoaderBlock);
-
+    }
     /* Set the priority of this thread to 0 */
     Thread = KeGetCurrentThread();
     Thread->Priority = 0;
@@ -831,7 +840,8 @@ AppCpuInit:
     HalInitializeProcessor(Cpu, KeLoaderBlock);
 
     /* Set active processors */
-    KeActiveProcessors |= __readfsdword(KPCR_SET_MEMBER);
+    if (!Cpu)
+        KeActiveProcessors |= __readfsdword(KPCR_SET_MEMBER);
     KeNumberProcessors++;
 
     /* Check if this is the boot CPU */
@@ -850,18 +860,6 @@ AppCpuInit:
 
     /* Raise to HIGH_LEVEL */
     KeRaiseIrql(HIGH_LEVEL, &DummyIrql);
-
-    //TODO: We don't setup IPIs yet so freeze other processors here.
-    if (Cpu)
-    {
-        KeMemoryBarrier();
-        LoaderBlock->Prcb = 0;
-
-        for (;;)
-        {
-            YieldProcessor();
-        }
-    }
 
     /* Switch to new kernel stack and start kernel bootstrapping */
     KiSwitchToBootStack(InitialStack & ~3);

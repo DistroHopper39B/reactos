@@ -10,8 +10,13 @@
 /* INCLUDES *******************************************************************/
 
 #include <ntoskrnl.h>
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
+
+#ifdef NDEBUG
+#define KdpDprintf(...)
+#endif
+
 
 /* GLOBALS ********************************************************************/
 
@@ -28,6 +33,7 @@ NTAPI
 KiFreezeTargetExecution(_In_ PKTRAP_FRAME TrapFrame,
                         _In_ PKEXCEPTION_FRAME ExceptionFrame)
 {
+    KdpDprintf("CPU %d: enter", KeGetCurrentProcessorNumber());
     PKPRCB Prcb;
 
     Prcb = KeGetCurrentPrcb();
@@ -40,6 +46,8 @@ KiFreezeTargetExecution(_In_ PKTRAP_FRAME TrapFrame,
         KeMemoryBarrier();
     }
 
+    KdpDprintf("CPU %d: exit", KeGetCurrentProcessorNumber());
+    
     /* Cleanup CPU caches */
     KeFlushCurrentTb();
 
@@ -85,18 +93,12 @@ KeFreezeExecution(IN PKTRAP_FRAME TrapFrame,
 #endif
 
 #ifdef CONFIG_SMP
-    /* Acquire lock */
-    while (InterlockedBitTestAndSet((PLONG)&KiFreezeExecutionLock, 0))
-    {
-        /* Loop until lock is free */
-        while ((*(volatile KSPIN_LOCK*)&KiFreezeExecutionLock) & 1);
-    }
-
     Prcb = KeGetCurrentPrcb();
     TargetAffinity = KeActiveProcessors;
     TargetAffinity &= ~Prcb->SetMember;
     if (TargetAffinity)
     {
+        KdpDprintf("CPU %d: freezing some processors", KeGetCurrentProcessorNumber());
         KiIpiSend(TargetAffinity, IPI_FREEZE);
         for (i = 0, Current = 1; i < KeNumberProcessors; i++, Current <<= 1)
         {
@@ -136,10 +138,6 @@ KeThawExecution(IN BOOLEAN Enable)
     Prcb = KeGetCurrentPrcb();
     TargetAffinity = KeActiveProcessors;
     TargetAffinity &= ~Prcb->SetMember;
-
-
-    /* Release lock */
-    InterlockedAnd((PLONG)&KiFreezeExecutionLock, 0);
 
     /* Loop through every processor */
     for (i = 0, Current = 1; i < KeNumberProcessors; i++, Current <<= 1)

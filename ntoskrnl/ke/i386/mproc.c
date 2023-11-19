@@ -132,6 +132,7 @@ KeStartAllProcessors(VOID)
             KeMemoryBarrier();
             YieldProcessor();
         }
+        __debugbreak();
     }
 
     // The last CPU didn't start - clean the data

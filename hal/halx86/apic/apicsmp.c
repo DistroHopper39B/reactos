@@ -69,12 +69,6 @@ ApicRequestGlobalInterrupt(
 {
     APIC_INTERRUPT_COMMAND_REGISTER Icr;
 
-    /* Wait for the APIC to be idle */
-    do
-    {
-        Icr.Long0 = ApicRead(APIC_ICR0);
-    } while (Icr.DeliveryStatus);
-
     /* Setup the command register */
     Icr.LongLong = 0;
     Icr.Vector = Vector;
@@ -99,8 +93,26 @@ VOID
 NTAPI
 HalpRequestIpi(_In_ KAFFINITY TargetProcessors)
 {
-    UNIMPLEMENTED;
-    __debugbreak();
+    LONG i;
+    KAFFINITY Current;
+    /*
+    *
+    * CPU masking is done in software thanks to KAFFINITY
+    * - Destination is ALWAYS : APIC_DSH_Destination
+    * - Mode is ALWAYS dependdent on xAPIC+ or legacy APIC
+    * -
+    */
+   // DPRINT1("KAFFINITY is %X\n", TargetProcessors);
+
+    for (i = 0, Current = 1; i < KeNumberProcessors; i++, Current <<= 1)
+    {
+        if (TargetProcessors & Current)
+        {
+           // DPRINT1("Sending IPI to CPU: %X\n", i);
+            ApicRequestGlobalInterrupt(i, APIC_IPI_VECTOR, APIC_MT_Fixed,
+                APIC_TGM_Edge, APIC_DSH_Destination);
+        }
+    }
 }
 
 VOID

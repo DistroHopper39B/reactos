@@ -31,8 +31,10 @@ _HalpAPEntry16:
 
 #ifdef _USE_ML
     data32 lgdt fword ptr cs:[ZERO_OFFSET(Gdtr)]
+    data32 lidt fword ptr cs:[ZERO_OFFSET(Idtr)]
 #else
     data32 lgdt cs:[ZERO_OFFSET(Gdtr)]
+    data32 lidt cs:[ZERO_OFFSET(Idtr)]
 #endif
 
     /* Load temp page table */
@@ -61,6 +63,11 @@ ProcessorState:
 Gdtr_Pad:
     .short 0 // Pad
 Gdtr:
+    .short 0 // Limit
+    .long 0 // Base
+Idtr_Pad:
+    .short 0 // Pad
+Idtr:
     .short 0 // Limit
     .long 0 // Base
 _HalpAPEntry16End:
