@@ -18,7 +18,6 @@ NTAPI
 ApicInitializeLocalApic(ULONG Cpu);
 
 /* FUNCTIONS ****************************************************************/
-
 VOID
 NTAPI
 HalpInitProcessor(
@@ -38,13 +37,32 @@ HalpInitProcessor(
 
     /* Initialize the local APIC for this cpu */
     ApicInitializeLocalApic(ProcessorNumber);
+    if(ProcessorNumber != 0)
+    {
+    /* Set interrupt handlers in the IDT */
+    KeRegisterInterruptHandler(APIC_CLOCK_VECTOR, HalpClockInterrupt);
+    KeRegisterInterruptHandler(APIC_IPI_VECTOR, HalpIpiInterrupt);
+#ifndef _M_AMD64
+    KeRegisterInterruptHandler(APC_VECTOR, HalpApcInterrupt);
+    KeRegisterInterruptHandler(DISPATCH_VECTOR, HalpDispatchInterrupt);
+#endif
 
+    /* Register the vectors for APC and dispatch interrupts */
+    HalpRegisterVector(IDT_INTERNAL, 0, APC_VECTOR, APC_LEVEL);
+    HalpRegisterVector(IDT_INTERNAL, 0, DISPATCH_VECTOR, DISPATCH_LEVEL);
+
+    /* Restore interrupt state */
+    //if (EnableInterrupts) EFlags |= EFLAGS_INTERRUPT_MASK;
+    }
+    if(ProcessorNumber == 0)
+    {
     /* Initialize profiling data (but don't start it) */
-    HalInitializeProfiling();
-
+        HalInitializeProfiling();
+    }
     /* Initialize the timer */
     //ApicInitializeTimer(ProcessorNumber);
 }
+
 
 VOID
 HalpInitPhase0(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
@@ -76,8 +94,28 @@ HalpInitPhase0(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 VOID
 HalpInitPhase1(VOID)
 {
-    /* Initialize DMA. NT does this in Phase 0 */
-    HalpInitDma();
+    if(KeNumberProcessors < 1)
+    {
+        HalpInitDma();
+    }
+    else
+    {
+            /* Enable clock interrupt handler */
+    HalpEnableInterruptHandler(IDT_INTERNAL,
+                               0,
+                               APIC_CLOCK_VECTOR,
+                               CLOCK2_LEVEL,
+                               HalpClockInterrupt,
+                               Latched);
+
+    /* Enable IPI interrupt handler */
+    HalpEnableInterruptHandler(IDT_INTERNAL,
+                               0,
+                               APIC_IPI_VECTOR,
+                               IPI_LEVEL,
+                               HalpIpiInterruptHandler,
+                               Latched);
+    }
 }
 
 /* EOF */
