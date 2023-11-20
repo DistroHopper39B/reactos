@@ -818,6 +818,9 @@ AppCpuInit:
         while ((*(volatile KSPIN_LOCK*)&KiFreezeExecutionLock) & 1);
     }
 
+    /* Release lock */
+    InterlockedAnd((PLONG)&KiFreezeExecutionLock, 0);
+    
     //TODO: We don't setup IPIs yet so freeze other processors here.
     if (Cpu)
     {
@@ -840,9 +843,6 @@ AppCpuInit:
 
     /* Initialize the Processor with HAL */
     HalInitializeProcessor(Cpu, KeLoaderBlock);
-
-    /* Release lock */
-    InterlockedAnd((PLONG)&KiFreezeExecutionLock, 0);
 
     /* Set active processors */
     KeActiveProcessors |= __readfsdword(KPCR_SET_MEMBER);
