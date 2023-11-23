@@ -103,6 +103,11 @@ ApicRequestGlobalInterrupt(
     }
 }
 
+#ifdef _WIN64
+#define BitScanForwardAffinity BitScanForward64
+#else
+#define BitScanForwardAffinity BitScanForward
+#endif
 
 /* SMP SUPPORT FUNCTIONS ******************************************************/
 
@@ -138,3 +143,68 @@ ApicStartApplicationProcessor(
     ApicRequestGlobalInterrupt(HalpProcessorIdentity[NTProcessorNumber].LapicId, (StartupLoc.LowPart) >> 12,
         APIC_MT_Startup, APIC_TGM_Edge, APIC_DSH_Destination);
 }
+
+#ifdef _M_AMD64
+
+VOID
+NTAPI
+HalpSendNMI(
+    _In_ KAFFINITY TargetSet)
+{
+    KAFFINITY RemainingSet, ProcessorMask;
+    ULONG ProcessorIndex;
+    ULONG LApicId;
+
+    /* Make sure we do not send an NMI to ourselves */
+    ASSERT((TargetSet & ~KeGetCurrentPrcb()->SetMember) == 0);
+
+    /* Loop while we have more processors */
+    RemainingSet = TargetSet;
+    while (RemainingSet != 0)
+    {
+        NT_VERIFY(BitScanForwardAffinity(&ProcessorIndex, RemainingSet) != 0);
+        ASSERT(ProcessorIndex < KeNumberProcessors);
+        ProcessorMask = (KAFFINITY)1 << ProcessorIndex;
+        RemainingSet &= ~ProcessorMask;
+
+        /* Send and NMI to the target processor */
+        LApicId = HalpProcessorIdentity[ProcessorIndex].LapicId;
+        ApicRequestGlobalInterrupt(LApicId,
+                                   0,
+                                   APIC_MT_NMI,
+                                   APIC_TGM_Edge,
+                                   APIC_DSH_Destination);
+    }
+}
+
+VOID
+NTAPI
+HalpSendSoftwareInterrupt(
+    _In_ KAFFINITY TargetSet,
+    _In_ UCHAR Vector)
+{
+    KAFFINITY RemainingSet, ProcessorMask;
+    ULONG ProcessorIndex;
+    ULONG LApicId;
+
+    /* Loop while we have more processors */
+    RemainingSet = TargetSet;
+    while (RemainingSet != 0)
+    {
+        NT_VERIFY(BitScanForwardAffinity(&ProcessorIndex, RemainingSet) != 0);
+        ASSERT(ProcessorIndex < KeNumberProcessors);
+        ProcessorMask = (KAFFINITY)1 << ProcessorIndex;
+        RemainingSet &= ~ProcessorMask;
+
+
+        /* Send the interrupt to the target processor */
+        LApicId = HalpProcessorIdentity[ProcessorIndex].LapicId;
+        ApicRequestGlobalInterrupt(LApicId,
+                                   Vector,
+                                   APIC_MT_Fixed,
+                                   APIC_TGM_Edge,
+                                   APIC_DSH_Destination);
+    }
+}
+
+#endif // _M_AMD64

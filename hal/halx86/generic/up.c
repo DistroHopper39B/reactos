@@ -38,3 +38,22 @@ HalpSetupProcessorsTable(
     _In_ UINT32 NTProcessorNumber)
 {
 }
+
+#ifdef _M_AMD64
+
+VOID
+NTAPI
+HalSendNMI(
+    _In_ KAFFINITY TargetSet)
+{
+}
+
+VOID
+NTAPI
+HalSendSoftwareInterrupt(
+    _In_ KAFFINITY TargetSet,
+    _In_ UCHAR Vector)
+{
+}
+
+#endif // _M_AMD64
