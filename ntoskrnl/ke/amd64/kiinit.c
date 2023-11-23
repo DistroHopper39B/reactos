@@ -407,6 +407,23 @@ KiInitModuleList(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     }
 }
 
+VOID
+NTAPI
+KiParkAppCpu(PLOADER_PARAMETER_BLOCK LoaderBlock)
+{
+    //__debugbreak();
+    //KeNumberProcessors--;
+    //KeActiveProcessors = 1;
+    KeMemoryBarrier();
+    LoaderBlock->Prcb = 0;
+    KeMemoryBarrier();
+
+    for (;;)
+    {
+        YieldProcessor();
+    }
+}
+
 CODE_SEG("INIT")
 DECLSPEC_NORETURN
 VOID
@@ -505,19 +522,7 @@ KiSystemStartup(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     KfRaiseIrql(HIGH_LEVEL);
 
     //TODO: We don't setup IPIs yet so freeze other processors here.
-    if (Cpu)
-    {
-        __debugbreak();
-        KeNumberProcessors = 1;
-        KeActiveProcessors = 1;
-        KeMemoryBarrier();
-        LoaderBlock->Prcb = 0;
-
-        for (;;)
-        {
-            YieldProcessor();
-        }
-    }
+    //if (Cpu) KiParkAppCpu(LoaderBlock);
 
     /* Machine specific kernel initialization */
     if (Cpu == 0) KiInitializeKernelMachineDependent(&Pcr->Prcb, LoaderBlock);

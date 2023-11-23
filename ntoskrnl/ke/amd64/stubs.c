@@ -37,6 +37,8 @@ KiDpcInterruptHandler(VOID)
     /* Raise to DISPATCH_LEVEL */
     OldIrql = KfRaiseIrql(DISPATCH_LEVEL);
 
+//    if (KeGetCurrentProcessorNumber() != 0) __debugbreak();
+
     /* Send an EOI */
     KiSendEOI();
 

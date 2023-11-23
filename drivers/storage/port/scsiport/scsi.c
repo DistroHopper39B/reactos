@@ -995,7 +995,7 @@ ScsiPortStartPacket(
     PSCSI_REQUEST_BLOCK_INFO SrbInfo;
     BOOLEAN Result;
     BOOLEAN StartTimer;
-
+__debugbreak();
     DPRINT("ScsiPortStartPacket() called\n");
 
     IrpStack = IoGetCurrentIrpStackLocation(DeviceObject->CurrentIrp);
@@ -1633,7 +1633,7 @@ ScsiPortStartIo(
     PSCSI_REQUEST_BLOCK_INFO SrbInfo;
     LONG CounterResult;
     NTSTATUS Status;
-
+//    __debugbreak(); // DeviceExtension->Interrupt[0] == 0?
     DPRINT("ScsiPortStartIo() called!\n");
 
     DeviceExtension = DeviceObject->DeviceExtension;

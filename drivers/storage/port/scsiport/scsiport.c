@@ -1349,7 +1349,7 @@ CreatePortConfig:
             DPRINT1("Failed to start the legacy adapter. Status 0x%x\n", Status);
             break;
         }
-
+__debugbreak();
         FdoScanAdapter(DeviceExtension);
 
         FirstConfigCall = FALSE;

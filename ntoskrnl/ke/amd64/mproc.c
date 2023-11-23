@@ -117,6 +117,8 @@ KeStartAllProcessors(VOID)
         KeLoaderBlock->Process = (ULONG64)PsGetCurrentProcess();
         KeLoaderBlock->Prcb = (ULONG64)&APInfo->Pcr.Prcb;
 
+        //if (KernelStack) break;
+
         /* Start the next processor */
         DPRINT1("Attempting to start processor #%u\n", ProcessorCount);
         if (!HalStartNextProcessor(KeLoaderBlock, ProcessorState))
@@ -133,7 +135,7 @@ KeStartAllProcessors(VOID)
             YieldProcessor();
         }
 
-        __debugbreak();
+        //__debugbreak();
     }
 
     if (KernelStack != NULL)

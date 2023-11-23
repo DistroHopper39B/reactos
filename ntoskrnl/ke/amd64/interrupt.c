@@ -90,7 +90,7 @@ KeConnectInterrupt(IN PKINTERRUPT Interrupt)
     ASSERT(Interrupt->Irql <= HIGH_LEVEL);
     ASSERT(Interrupt->SynchronizeIrql >= Interrupt->Irql);
     ASSERT(Interrupt->Irql == (Interrupt->Vector >> 4));
-
+    if (Interrupt->Vector == 0xb0) __debugbreak();
     /* Check if its already connected */
     if (Interrupt->Connected) return TRUE;
 
