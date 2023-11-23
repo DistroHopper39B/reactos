@@ -113,10 +113,29 @@ ApicRequestGlobalInterrupt(
 
 VOID
 NTAPI
-HalpRequestIpi(_In_ KAFFINITY TargetProcessors)
+HalpRequestIpi(_In_ KAFFINITY TargetSet)
 {
-    UNIMPLEMENTED;
-    __debugbreak();
+    KAFFINITY RemainingSet, ProcessorMask;
+    ULONG ProcessorIndex;
+    ULONG LApicId;
+
+    /* Loop while we have more processors */
+    RemainingSet = TargetSet;
+    while (RemainingSet != 0)
+    {
+        NT_VERIFY(BitScanForwardAffinity(&ProcessorIndex, RemainingSet) != 0);
+        ASSERT(ProcessorIndex < KeNumberProcessors);
+        ProcessorMask = (KAFFINITY)1 << ProcessorIndex;
+        RemainingSet &= ~ProcessorMask;
+
+        /* Send and NMI to the target processor */
+        LApicId = HalpProcessorIdentity[ProcessorIndex].LapicId;
+        ApicRequestGlobalInterrupt(LApicId,
+                                   APIC_IPI_VECTOR,
+                                   APIC_MT_Fixed,
+                                   APIC_TGM_Edge,
+                                   APIC_DSH_Destination);
+    }
 }
 
 VOID
