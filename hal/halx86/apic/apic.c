@@ -134,6 +134,32 @@ ApicReadIORedirectionEntry(
     return ReDirReg;
 }
 
+ULONG
+HalpGetapicId(
+    VOID)
+{
+    APIC_VERSION_REGISTER Version;
+    ULONG Id;
+
+    /* Read the APIC version register */
+    Version.Long = ApicRead(APIC_VER);
+
+    /* Check if this is an integrated APIC */
+    if (Version.Version >= 0x10)
+    {
+        /* Read the local APIC ID */
+        Id = ApicRead(APIC_ID);
+    }
+    else
+    {
+        /* Read the local APIC ID */
+        Id = ApicRead(APIC_ID) >> 24;
+    }
+
+    /* Return the ID */
+    return Id;
+}
+
 FORCEINLINE
 VOID
 ApicRequestSelfInterrupt(IN UCHAR Vector, UCHAR TriggerMode)
