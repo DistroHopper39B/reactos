@@ -571,6 +571,8 @@ KiRetireDpcList(IN PKPRCB Prcb)
     KIRQL OldIrql;
 #endif
 
+    if (KeGetCurrentIrql() > DISPATCH_LEVEL)
+        KfLowerIrql(DISPATCH_LEVEL);
     /* Get data and list variables before starting anything else */
     DpcData = &Prcb->DpcData[DPC_NORMAL];
     ListHead = &DpcData->DpcListHead;
