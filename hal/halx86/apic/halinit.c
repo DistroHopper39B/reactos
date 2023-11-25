@@ -38,6 +38,11 @@ HalpInitProcessor(
     /* Initialize profiling data (but don't start it) */
     HalInitializeProfiling();
 
+    if (ProcessorNumber > 0)
+    {
+        _disable();
+    }
+
     /* Initialize the timer */
     //ApicInitializeTimer(ProcessorNumber);
 }
