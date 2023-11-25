@@ -35,7 +35,7 @@ KiIpiGenericCallTarget(IN PKIPI_CONTEXT PacketContext,
                        IN PVOID Count)
 {
     /* FIXME: TODO */
-    ASSERTMSG("Not yet implemented\n", FALSE);
+   // ASSERTMSG("Not yet implemented\n", FALSE);
 }
 
 
@@ -48,7 +48,7 @@ KiIpiSendPacket(IN KAFFINITY TargetProcessors,
                 IN PULONG Count)
 {
     /* FIXME: TODO */
-    ASSERTMSG("Not yet implemented\n", FALSE);
+   // ASSERTMSG("Not yet implemented\n", FALSE);
 }
 
 VOID
@@ -56,7 +56,7 @@ FASTCALL
 KiIpiSignalPacketDone(IN PKIPI_CONTEXT PacketContext)
 {
     /* FIXME: TODO */
-    ASSERTMSG("Not yet implemented\n", FALSE);
+   // ASSERTMSG("Not yet implemented\n", FALSE);
 }
 
 VOID
@@ -65,7 +65,7 @@ KiIpiSignalPacketDoneAndStall(IN PKIPI_CONTEXT PacketContext,
                               IN volatile PULONG ReverseStall)
 {
     /* FIXME: TODO */
-    ASSERTMSG("Not yet implemented\n", FALSE);
+   // ASSERTMSG("Not yet implemented\n", FALSE);
 }
 
 VOID
@@ -73,7 +73,6 @@ NTAPI
 KiIpiSendRequest(IN KAFFINITY TargetSet,
                  IN ULONG IpiRequest)
 {
-    KdpDprintf("Sending IPIs\n");
 #ifdef CONFIG_SMP
     LONG i;
     PKPRCB Prcb;
@@ -213,6 +212,7 @@ NTAPI
 KeIpiGenericCall(IN PKIPI_BROADCAST_WORKER Function,
                  IN ULONG_PTR Argument)
 {
+
     ULONG_PTR Status;
     KIRQL OldIrql, OldIrql2;
 #ifdef CONFIG_SMP
@@ -276,7 +276,7 @@ KeIpiGenericCall(IN PKIPI_BROADCAST_WORKER Function,
         ASSERT(Prcb == KeGetCurrentPrcb());
 
         /* FIXME: TODO */
-        ASSERTMSG("Not yet implemented\n", FALSE);
+       // ASSERTMSG("Not yet implemented\n", FALSE);
     }
 #endif
 
