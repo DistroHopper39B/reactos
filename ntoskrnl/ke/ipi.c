@@ -14,7 +14,16 @@
 
 /* GLOBALS *******************************************************************/
 
+VOID
+NTAPI
+KiFreezeTargetExecution(_In_ PKTRAP_FRAME TrapFrame,
+                        _In_ PKEXCEPTION_FRAME ExceptionFrame);
+
 extern KSPIN_LOCK KiReverseStallIpiLock;
+
+#ifdef NDEBUG
+#define KdpDprintf(...)
+#endif
 
 /* PRIVATE FUNCTIONS *********************************************************/
 
@@ -29,14 +38,6 @@ KiIpiGenericCallTarget(IN PKIPI_CONTEXT PacketContext,
     ASSERTMSG("Not yet implemented\n", FALSE);
 }
 
-VOID
-FASTCALL
-KiIpiSend(IN KAFFINITY TargetProcessors,
-          IN ULONG IpiRequest)
-{
-    /* FIXME: TODO */
-    ASSERTMSG("Not yet implemented\n", FALSE);
-}
 
 VOID
 NTAPI
@@ -67,12 +68,12 @@ KiIpiSignalPacketDoneAndStall(IN PKIPI_CONTEXT PacketContext,
     ASSERTMSG("Not yet implemented\n", FALSE);
 }
 
-#if 0
 VOID
 NTAPI
 KiIpiSendRequest(IN KAFFINITY TargetSet,
                  IN ULONG IpiRequest)
 {
+    KdpDprintf("Sending IPIs\n");
 #ifdef CONFIG_SMP
     LONG i;
     PKPRCB Prcb;
@@ -85,13 +86,16 @@ KiIpiSendRequest(IN KAFFINITY TargetSet,
             /* Get the PRCB for this CPU */
             Prcb = KiProcessorBlock[i];
 
-            InterlockedBitTestAndSet((PLONG)&Prcb->IpiFrozen, IpiRequest);
-            HalRequestIpi(i);
+            Prcb->RequestSummary = IpiRequest;
         }
     }
+
+    /* HalRequestIpi does its own mask check =*/
+    HalRequestIpi(TargetSet);
 #endif
 }
 
+#if 0
 VOID
 NTAPI
 KiIpiSendPacket(IN KAFFINITY TargetSet,
@@ -150,43 +154,56 @@ KiIpiServiceRoutine(IN PKTRAP_FRAME TrapFrame,
 {
 #ifdef CONFIG_SMP
     PKPRCB Prcb;
-    ASSERT(KeGetCurrentIrql() == IPI_LEVEL);
+   // ASSERT(KeGetCurrentIrql() == IPI_LEVEL);
 
     Prcb = KeGetCurrentPrcb();
 
-    if (InterlockedBitTestAndReset((PLONG)&Prcb->IpiFrozen, IPI_APC))
+    /* APC level! Trigger an APC interrupt */
+    if (InterlockedBitTestAndReset((PLONG)&Prcb->RequestSummary, IPI_APC))
     {
         HalRequestSoftwareInterrupt(APC_LEVEL);
     }
 
-    if (InterlockedBitTestAndReset((PLONG)&Prcb->IpiFrozen, IPI_DPC))
+
+    /* DPC level! Trigger an DPC interrupt */
+    if (InterlockedBitTestAndReset((PLONG)&Prcb->RequestSummary, IPI_DPC))
     {
         Prcb->DpcInterruptRequested = TRUE;
         HalRequestSoftwareInterrupt(DISPATCH_LEVEL);
     }
 
+    /* Freeze level! Trigger a FREEZE interrupt */
+    if (InterlockedBitTestAndReset((PLONG)&Prcb->RequestSummary, IPI_FREEZE))
+    {
+        KiFreezeTargetExecution(TrapFrame, ExceptionFrame);
+    }
+
     if (InterlockedBitTestAndReset((PLONG)&Prcb->IpiFrozen, IPI_SYNCH_REQUEST))
     {
-#if defined(_M_ARM) || defined(_M_AMD64)
-        DbgBreakPoint();
-#else
-        (void)InterlockedDecrementUL(&Prcb->SignalDone->CurrentPacket[1]);
-        if (InterlockedCompareExchangeUL(&Prcb->SignalDone->CurrentPacket[2], 0, 0))
-        {
-            while (0 != InterlockedCompareExchangeUL(&Prcb->SignalDone->CurrentPacket[1], 0, 0));
-        }
-        ((VOID (NTAPI*)(PVOID))(Prcb->SignalDone->WorkerRoutine))(Prcb->SignalDone->CurrentPacket[0]);
-        InterlockedBitTestAndReset((PLONG)&Prcb->SignalDone->TargetSet, KeGetCurrentProcessorNumber());
-        if (InterlockedCompareExchangeUL(&Prcb->SignalDone->CurrentPacket[2], 0, 0))
-        {
-            while (0 != InterlockedCompareExchangeUL(&Prcb->SignalDone->TargetSet, 0, 0));
-        }
-        (void)InterlockedExchangePointer((PVOID*)&Prcb->SignalDone, NULL);
-#endif // _M_ARM
+        //TODO:
     }
 #endif
    return TRUE;
 }
+
+/**
+ * @brief
+ * Send a interrupt of whatever type is assigned in IpiRequest to the target CPU set
+ *
+ * @param[in] TargetSet
+ * List of CPUs being sent IPIs
+ *
+ * @param[in] IpiRequest
+ * The Interrupt type being sent to target CPUs
+ */
+VOID
+FASTCALL
+KiIpiSend(IN KAFFINITY TargetProcessors, IN ULONG IpiRequest)
+{
+    /* Call private function */
+    KiIpiSendRequest(TargetProcessors, IpiRequest);
+}
+
 
 /*
  * @implemented
