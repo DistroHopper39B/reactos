@@ -824,7 +824,8 @@ AppCpuInit:
     HalInitializeProcessor(Cpu, KeLoaderBlock);
 
     /* Set active processors */
-    KeActiveProcessors |= __readfsdword(KPCR_SET_MEMBER);
+    if (!Cpu)
+        KeActiveProcessors |= __readfsdword(KPCR_SET_MEMBER);
     KeNumberProcessors++;
 
     //TODO: We don't setup IPIs yet so freeze other processors here.

@@ -249,11 +249,7 @@ KeIpiGenericCall(IN PKIPI_BROADCAST_WORKER Function,
                         &Count);
 
         /* Spin until the other processors are ready */
-        while (Count != 1)
-        {
-            YieldProcessor();
-            KeMemoryBarrierWithoutFence();
-        }
+
     }
 #endif
 
