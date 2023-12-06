@@ -134,7 +134,11 @@ if(ARCH STREQUAL "i386")
         ${CMAKE_CURRENT_BINARY_DIR}/freeldr_pe.def)
 endif()
 
+if(SARCH STREQUAL "appletv")
+    include_directories(BEFORE ${REACTOS_SOURCE_DIR}/boot/environ/include/efi)
+endif()
+
 include(pcat.cmake)
-if(NOT ARCH STREQUAL "i386" OR NOT (SARCH STREQUAL "pc98" OR SARCH STREQUAL "xbox"))
+if(NOT ARCH STREQUAL "i386" OR NOT (SARCH STREQUAL "pc98" OR SARCH STREQUAL "xbox" OR SARCH STREQUAL "appletv"))
     include(uefi.cmake)
 endif()

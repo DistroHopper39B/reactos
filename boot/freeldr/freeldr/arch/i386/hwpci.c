@@ -25,6 +25,7 @@ DBG_DEFAULT_CHANNEL(HWDETECT);
 
 FIND_PCI_BIOS FindPciBios = NULL;
 
+#ifndef SARCH_APPLETV
 static
 PPCI_IRQ_ROUTING_TABLE
 GetPciIrqRoutingTable(VOID)
@@ -74,6 +75,7 @@ GetPciIrqRoutingTable(VOID)
 
     return NULL;
 }
+#endif
 
 
 BOOLEAN
@@ -111,7 +113,7 @@ PcFindPciBios(PPCI_REGISTRY_INFO BusData)
     return FALSE;
 }
 
-
+#ifndef SARCH_APPLETV
 static
 VOID
 DetectPciIrqRoutingTable(PCONFIGURATION_COMPONENT_DATA BusKey)
@@ -127,7 +129,7 @@ DetectPciIrqRoutingTable(PCONFIGURATION_COMPONENT_DATA BusKey)
     {
         TRACE("Table size: %u\n", Table->TableSize);
 
-        /* Set 'Configuration Data' value */
+        // Set 'Configuration Data' value
         Size = FIELD_OFFSET(CM_PARTIAL_RESOURCE_LIST, PartialDescriptors) +
                2 * sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) + Table->TableSize;
         PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
@@ -137,7 +139,7 @@ DetectPciIrqRoutingTable(PCONFIGURATION_COMPONENT_DATA BusKey)
             return;
         }
 
-        /* Initialize resource descriptor */
+        // Initialize resource descriptor
         RtlZeroMemory(PartialResourceList, Size);
         PartialResourceList->Version  = ARC_VERSION;
         PartialResourceList->Revision = ARC_REVISION;
@@ -170,6 +172,7 @@ DetectPciIrqRoutingTable(PCONFIGURATION_COMPONENT_DATA BusKey)
                                &TableKey);
     }
 }
+#endif
 
 
 VOID
@@ -212,8 +215,9 @@ DetectPciBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
         /* Increment bus number */
         (*BusNumber)++;
-
+#ifndef SARCH_APPLETV
         DetectPciIrqRoutingTable(BiosKey);
+#endif
 
         /* Report PCI buses */
         for (i = 0; i < (ULONG)BusData.NoBuses; i++)
@@ -236,8 +240,8 @@ DetectPciBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
                 /* Initialize resource descriptor */
                 RtlZeroMemory(PartialResourceList, Size);
-                PartialResourceList->Version  = ARC_VERSION;
-                PartialResourceList->Revision = ARC_REVISION;
+                PartialResourceList->Version  = 1;
+                PartialResourceList->Revision = 1;
                 PartialResourceList->Count = 1;
                 PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
                 PartialDescriptor->Type = CmResourceTypeDeviceSpecific;
@@ -268,8 +272,8 @@ DetectPciBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
             FldrCreateComponentKey(SystemKey,
                                    AdapterClass,
                                    MultiFunctionAdapter,
-                                   0,
-                                   0,
+                                   0x0,
+                                   0x0,
                                    0xFFFFFFFF,
                                    "PCI",
                                    PartialResourceList,

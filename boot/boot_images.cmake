@@ -4,7 +4,7 @@
 if(ARCH STREQUAL "amd64")
     set(EFI_PLATFORM_ID "x64")
 elseif(ARCH STREQUAL "i386")
-    if(NOT (SARCH STREQUAL "pc98" OR SARCH STREQUAL "xbox"))
+    if(NOT (SARCH STREQUAL "pc98" OR SARCH STREQUAL "xbox" OR SARCH STREQUAL "appletv"))
         set(EFI_PLATFORM_ID "ia32")
     endif()
 elseif(ARCH STREQUAL "ia64")

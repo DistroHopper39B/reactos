@@ -339,7 +339,7 @@ LoadAndBootDevice(
     UiUnInitialize("Booting...");
     IniCleanup();
 
-#ifndef UEFIBOOT
+#ifndef SARCH_APPLETV
     /* Boot the loaded sector code */
     ChainLoadBiosBootSectorCode(DriveNumber, PartitionNumber);
 #endif
