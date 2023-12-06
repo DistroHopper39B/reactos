@@ -636,15 +636,15 @@ BOOLEAN NTAPI
 GenFbVmpInitialize(
     _In_ PVOID HwDeviceExtension)
 {
-    PGENFB_DEVICE_EXTENSION DeviceExtension = HwDeviceExtension;
+    //PGENFB_DEVICE_EXTENSION DeviceExtension = HwDeviceExtension;
 
     PAGED_CODE();
 
     DPRINT1("GenFbVmpInitialize(%p)\n", HwDeviceExtension);
 
     /* Zero the frame buffer */
-    VideoPortZeroDeviceMemory(DeviceExtension->DisplayInfo.FrameAddress,
-                              DeviceExtension->DisplayInfo.BufferSize);
+    //VideoPortZeroDeviceMemory(DeviceExtension->DisplayInfo.FrameAddress,
+                              //DeviceExtension->DisplayInfo.BufferSize);
 
     return TRUE;
 }

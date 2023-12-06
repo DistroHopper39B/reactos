@@ -79,7 +79,6 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
 
     for (i = 0; i < Count; i++, MbMap++)
     {
-        // trace doesn't seem to deal with UINT64 properly, but the finalization works
         TRACE("i = %d, addr = 0x%08X%08X, len = 0x%08X%08X, type = %i\n", i, hi32(MbMap->addr), lo32(MbMap->addr), hi32(MbMap->len), lo32(MbMap->len), MbMap->type);
         SetMemory(AppleTVMemoryMap,
                 MbMap->addr,
