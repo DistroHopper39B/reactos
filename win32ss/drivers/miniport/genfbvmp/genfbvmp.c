@@ -1039,6 +1039,7 @@ GenFbVmpSetPowerState(
     /* Unused */
     DPRINT1("GenFbVmpSetPowerState(%p)\n", HwDeviceExtension);
     //__debugbreak();
+   // __debugbreak();
     return ERROR_INVALID_FUNCTION; // NO_ERROR;
 }
 
@@ -1053,7 +1054,7 @@ GenFbVmpGetPowerState(
 
     /* Unused */
     DPRINT1("GenFbVmpGetPowerState(%p)\n", HwDeviceExtension);
-    //__debugbreak();
+    // __debugbreak();
     return ERROR_INVALID_FUNCTION; // NO_ERROR;
 }
 
@@ -1072,6 +1073,7 @@ GenFbVmpGetVideoChildDescriptor(
     /* Unused */
     DPRINT1("GenFbVmpGetVideoChildDescriptor(%p)\n", HwDeviceExtension);
     //__debugbreak();
+   // __debugbreak();
     return NO_ERROR; // FIXME: Should return VIDEO_ENUM_NO_MORE_DEVICES;
 }
 
@@ -1088,6 +1090,7 @@ DriverEntry(
 
     VideoDebugPrint((Info, "GenFbVmp: DriverEntry\n"));
     //__debugbreak();
+   // __debugbreak();
 
     VideoPortZeroMemory(&VideoInitData, sizeof(VideoInitData));
     VideoInitData.HwInitDataSize = sizeof(VideoInitData);
