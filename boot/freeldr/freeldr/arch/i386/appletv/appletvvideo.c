@@ -10,8 +10,6 @@
 
 #include <freeldr.h>
 
-#include <debug.h>
-DBG_DEFAULT_CHANNEL(UI);
 
 PVOID FrameBuffer;
 ULONG ScreenWidth;
@@ -185,56 +183,4 @@ VOID
 AppleTVVideoPrepareForReactOS(VOID)
 {
     AppleTVVideoHideShowTextCursor(FALSE);
-}
-
-/* STUB FUNCTIONS *******************************************************/
-
-VOID
-AppleTVVideoGetFontsFromFirmware(PULONG RomFontPointers)
-{
-    // Might technically be possible, but we're using a custom bitmap font.
-    TRACE("VideoGetFontsFromFirmware unsupported on Apple TV.\n");
-}
-
-VOID
-AppleTVVideoSetTextCursorPosition(UCHAR X, UCHAR Y)
-{
-    // We don't have a cursor
-}
-
-VOID
-AppleTVVideoHideShowTextCursor(BOOLEAN Show)
-{
-    // We don't have a cursor
-}
-
-VIDEODISPLAYMODE
-AppleTVVideoSetDisplayMode(char *DisplayMode, BOOLEAN Init)
-{
-    // We only have one display mode
-    return VideoTextMode;
-}
-
-BOOLEAN
-AppleTVVideoIsPaletteFixed(VOID)
-{
-    return FALSE;
-}
-
-VOID
-AppleTVVideoSetPaletteColor(UCHAR Color, UCHAR Red, UCHAR Green, UCHAR Blue)
-{
-    // Not supported
-}
-
-VOID
-AppleTVVideoGetPaletteColor(UCHAR Color, UCHAR* Red, UCHAR* Green, UCHAR* Blue)
-{
-    // Not supported
-}
-
-VOID
-AppleTVVideoSync(VOID)
-{
-    // Not supported
 }

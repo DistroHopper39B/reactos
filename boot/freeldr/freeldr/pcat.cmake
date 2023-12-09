@@ -59,12 +59,15 @@ if(ARCH STREQUAL "i386")
         # arch/i386/halstub.c
         # arch/i386/ntoskrnl.c
         arch/i386/drivemap.c
-        arch/i386/hwacpi.c
         arch/i386/hwapm.c
         arch/i386/hwdisk.c
         arch/i386/hwpci.c
         # arch/i386/i386bug.c
         arch/i386/i386idt.c)
+    if(NOT (SARCH STREQUAL "appletv")) # We don't use hwacpi on appletv
+        list(APPEND PCATLDR_ARC_SOURCE
+        arch/i386/hwacpi.c)
+    endif()
 
     if(SARCH STREQUAL "pc98" OR SARCH STREQUAL "xbox" OR SARCH STREQUAL "appletv")
         # These machine types require built-in bitmap font
@@ -112,8 +115,9 @@ if(ARCH STREQUAL "i386")
             arch/i386/appletv/appletvrtc.c
             arch/i386/appletv/appletvvideo.c
             arch/i386/appletv/machappletv.c
+            arch/i386/appletv/appletvhw.c
+            arch/i386/appletv/appletvstubs.c
             arch/i386/pc/pcdisk.c
-            arch/i386/pc/pchw.c
             arch/i386/pc/pcmem.c)
     else()
         list(APPEND PCATLDR_ARC_SOURCE

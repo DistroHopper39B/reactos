@@ -25,7 +25,6 @@ DBG_DEFAULT_CHANNEL(HWDETECT);
 
 FIND_PCI_BIOS FindPciBios = NULL;
 
-#ifndef SARCH_APPLETV
 static
 PPCI_IRQ_ROUTING_TABLE
 GetPciIrqRoutingTable(VOID)
@@ -75,8 +74,6 @@ GetPciIrqRoutingTable(VOID)
 
     return NULL;
 }
-#endif
-
 
 BOOLEAN
 PcFindPciBios(PPCI_REGISTRY_INFO BusData)
@@ -113,7 +110,6 @@ PcFindPciBios(PPCI_REGISTRY_INFO BusData)
     return FALSE;
 }
 
-#ifndef SARCH_APPLETV
 static
 VOID
 DetectPciIrqRoutingTable(PCONFIGURATION_COMPONENT_DATA BusKey)
@@ -172,7 +168,6 @@ DetectPciIrqRoutingTable(PCONFIGURATION_COMPONENT_DATA BusKey)
                                &TableKey);
     }
 }
-#endif
 
 
 VOID
@@ -215,9 +210,7 @@ DetectPciBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
         /* Increment bus number */
         (*BusNumber)++;
-#ifndef SARCH_APPLETV
         DetectPciIrqRoutingTable(BiosKey);
-#endif
 
         /* Report PCI buses */
         for (i = 0; i < (ULONG)BusData.NoBuses; i++)

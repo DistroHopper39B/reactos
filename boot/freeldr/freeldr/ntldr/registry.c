@@ -104,7 +104,7 @@ RegInitializeHive(
  * since it makes the FreeLdr binary size so large that it prevents
  * x64 ROS from booting.
  */
-#if !defined(_M_AMD64)
+#if !defined(SARCH_APPLETV)
     CM_CHECK_REGISTRY_STATUS CmStatusCode;
 #endif
 
@@ -129,7 +129,7 @@ RegInitializeHive(
     }
 
 /* FIXME: See the comment above */
-#if !defined(_M_AMD64)
+#if !defined(SARCH_APPLETV)
     /* Now check the hive and purge volatile data */
     CmStatusCode = CmCheckRegistry(CmHive, CM_CHECK_REGISTRY_BOOTLOADER_PURGE_VOLATILES | CM_CHECK_REGISTRY_VALIDATE_HIVE);
     if (!CM_CHECK_REGISTRY_SUCCESS(CmStatusCode))
@@ -143,7 +143,7 @@ RegInitializeHive(
 }
 
 /* FIXME: See the comment above */
-#if !defined(_M_AMD64)
+#if !defined(SARCH_APPLETV)
 /**
  * @brief
  * Loads and reads a hive log at specified
@@ -284,6 +284,7 @@ RegLoadHiveLog(
  * Returns TRUE if the header base block was successfully
  * recovered, FALSE otherwise.
  */
+
 static
 BOOLEAN
 RegRecoverHeaderHive(
@@ -420,6 +421,7 @@ RegRecoverDataHive(
 }
 #endif
 
+
 /**
  * @brief
  * Imports the SYSTEM binary hive from
@@ -465,7 +467,7 @@ RegImportBinaryHive(
     Success = RegInitializeHive(CmSystemHive, ChunkBase, LoadAlternate);
     if (!Success)
 /* FIXME: See the comment above */
-#if defined(_M_AMD64)
+#if defined(_M_AMD64) || defined(SARCH_APPLETV)
     {
         ERR("Corrupted hive %p!\n", ChunkBase);
         FrLdrTempFree(CmSystemHive, 'eviH');

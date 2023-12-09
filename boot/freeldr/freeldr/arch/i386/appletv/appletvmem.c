@@ -13,6 +13,9 @@ DBG_DEFAULT_CHANNEL(MEMORY);
 #define hi32(a) ((UINT32)((a) >> 32))
 #define lo32(a) ((UINT32)(a))
 
+INT FreeldrDescCount;
+memory_map_entry* MbMap;
+
 // external functions from pcmem.c
 extern VOID
 SetMemory(
@@ -70,14 +73,13 @@ FREELDR_MEMORY_DESCRIPTOR AppleTVMemoryMap[MAX_BIOS_DESCRIPTORS + 1];
 PFREELDR_MEMORY_DESCRIPTOR
 AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
 {
-    memory_map_entry* MbMap;
-    INT Count, i;
+    INT i;
 
     TRACE("AppleTVMemGetMemoryMap()\n");
 
-    MbMap = AppleTVGetMultibootMemoryMap(&Count);
+    MbMap = AppleTVGetMultibootMemoryMap(&FreeldrDescCount);
 
-    for (i = 0; i < Count; i++, MbMap++)
+    for (i = 0; i < FreeldrDescCount; i++, MbMap++)
     {
         TRACE("i = %d, addr = 0x%08X%08X, len = 0x%08X%08X, type = %i\n", i, hi32(MbMap->addr), lo32(MbMap->addr), hi32(MbMap->len), lo32(MbMap->len), MbMap->type);
         SetMemory(AppleTVMemoryMap,

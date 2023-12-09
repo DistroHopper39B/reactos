@@ -47,6 +47,7 @@ VOID AppleTVDiskInit(BOOLEAN Init);
 BOOLEAN AppleTVDiskReadLogicalSectors(UCHAR DriveNumber, ULONGLONG SectorNumber, ULONG SectorCount, PVOID Buffer);
 BOOLEAN AppleTVDiskGetDriveGeometry(UCHAR DriveNumber, PGEOMETRY DriveGeometry);
 ULONG AppleTVDiskGetCacheableBlockCount(UCHAR DriveNumber);
+BOOLEAN PcInitializeBootDevices(VOID);
 
 TIMEINFO* AppleTVGetTime(VOID);
 
@@ -55,7 +56,18 @@ VOID AppleTVHwIdle(VOID);
 
 VOID AppleTVBeep(VOID);
 
+/* appletvstubs.c */
+UCHAR AppleTVGetFloppyCount(VOID);
+VOID AppleTVGetExtendedBIOSData(PULONG ExtendedBIOSDataArea, PULONG ExtendedBIOSDataSize);
+VOID AppleTVHwIdle(VOID);
+VOID AppleTVBeep(VOID);
 
 
 extern PULONG AppleTVInfoPtr;
 extern handoff_boot_info *appletv_boot_info;
+
+/* Platform-specific boot drive and partition numbers */
+extern UCHAR FrldrBootDrive;
+extern ULONG FrldrBootPartition;
+LONG DiskReportError(BOOLEAN bShowError);
+BOOLEAN DiskResetController(UCHAR DriveNumber);
