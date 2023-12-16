@@ -13,9 +13,6 @@
 
 #include <arch/appletv/appletvbootinfo.h>
 
-// Bitmap font support, required for the TV because it does not have any built-in font
-extern UCHAR BitmapFont8x16[256 * 16];
-
 VOID AppleTVConsPutChar(int Ch);
 
 BOOLEAN AppleTVConsKbHit(VOID);
@@ -35,7 +32,6 @@ BOOLEAN AppleTVVideoIsPaletteFixed(VOID);
 VOID AppleTVVideoSetPaletteColor(UCHAR Color, UCHAR Red, UCHAR Green, UCHAR Blue);
 VOID AppleTVVideoGetPaletteColor(UCHAR Color, UCHAR* Red, UCHAR* Green, UCHAR* Blue);
 VOID AppleTVVideoSync(VOID);
-VOID AppleTVVideoPrepareForReactOS(VOID);
 VOID AppleTVVideoScrollUp(VOID);
 VOID AppleTVPrepareForReactOS(VOID);
 
@@ -71,3 +67,15 @@ extern UCHAR FrldrBootDrive;
 extern ULONG FrldrBootPartition;
 LONG DiskReportError(BOOLEAN bShowError);
 BOOLEAN DiskResetController(UCHAR DriveNumber);
+
+/* see uefildr.h */
+//TODO: this version of the struct is temporary
+typedef struct _REACTOS_INTERNAL_BGCONTEXT
+{
+    ULONG_PTR    BaseAddress;
+    ULONG        BufferSize;
+    UINT32       ScreenWidth;
+    UINT32       ScreenHeight;
+    UINT32       PixelsPerScanLine;
+    UINT32       PixelFormat;
+} REACTOS_INTERNAL_BGCONTEXT, *PREACTOS_INTERNAL_BGCONTEXT;

@@ -20,7 +20,6 @@ handoff_boot_info *appletv_boot_info;
 VOID
 AppleTVPrepareForReactOS(VOID)
 {
-    AppleTVVideoPrepareForReactOS();
     AppleTVDiskInit(FALSE);
 
     DebugDisableScreenPort();

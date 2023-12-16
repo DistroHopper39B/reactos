@@ -1035,7 +1035,7 @@ HvLoadHive(
     BOOLEAN Success;
     PHBASE_BLOCK BaseBlock = NULL;
 /* FIXME: See the comment above (near HvpQueryHiveSize) */
-#if defined(_M_AMD64) || defined(SARCH_APPLETV)
+#if defined(_M_AMD64)
     ULONG Result;
 #else
     ULONG Result, Result2;
@@ -1086,7 +1086,7 @@ HvLoadHive(
         /* Hive header needs a repair */
         case RecoverHeader:
 /* FIXME: See the comment above (near HvpQueryHiveSize) */
-#if defined(_M_AMD64) || defined(SARCH_APPLETV)
+#if defined(_M_AMD64)
         {
             return STATUS_REGISTRY_CORRUPT;
         }
