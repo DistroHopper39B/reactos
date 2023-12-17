@@ -823,7 +823,7 @@ FindAcpiBios(VOID)
             break;
         }
     }
-    ERR("Found ACPI 2.0 RSDP at 0x%lX\n", rsdp);
+    TRACE("Found ACPI 2.0 RSDP at 0x%lX\n", rsdp);
     return rsdp;
 }
 
@@ -918,7 +918,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     if (framebufferData.BufferSize == 0)
         return;
 
-    ERR("\nStructure sizes:\n"
+    TRACE("\nStructure sizes:\n"
         "    sizeof(CM_PARTIAL_RESOURCE_LIST)       = %lu\n"
         "    sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) = %lu\n"
         "    sizeof(CM_FRAMEBUF_DEVICE_DATA)        = %lu\n\n",
@@ -988,7 +988,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
 
     /* Physical format of the pixel */
     // ASSERT(sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL) == 4);
-    /* With UGA this can just be hardcoded. */
+    /* With UGA this can just be hardcoded to PixelBlueGreenRedReserved8BitPerColor. */
     FramebufferData->BitsPerPixel = (8 * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
     *(EFI_PIXEL_BITMASK*)&FramebufferData->PixelInformation = EfiPixelMasks[framebufferData.PixelFormat];
 

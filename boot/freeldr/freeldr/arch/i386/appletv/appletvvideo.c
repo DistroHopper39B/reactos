@@ -5,8 +5,12 @@
  * COPYRIGHT:   Copyright 2023 DistroHopper39B (distrohopper39b.business@gmail.com)
  */
 
-
+/* INCLUDES *******************************************************************/
 #include <freeldr.h>
+
+/* UEFI support */
+#include <Uefi.h>
+#include <GraphicsOutput.h>
 
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(WARNING);
@@ -34,9 +38,14 @@ AppleTVVideoInit(VOID)
     framebufferData.ScreenWidth = (appletv_boot_info->video.pitch / 4); // work around weird bug with appletv firmware
     framebufferData.ScreenHeight = appletv_boot_info->video.height;
     framebufferData.PixelsPerScanLine = (appletv_boot_info->video.pitch / 4); // ScreenWidth = PixelsPerScanLine
-    framebufferData.PixelFormat = 1; // UEFI UGA frame buffer
+    framebufferData.PixelFormat = PixelBlueGreenRedReserved8BitPerColor; // UEFI UGA frame buffer
     
-    TRACE("Video set up\n");
+    TRACE("Framebuffer BaseAddress       : %X\n", framebufferData.BaseAddress);
+    TRACE("Framebuffer BufferSize        : %d\n", framebufferData.BufferSize);
+    TRACE("Framebuffer ScreenWidth       : %d\n", framebufferData.ScreenWidth);
+    TRACE("Framebuffer ScreenHeight      : %d\n", framebufferData.ScreenHeight);
+    TRACE("Framebuffer PixelsPerScanLine : %d\n", framebufferData.PixelsPerScanLine);
+    TRACE("Framebuffer PixelFormat       : %d\n", framebufferData.PixelFormat);
 }
 
 static ULONG
