@@ -219,11 +219,11 @@ HalpCalibrateStallExecution(VOID)
 BOOLEAN
 AppleTVFindPciBios(PPCI_REGISTRY_INFO BusData)
 {
-    /* We emulate PCI BIOS here, this shouldn't be necessary unless ACPI is not working */
-
-    BusData->NoBuses = 7;
+    /* We hardcode PCI BIOS here */
+    
     BusData->MajorRevision = 0x02;
     BusData->MinorRevision = 0x10;
+    BusData->NoBuses = 7;
     BusData->HardwareMechanism = 1;
     return TRUE;
 }
@@ -998,7 +998,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
                            Output | ConsoleOut,
                            0,
                            0xFFFFFFFF,
-                           "UEFI GOP Framebuffer",
+                           "EFI 1.x UGA Framebuffer",
                            PartialResourceList,
                            Size,
                            &ControllerKey);
@@ -1064,7 +1064,7 @@ AppleTVHwDetect(_In_opt_ PCSTR Options)
     /* Create the 'System' key */
     FldrCreateSystemKey(&SystemKey, FALSE, "Apple TV (1st generation)");
 
-    //DetectPciBios(SystemKey, &BusNumber);
+    DetectPci(SystemKey, &BusNumber);
     DetectIsaBios(SystemKey, &BusNumber);
     DetectAcpiBios(SystemKey, &BusNumber);
     DetectInternal(SystemKey, &BusNumber);
