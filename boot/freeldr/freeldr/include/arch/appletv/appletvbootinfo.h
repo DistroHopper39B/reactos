@@ -13,8 +13,8 @@
 #define FREELDR_MAGIC_NUMBER 0x600DC0DE
 
 // Boot info location
-#define BOOTINFO_LOC 0x6000
-#define CMDLINE_LOC 0x7000
+#define BOOTINFO_LOC 0x5F00
+#define CMDLINE_LOC 0x5000
 
 // Multiboot/E820 memory map entry.
 struct mmap_entry {

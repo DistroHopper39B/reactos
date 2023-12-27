@@ -10,8 +10,8 @@
 #include <arch/pc/pcbios.h>
 
 #define FREELDR_MAGIC_NUMBER        HEX(600DC0DE)
-#define BOOTINFO_LOC                HEX(6000)
-#define CMDLINE_LOC                 HEX(7000)
+#define BOOTINFO_LOC                HEX(5F00)
+#define CMDLINE_LOC                 HEX(5000)
 
 
 #ifdef _USE_ML
