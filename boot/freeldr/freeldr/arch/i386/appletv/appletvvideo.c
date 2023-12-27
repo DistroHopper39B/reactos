@@ -33,11 +33,11 @@ AppleTVVideoInit(VOID)
 {
     RtlZeroMemory(&framebufferData, sizeof(framebufferData));
     
-    framebufferData.BaseAddress = (ULONG_PTR) appletv_boot_info->video.base;
-    framebufferData.BufferSize = (appletv_boot_info->video.pitch * appletv_boot_info->video.height);
-    framebufferData.ScreenWidth = (appletv_boot_info->video.pitch / 4); // work around weird bug with appletv firmware
-    framebufferData.ScreenHeight = appletv_boot_info->video.height;
-    framebufferData.PixelsPerScanLine = (appletv_boot_info->video.pitch / 4); // ScreenWidth = PixelsPerScanLine
+    framebufferData.BaseAddress = (ULONG_PTR) BootInfo->VideoBaseAddr;
+    framebufferData.BufferSize = (BootInfo->VideoPitch * BootInfo->VideoHeight);
+    framebufferData.ScreenWidth = (BootInfo->VideoPitch / 4); // work around weird bug with appletv firmware
+    framebufferData.ScreenHeight = BootInfo->VideoHeight;
+    framebufferData.PixelsPerScanLine = (BootInfo->VideoPitch / 4); // ScreenWidth = PixelsPerScanLine
     framebufferData.PixelFormat = PixelBlueGreenRedReserved8BitPerColor; // UEFI UGA frame buffer
     
     TRACE("Framebuffer BaseAddress       : %X\n", framebufferData.BaseAddress);

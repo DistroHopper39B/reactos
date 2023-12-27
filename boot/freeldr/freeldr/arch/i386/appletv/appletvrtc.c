@@ -20,7 +20,7 @@ AppleTVGetTime(VOID)
     EFI_STATUS Status;
     EFI_TIME time = {0};
 
-    EfiSystemTable = (EFI_SYSTEM_TABLE *) appletv_boot_info->efi_system_table_ptr;
+    EfiSystemTable = (EFI_SYSTEM_TABLE *) BootInfo->GlobalSystemTable;
 
     Status = EfiSystemTable->RuntimeServices->GetTime(&time, NULL);
     if (Status != EFI_SUCCESS)

@@ -12,10 +12,8 @@
 
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(HWDETECT);
-handoff_boot_info *appletv_boot_info;
 
-// NOTE: Similar to machpc.c!PcGetHarddiskConfigurationData(),
-// but without extended geometry support.
+PBOOTINFO BootInfo;
 
 VOID
 AppleTVPrepareForReactOS(VOID)
@@ -28,9 +26,9 @@ AppleTVPrepareForReactOS(VOID)
 VOID
 MachInit(const char *CmdLine)
 {
-    appletv_boot_info = (handoff_boot_info *) AppleTVInfoPtr;
+    BootInfo = (PBOOTINFO) BootInfoPtr;
     /* Check if we're running on an Apple TV or if we loaded correctly by verifying the magic number.*/
-    if (appletv_boot_info->magic != ATV_LOADER_MAGIC_NUMBER) {
+    if (BootInfo->MagicNumber != ATV_LOADER_MAGIC_NUMBER) {
         ERR("This is not an original Apple TV! System halted.\n");
 
         /* disable and halt the CPU */

@@ -812,7 +812,7 @@ FindAcpiBios(VOID)
     UINTN i;
     RSDP_DESCRIPTOR* rsdp = NULL;
     EFI_GUID acpi2_guid = EFI_ACPI_20_TABLE_GUID;
-    GlobalSystemTable = (EFI_SYSTEM_TABLE *) appletv_boot_info->efi_system_table_ptr;    
+    GlobalSystemTable = (EFI_SYSTEM_TABLE *) BootInfo->GlobalSystemTable;    
 
     for (i = 0; i < GlobalSystemTable->NumberOfTableEntries; i++)
     {

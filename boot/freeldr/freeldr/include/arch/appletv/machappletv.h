@@ -59,8 +59,8 @@ VOID AppleTVHwIdle(VOID);
 VOID AppleTVBeep(VOID);
 
 
-extern PULONG AppleTVInfoPtr;
-extern handoff_boot_info *appletv_boot_info;
+extern PUINT32 BootInfoPtr;
+extern PBOOTINFO BootInfo;
 
 /* Platform-specific boot drive and partition numbers */
 extern UCHAR FrldrBootDrive;

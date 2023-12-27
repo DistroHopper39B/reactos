@@ -9,7 +9,9 @@
 #include <arch/pc/x86common.h>
 #include <arch/pc/pcbios.h>
 
-#define FREELDR_MAGIC_NUMBER        HEX(F00DBEEF)
+#define FREELDR_MAGIC_NUMBER        HEX(600DC0DE)
+#define BOOTINFO_LOC                HEX(6000)
+#define CMDLINE_LOC                 HEX(7000)
 
 
 #ifdef _USE_ML
@@ -18,7 +20,6 @@ EXTERN __bss_end__:DWORD
 #endif
 
 EXTERN _FrldrStartup:DWORD
-EXTERN _AppleTVVideoInit:DWORD
 
     /* Align to 32 bits boundary */
     .align 4
@@ -37,7 +38,7 @@ ASSUME ES:NOTHING, FS:NOTHING, GS:NOTHING
 AppleTVEntry:
     /* Setup protected mode stack */
     mov esp, dword ptr ds:[stack32]
-    /* Set disk to first partition */
+    /* Set freeldr to boot from the first partition on first disk */
     mov dx, HEX(0180)
     /* Load the GDT */
 #ifdef _USE_ML
@@ -54,12 +55,15 @@ AppleTVEntry:
     /* Jump to FrldrStartup */
     jmp _FrldrStartup
 
-PUBLIC _AppleTVInfoPtr
-_AppleTVInfoPtr:
+
+
+PUBLIC _BootInfoPtr
+_BootInfoPtr:
+    .long BOOTINFO_LOC
     
 PUBLIC cmdline
 cmdline:
-    .long 0
+    .long HEX(5000)
 
 stack32:
     .long STACKADDR

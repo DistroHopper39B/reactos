@@ -43,8 +43,8 @@ memory_map_entry *
 AppleTVGetMultibootMemoryMap(INT *Count)
 {
     memory_map_entry* MemoryMap;
-    MemoryMap = (memory_map_entry *) appletv_boot_info->multiboot_map.addr;
-    *Count = appletv_boot_info->multiboot_map.entries;
+    MemoryMap = (memory_map_entry *) BootInfo->MemoryMapAddr;
+    *Count = BootInfo->MemoryMapEntries;
     return MemoryMap;
 }
 
@@ -81,12 +81,14 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
 
     for (i = 0; i < FreeldrDescCount; i++, MbMap++)
     {
-        TRACE("i = %d, addr = 0x%08X%08X, len = 0x%08X%08X, type = %i\n", i, hi32(MbMap->addr), lo32(MbMap->addr), hi32(MbMap->len), lo32(MbMap->len), MbMap->type);
+        TRACE("i = %d, Address = 0x%08X%08X, Length = 0x%08X%08X, Type = %i\n", i, hi32(MbMap->Address), lo32(MbMap->Address), hi32(MbMap->Length), lo32(MbMap->Length), MbMap->Type);
         SetMemory(AppleTVMemoryMap,
-                MbMap->addr,
-                MbMap->len,
-                AppleTVMultibootMemoryType(MbMap->type));
+                MbMap->Address,
+                MbMap->Length,
+                AppleTVMultibootMemoryType(MbMap->Type));
     }
+    
+    /* Set up PC memory ranges */
     SetMemory(AppleTVMemoryMap, 0x000000, 0x01000, LoaderFirmwarePermanent); // Realmode IVT / BDA
     SetMemory(AppleTVMemoryMap, 0x0A0000, 0x50000, LoaderFirmwarePermanent); // Video memory
     SetMemory(AppleTVMemoryMap, 0x0F0000, 0x10000, LoaderSpecialMemory); // ROM
