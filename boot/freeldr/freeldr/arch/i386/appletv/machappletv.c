@@ -29,6 +29,8 @@ MachInit(const char *CmdLine)
     BootInfo = (PBOOTINFO) BootInfoPtr;
     /* Check if we're running on an Apple TV or if we loaded correctly by verifying the magic number.*/
     if (BootInfo->MagicNumber != ATV_LOADER_MAGIC_NUMBER) {
+        DebugDisableScreenPort();
+        
         ERR("This is not an original Apple TV! System halted.\n");
 
         /* disable and halt the CPU */
@@ -38,7 +40,6 @@ MachInit(const char *CmdLine)
             NOTHING;
 
     }
-    TRACE("Command line: %s\n", CmdLine);
 
     /* Setup vtbl */
     RtlZeroMemory(&MachVtbl, sizeof(MachVtbl));
@@ -72,6 +73,6 @@ MachInit(const char *CmdLine)
     MachVtbl.HwIdle = AppleTVHwIdle;
 
     AppleTVVideoInit();
-        
+    
     HalpCalibrateStallExecution();
 }

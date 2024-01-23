@@ -223,7 +223,7 @@ AppleTVFindPciBios(PPCI_REGISTRY_INFO BusData)
     
     BusData->MajorRevision = 0x02;
     BusData->MinorRevision = 0x10;
-    BusData->NoBuses = 7;
+    BusData->NoBuses = 1;
     BusData->HardwareMechanism = 1;
     return TRUE;
 }
@@ -234,7 +234,6 @@ DetectPci(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
     PCM_PARTIAL_RESOURCE_DESCRIPTOR PartialDescriptor;
     PCI_REGISTRY_INFO BusData;
-    PCONFIGURATION_COMPONENT_DATA BiosKey;
     ULONG Size;
     PCONFIGURATION_COMPONENT_DATA BusKey;
     ULONG i;
@@ -251,18 +250,6 @@ DetectPci(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
         /* Initialize resource descriptor */
         RtlZeroMemory(PartialResourceList, Size);
-
-        /* Create new bus key */
-        FldrCreateComponentKey(SystemKey,
-                               AdapterClass,
-                               MultiFunctionAdapter,
-                               0x0,
-                               0x0,
-                               0xFFFFFFFF,
-                               "PCI BIOS",
-                               PartialResourceList,
-                               Size,
-                               &BiosKey);
 
         /* Increment bus number */
         (*BusNumber)++;
@@ -845,8 +832,8 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         AcpiPresent = TRUE;
 
         /* Calculate the table size */
-        TableSize = FreeldrDescCount * sizeof(BIOS_MEMORY_MAP) +
-            sizeof(ACPI_BIOS_DATA) - sizeof(BIOS_MEMORY_MAP);
+        TableSize = FreeldrDescCount * sizeof(memory_map_entry) +
+            sizeof(ACPI_BIOS_DATA) - sizeof(memory_map_entry);
 
         /* Set 'Configuration Data' value */
         PartialResourceList = FrLdrHeapAlloc(sizeof(CM_PARTIAL_RESOURCE_LIST) +
@@ -883,7 +870,7 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
         AcpiBiosData->Count = FreeldrDescCount;
         memcpy(AcpiBiosData->MemoryMap, MbMap,
-            FreeldrDescCount * sizeof(BIOS_MEMORY_MAP));
+            FreeldrDescCount * sizeof(memory_map_entry));
 
         TRACE("RSDT %p, data size %x\n", Rsdp->rsdt_physical_address, TableSize);
 
@@ -936,13 +923,13 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
         return;
     }
 
-    /* Initialize resource descriptor */
+    // Initialize resource descriptor
     RtlZeroMemory(PartialResourceList, Size);
     PartialResourceList->Version  = ARC_VERSION;
     PartialResourceList->Revision = ARC_REVISION;
     PartialResourceList->Count = 2;
 
-    /* Set Memory */
+    // Set Memory
     PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
     PartialDescriptor->Type = CmResourceTypeMemory;
     PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
@@ -950,7 +937,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     PartialDescriptor->u.Memory.Start.QuadPart = framebufferData.BaseAddress;
     PartialDescriptor->u.Memory.Length = framebufferData.BufferSize;
 
-    /* Set framebuffer-specific data */
+    // Set framebuffer-specific data
     PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
     PartialDescriptor->Type = CmResourceTypeDeviceSpecific;
     PartialDescriptor->ShareDisposition = CmResourceShareUndetermined;
@@ -958,7 +945,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     PartialDescriptor->u.DeviceSpecificData.DataSize =
         sizeof(CM_FRAMEBUF_DEVICE_DATA);
 
-    /* Get pointer to framebuffer-specific data */
+    // Get pointer to framebuffer-specific data
     FramebufferData = (PVOID)(PartialDescriptor + 1);
     RtlZeroMemory(FramebufferData, sizeof(*FramebufferData));
     FramebufferData->Version  = 2;
@@ -966,11 +953,11 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
 
     FramebufferData->VideoClock = 0; // FIXME: Use EDID
 
-    /* Horizontal and Vertical resolution in pixels */
+    // Horizontal and Vertical resolution in pixels
     FramebufferData->ScreenWidth  = framebufferData.ScreenWidth;
     FramebufferData->ScreenHeight = framebufferData.ScreenHeight;
 
-    /* Number of pixel elements per video memory line */
+    // Number of pixel elements per video memory line
     FramebufferData->PixelsPerScanLine = framebufferData.PixelsPerScanLine;
 
     //
@@ -986,9 +973,9 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
         #undef SWAP
     }
 
-    /* Physical format of the pixel */
+    // Physical format of the pixel
     // ASSERT(sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL) == 4);
-    /* With UGA this can just be hardcoded to PixelBlueGreenRedReserved8BitPerColor. */
+    // With UGA this can just be hardcoded to PixelBlueGreenRedReserved8BitPerColor.
     FramebufferData->BitsPerPixel = (8 * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
     *(EFI_PIXEL_BITMASK*)&FramebufferData->PixelInformation = EfiPixelMasks[framebufferData.PixelFormat];
 
@@ -1007,6 +994,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     // We should use EDID data for it.
 
 }
+
 
 static
 VOID
@@ -1051,6 +1039,7 @@ DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
     //FIXME: Detect more devices
 }
+
 
 
 PCONFIGURATION_COMPONENT_DATA

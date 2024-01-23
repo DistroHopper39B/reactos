@@ -64,7 +64,6 @@ PUBLIC ContinueAddress
 ContinueAddress:
     .long _FrldrStartup
 
-PUBLIC _FrldrStartup
 _FrldrStartup:
 
     /* Store BootDrive and BootPartition */

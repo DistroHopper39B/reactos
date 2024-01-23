@@ -19,7 +19,7 @@ EXTERN __bss_start__:DWORD
 EXTERN __bss_end__:DWORD
 #endif
 
-EXTERN _FrldrStartup:DWORD
+EXTERN ContinueAddress:DWORD
 
     /* Align to 32 bits boundary */
     .align 4
@@ -53,7 +53,7 @@ AppleTVEntry:
     lidt i386idtptr
 #endif
     /* Jump to FrldrStartup */
-    jmp _FrldrStartup
+    jmp dword ptr ds:[ContinueAddress]
 
 
 
