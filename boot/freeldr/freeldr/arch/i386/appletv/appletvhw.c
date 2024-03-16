@@ -223,7 +223,7 @@ AppleTVFindPciBios(PPCI_REGISTRY_INFO BusData)
     
     BusData->MajorRevision = 0x02;
     BusData->MinorRevision = 0x10;
-    BusData->NoBuses = 1;
+    BusData->NoBuses = 0;
     BusData->HardwareMechanism = 1;
     return TRUE;
 }
@@ -792,26 +792,28 @@ DetectIsaBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     /* FIXME: Detect more ISA devices */
 }
 
-static
-PRSDP_DESCRIPTOR
+static PRSDP_DESCRIPTOR
 FindAcpiBios(VOID)
 {
-    UINTN i;
-    RSDP_DESCRIPTOR* rsdp = NULL;
-    EFI_GUID acpi2_guid = EFI_ACPI_20_TABLE_GUID;
-    GlobalSystemTable = (EFI_SYSTEM_TABLE *) BootInfo->GlobalSystemTable;    
+    PUCHAR Ptr;
 
-    for (i = 0; i < GlobalSystemTable->NumberOfTableEntries; i++)
+    /* Find the 'Root System Descriptor Table Pointer' */
+    Ptr = (PUCHAR)0xE0000;
+    while ((ULONG_PTR)Ptr < 0x100000)
     {
-        if (!memcmp(&GlobalSystemTable->ConfigurationTable[i].VendorGuid,
-                    &acpi2_guid, sizeof(acpi2_guid)))
+        if (!memcmp(Ptr, "RSD PTR ", 8))
         {
-            rsdp = (RSDP_DESCRIPTOR*)GlobalSystemTable->ConfigurationTable[i].VendorTable;
-            break;
+            TRACE("ACPI supported\n");
+
+            return (PRSDP_DESCRIPTOR)Ptr;
         }
+
+        Ptr = (PUCHAR)((ULONG_PTR)Ptr + 0x10);
     }
-    TRACE("Found ACPI 2.0 RSDP at 0x%lX\n", rsdp);
-    return rsdp;
+
+    ERR("ACPI not supported\n");
+
+    return NULL;
 }
 
 VOID
@@ -832,8 +834,8 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         AcpiPresent = TRUE;
 
         /* Calculate the table size */
-        TableSize = FreeldrDescCount * sizeof(memory_map_entry) +
-            sizeof(ACPI_BIOS_DATA) - sizeof(memory_map_entry);
+        TableSize = FreeldrDescCount * sizeof(BIOS_MEMORY_MAP) +
+            sizeof(ACPI_BIOS_DATA) - sizeof(BIOS_MEMORY_MAP);
 
         /* Set 'Configuration Data' value */
         PartialResourceList = FrLdrHeapAlloc(sizeof(CM_PARTIAL_RESOURCE_LIST) +
@@ -870,7 +872,7 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
         AcpiBiosData->Count = FreeldrDescCount;
         memcpy(AcpiBiosData->MemoryMap, MbMap,
-            FreeldrDescCount * sizeof(memory_map_entry));
+            FreeldrDescCount * sizeof(BIOS_MEMORY_MAP));
 
         TRACE("RSDT %p, data size %x\n", Rsdp->rsdt_physical_address, TableSize);
 

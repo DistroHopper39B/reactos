@@ -6,31 +6,45 @@
  */
 
 #include <freeldr.h>
-#include <Uefi.h>
 
-#include <debug.h>
-DBG_DEFAULT_CHANNEL(WARNING);
+#define RTC_REGISTER_A   0x0A
+#define   RTC_REG_A_UIP  0x80  /* Update In Progress bit */
 
-EFI_SYSTEM_TABLE *EfiSystemTable;
+#define BCD_INT(bcd) (((bcd & 0xf0) >> 4) * 10 + (bcd &0x0f))
 
-TIMEINFO *
+static UCHAR
+HalpQueryCMOS(UCHAR Reg)
+{
+  UCHAR Val;
+  Reg |= 0x80;
+
+  WRITE_PORT_UCHAR((PUCHAR)0x70, Reg);
+  Val = READ_PORT_UCHAR((PUCHAR)0x71);
+  WRITE_PORT_UCHAR((PUCHAR)0x70, 0);
+
+  return(Val);
+}
+
+TIMEINFO*
 AppleTVGetTime(VOID)
 {
     static TIMEINFO TimeInfo;
-    EFI_STATUS Status;
-    EFI_TIME time = {0};
 
-    EfiSystemTable = (EFI_SYSTEM_TABLE *) BootInfo->GlobalSystemTable;
+    while (HalpQueryCMOS (RTC_REGISTER_A) & RTC_REG_A_UIP)
+    {
+        ;
+    }
 
-    Status = EfiSystemTable->RuntimeServices->GetTime(&time, NULL);
-    if (Status != EFI_SUCCESS)
-        ERR("cannot get time status %d\n", Status);
+    TimeInfo.Second = BCD_INT(HalpQueryCMOS(0));
+    TimeInfo.Minute = BCD_INT(HalpQueryCMOS(2));
+    TimeInfo.Hour = BCD_INT(HalpQueryCMOS(4));
+    TimeInfo.Day = BCD_INT(HalpQueryCMOS(7));
+    TimeInfo.Month = BCD_INT(HalpQueryCMOS(8));
+    TimeInfo.Year = BCD_INT(HalpQueryCMOS(9));
+    if (TimeInfo.Year > 80)
+        TimeInfo.Year += 1900;
+    else
+        TimeInfo.Year += 2000;
 
-    TimeInfo.Year = time.Year;
-    TimeInfo.Month = time.Month;
-    TimeInfo.Day = time.Day;
-    TimeInfo.Hour = time.Hour;
-    TimeInfo.Minute = time.Minute;
-    TimeInfo.Second = time.Second;
     return &TimeInfo;
 }

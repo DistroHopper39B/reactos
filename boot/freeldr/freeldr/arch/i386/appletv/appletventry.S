@@ -21,21 +21,15 @@ EXTERN __bss_end__:DWORD
 
 EXTERN ContinueAddress:DWORD
 
-    /* Align to 32 bits boundary */
-    .align 4
-
-Header:
-    /* magic */
-    .long FREELDR_MAGIC_NUMBER
-    /* load_addr */
-    .long FREELDR_BASE
-    /* entry_point */
-    .long AppleTVEntry
+/* Align to 32 bits boundary */
+.align 4
 
 .code32
 ASSUME ES:NOTHING, FS:NOTHING, GS:NOTHING
 
+PUBLIC AppleTVEntry
 AppleTVEntry:
+    hlt
     /* Setup protected mode stack */
     mov esp, dword ptr ds:[stack32]
     /* Set freeldr to boot from the first partition on first disk */

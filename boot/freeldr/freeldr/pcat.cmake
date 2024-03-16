@@ -35,14 +35,8 @@ list(APPEND PCATLDR_BOOTMGR_SOURCE
 list(APPEND PCATLDR_BASE_ASM_SOURCE)
 
 if(ARCH STREQUAL "i386")
-    # The original Apple TV uses a different entry point than other x86 PCs.
-    if(SARCH STREQUAL "appletv")
-        list(APPEND PCATLDR_BASE_ASM_SOURCE
-        arch/i386/appletv/appletventry.S)
-    else()
-        list(APPEND PCATLDR_BASE_ASM_SOURCE
+    list(APPEND PCATLDR_BASE_ASM_SOURCE
         arch/i386/multiboot.S)
-    endif()
 
     list(APPEND PCATLDR_COMMON_ASM_SOURCE
         arch/i386/drvmap.S
@@ -59,17 +53,14 @@ if(ARCH STREQUAL "i386")
         # arch/i386/halstub.c
         # arch/i386/ntoskrnl.c
         arch/i386/drivemap.c
+        arch/i386/hwacpi.c
         arch/i386/hwapm.c
         arch/i386/hwdisk.c
         arch/i386/hwpci.c
         # arch/i386/i386bug.c
         arch/i386/i386idt.c)
-    if(NOT (SARCH STREQUAL "appletv")) # We don't use hwacpi on appletv
-        list(APPEND PCATLDR_ARC_SOURCE
-        arch/i386/hwacpi.c)
-    endif()
 
-    if(SARCH STREQUAL "pc98" OR SARCH STREQUAL "xbox" OR SARCH STREQUAL "appletv")
+    if(SARCH STREQUAL "pc98" OR SARCH STREQUAL "xbox")
         # These machine types require built-in bitmap font
         list(APPEND PCATLDR_ARC_SOURCE
             arch/vgafont.c)
@@ -107,18 +98,6 @@ if(ARCH STREQUAL "i386")
             arch/i386/pc98/pc98mem.c
             arch/i386/pc98/pc98rtc.c
             arch/i386/pc98/pc98video.c)
-    elseif(SARCH STREQUAL "appletv")
-        list(APPEND PCATLDR_ARC_SOURCE
-            arch/i386/appletv/appletvcons.c
-            arch/i386/appletv/appletvdisk.c
-            arch/i386/appletv/appletvmem.c
-            arch/i386/appletv/appletvrtc.c
-            arch/i386/appletv/appletvvideo.c
-            arch/i386/appletv/machappletv.c
-            arch/i386/appletv/appletvhw.c
-            arch/i386/appletv/appletvstubs.c
-            arch/i386/pc/pcdisk.c
-            arch/i386/pc/pcmem.c)
     else()
         list(APPEND PCATLDR_ARC_SOURCE
             arch/i386/pc/machpc.c
