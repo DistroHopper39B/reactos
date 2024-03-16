@@ -1,9 +1,8 @@
 /*
- * COPYRIGHT:       See COPYING in the top level directory
- * PROJECT:         ReactOS pe2macho
- * FILE:            tools/pe2macho/macho.h
- * PURPOSE:         Mach-O executable format
- * PROGRAMMER:      DistroHopper39B
+ * PROJECT:     FreeLoader
+ * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
+ * PURPOSE:     Mach-O file headers
+ * COPYRIGHT:   Copyright 2023 DistroHopper39B (distrohopper39b.business@gmail.com)
  */
 
 #pragma once
@@ -13,9 +12,6 @@
 #define MACHO_OBJECT 0x1 /* Relocatable object file */
 
 #define MACHO_LC_SEGMENT 0x1 /* Segment to be mapped */
-#define MACHO_LC_UNIXTHREAD 0x5 /* UNIX thread load command */
-
-#define i386_THREAD_STATE 1
 
 /* Mach-O header */
 typedef struct {
@@ -51,36 +47,6 @@ typedef struct {
 
     UINT32 Flags; /* Segment flags */
 } MACHO_SEGMENT_COMMAND, *PMACHO_SEGMENT_COMMAND;
-
-typedef struct {
-    UINT32 Eax;
-    UINT32 Ebx;
-    UINT32 Ecx;
-    UINT32 Edx;
-    UINT32 Edi;
-    UINT32 Esi;
-    UINT32 Ebp;
-    UINT32 Esp;
-    UINT32 Ss;
-    UINT32 Eflags;
-    UINT32 Eip;
-    UINT32 Cs;
-    UINT32 Ds;
-    UINT32 Es;
-    UINT32 Fs;
-    UINT32 Gs;
-} MACHO_THREAD_STATE_32;
-
-typedef struct {
-    UINT32 Command; /* LC_UNIXTHREAD */
-    UINT32 CommandSize; /* Size of segment command */
-    UINT32 Flavor; /* Architecture of thread state */
-    UINT32 Count; /* Size of saved state */
-    
-    MACHO_THREAD_STATE_32 State; /* State */
-} MACHO_THREAD_COMMAND_X86, *PMACHO_THREAD_COMMAND_X86;
-
-#define i386_THREAD_STATE_COUNT	16
 
 typedef struct {
     char SectionName[16]; /* Name of this section */

@@ -57,23 +57,26 @@ static
 PMACHO_HEADER
 CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, PUINT Size)
 {
-    UINT32                  MachoInfoSize;
-    PMACHO_HEADER           MachoHeader;
-    PMACHO_SEGMENT_COMMAND  MachoSegmentCommand;
-    PMACHO_SECTION          MachoSection;
-    UINT32                  SizeOfExecData;
+    UINT32                      MachoInfoSize;
+    PMACHO_HEADER               MachoHeader;
+    PMACHO_SEGMENT_COMMAND      MachoSegmentCommand;
+    PMACHO_SECTION              MachoSection;
+    PMACHO_THREAD_COMMAND_X86   MachoUnixThread;
+    UINT32                      SizeOfExecData;
     
     // HACK ALERT!!!
     // PE executables can have the entry point anywhere within the executable's .text segment but static Mach-O executables expect it to be at __TEXT,__text all the time. We are going
     // to work around this by making the executable have one massive __TEXT,__text segment starting at PE ImageBase + EntryPoint and going to the end of the file.
     
-    MachoInfoSize = sizeof(MACHO_HEADER) + sizeof(MACHO_SEGMENT_COMMAND) + sizeof(MACHO_SECTION);
+    MachoInfoSize = sizeof(MACHO_HEADER) + sizeof(MACHO_SEGMENT_COMMAND) + sizeof(MACHO_SECTION) + sizeof(MACHO_THREAD_COMMAND_X86);
     MachoHeader = malloc(MachoInfoSize);
     if (!MachoHeader)
     {
         fprintf(stderr, "Could not allocate %d bytes for Mach-O info\n", MachoInfoSize);
         return NULL;
     }
+    
+    memset(MachoHeader, 0, MachoInfoSize);
     
     SizeOfExecData = OptionalHeader->SizeOfInitializedData - 1;
     
@@ -85,12 +88,12 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, PUINT Siz
     
     MachoHeader->FileType       = 2; // kernel (static linked)
     
-    MachoHeader->NumberOfCmds   = 1; // HACK ALERT!!!
-    MachoHeader->SizeOfCmds     = sizeof(MACHO_SEGMENT_COMMAND) + sizeof(MACHO_SECTION);
+    MachoHeader->NumberOfCmds   = 2; // HACK ALERT!!!
+    MachoHeader->SizeOfCmds     = MachoInfoSize - sizeof(MACHO_HEADER);
     
     MachoHeader->Flags          = 1;
     
-    // Fill out first and only load command.
+    // Fill out first load command.
     MachoSegmentCommand = (PMACHO_SEGMENT_COMMAND) (((PUCHAR) MachoHeader) + sizeof(MACHO_HEADER));
     
     MachoSegmentCommand->Command            = MACHO_LC_SEGMENT;
@@ -129,6 +132,17 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, PUINT Siz
     
     MachoSection->Reserved1             = 0;
     MachoSection->Reserved2             = 0;
+    
+    // Fill out second load command.
+    MachoUnixThread = (PMACHO_THREAD_COMMAND_X86) (((PUCHAR) MachoSection) + sizeof(MACHO_SECTION));
+    
+    MachoUnixThread->Command            = MACHO_LC_UNIXTHREAD;
+    MachoUnixThread->CommandSize        = sizeof(MACHO_THREAD_COMMAND_X86);
+    MachoUnixThread->Flavor             = i386_THREAD_STATE;
+    MachoUnixThread->Count              = i386_THREAD_STATE_COUNT;
+    
+    // all registers are blank except for EIP, which is the entry point!
+    MachoUnixThread->State.Eip          = OptionalHeader->ImageBase + OptionalHeader->AddressOfEntryPoint;
     
     *Size = MachoInfoSize;
     

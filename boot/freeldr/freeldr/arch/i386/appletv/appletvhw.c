@@ -22,7 +22,6 @@ DBG_DEFAULT_CHANNEL(WARNING);
 
 extern UCHAR PcBiosDiskCount; /* hwdisk.c */
 extern UINT32 FreeldrDescCount; /* appletvmem.c */
-extern memory_map_entry* MbMap; /* appletvmem.c */
 BOOLEAN AcpiPresent = FALSE;
 
 EFI_SYSTEM_TABLE *GlobalSystemTable;
@@ -871,7 +870,7 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         }
 
         AcpiBiosData->Count = FreeldrDescCount;
-        memcpy(AcpiBiosData->MemoryMap, MbMap,
+        memcpy(AcpiBiosData->MemoryMap, (void *) 5,
             FreeldrDescCount * sizeof(BIOS_MEMORY_MAP));
 
         TRACE("RSDT %p, data size %x\n", Rsdp->rsdt_physical_address, TableSize);

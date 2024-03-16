@@ -19,14 +19,13 @@ list(APPEND APPLETVLDR_COMMON_ASM_SOURCE
     arch/i386/int386.S
     arch/i386/irqsup.S
     arch/i386/pnpbios.S
-    arch/i386/entry.S
     # arch/i386/i386trap.S
-    arch/i386/linux.S)
+    )
 
 # FIXME: Disable Linux booting; it's broken on the TV
 list(APPEND APPLETVLDR_BOOTMGR_SOURCE
     ${FREELDR_BOOTMGR_SOURCE}
-    linuxboot.c)
+    )
     
 # Apple TV stuff
 list(APPEND APPLETVLDR_BASE_ASM_SOURCE)
@@ -109,13 +108,13 @@ set_target_properties(freeldr_pe
     DEFINE_SYMBOL "")
 
 if(MSVC)
-    target_link_options(freeldr_pe PRIVATE /ignore:4078 /ignore:4254 /DYNAMICBASE:NO /FIXED /FILEALIGN:512 /ALIGN:512)
+    target_link_options(freeldr_pe PRIVATE /ignore:4078 /ignore:4254 /DYNAMICBASE:NO /FIXED /FILEALIGN:4096 /ALIGN:4096)
     add_linker_script(freeldr_pe freeldr_i386.msvc.lds)
     # We don't need hotpatching
     remove_target_compile_option(freeldr_pe "/hotpatch")
     remove_target_compile_option(freeldr_common "/hotpatch")
 else()
-    target_link_options(freeldr_pe PRIVATE -Wl,--exclude-all-symbols,--file-alignment,0x200,--section-alignment,0x200)
+    target_link_options(freeldr_pe PRIVATE -Wl,--exclude-all-symbols,--file-alignment,0x1000,--section-alignment,0x1000)
     add_linker_script(freeldr_pe freeldr_gcc.lds)
     # Strip everything, including rossym data
     add_custom_command(TARGET freeldr_pe
@@ -126,7 +125,7 @@ endif()
 
 set_image_base(freeldr_pe 0x10000)
 set_subsystem(freeldr_pe native)
-set_entrypoint(freeldr_pe RealEntryPoint)
+set_entrypoint(freeldr_pe AppleTVEntry) # Entry point irrelevant here; boot.efi will always try to execute code 1 page in
 
 target_link_libraries(freeldr_pe mini_hal)
 

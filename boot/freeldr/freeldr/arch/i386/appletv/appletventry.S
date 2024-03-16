@@ -19,7 +19,7 @@ EXTERN __bss_start__:DWORD
 EXTERN __bss_end__:DWORD
 #endif
 
-EXTERN ContinueAddress:DWORD
+EXTERN _AppleTVEarlyInit
 
 /* Align to 32 bits boundary */
 .align 4
@@ -27,42 +27,59 @@ EXTERN ContinueAddress:DWORD
 .code32
 ASSUME ES:NOTHING, FS:NOTHING, GS:NOTHING
 
-PUBLIC AppleTVEntry
-AppleTVEntry:
-    hlt
-    /* Setup protected mode stack */
+
+
+PUBLIC _AppleTVEntry
+_AppleTVEntry:
+    /* Set up stack */
     mov esp, dword ptr ds:[stack32]
-    /* Set freeldr to boot from the first partition on first disk */
-    mov dx, HEX(0180)
-    /* Load the GDT */
+    
+    /* Store the bootArgs pointer */
+    mov dword ptr ds:[_BootArgPtr], eax
+    
+    /* Load GDT */
 #ifdef _USE_ML
     lgdt fword ptr gdtptr
 #else
     lgdt gdtptr
 #endif
+
     /* Load the IDT */
 #ifdef _USE_ML
     lidt fword ptr ds:[i386idtptr]
 #else
     lidt i386idtptr
 #endif
-    /* Jump to FrldrStartup */
-    jmp dword ptr ds:[ContinueAddress]
-
-
-
-PUBLIC _BootInfoPtr
-_BootInfoPtr:
-    .long BOOTINFO_LOC
     
-PUBLIC cmdline
-cmdline:
-    .long HEX(5000)
+    /* Patch long jump with real mode entry point */
+    mov eax, dword ptr ds:[BSS_RealModeEntry]
+    mov dword ptr ds:[SwitchToReal16Address], eax
+    
+    /* Clean out BSS */
+    xor eax, eax
+    mov edi, offset __bss_start__
+    mov ecx, offset __bss_end__ + 3
+    sub ecx, edi
+    shr ecx, 2
+    rep stosd
+
+    /* Initialize the idt */
+    call _InitIdt
+    
+    /* Call Apple TV early init */
+    call _AppleTVEarlyInit
+    
+PUBLIC _BootArgPtr
+_BootArgPtr:
+    .long 0
 
 stack32:
     .long STACKADDR
     .align 4    /* force 4-byte alignment */
-
+    
+PUBLIC ContinueAddress
+ContinueAddress:
+    .long _AppleTVEntry
 .align 4
 gdt:
     /* NULL Descriptor */
@@ -99,4 +116,122 @@ gdt:
 gdtptr:
     .word HEX(27)       /* Limit */
     .long gdt           /* Base Address */
-END
+    
+PUBLIC i386idtptr
+i386idtptr:
+    .word 255           /* Limit */
+    .long _i386Idt      /* Base Address */
+
+PUBLIC _FrldrBootDrive
+_FrldrBootDrive:
+    .byte 0
+
+PUBLIC _FrldrBootPartition
+_FrldrBootPartition:
+    .long 0
+
+PUBLIC _Relocator16Boot
+_Relocator16Boot:
+
+    /* Copy input registers */
+    mov esi, dword ptr [esp + 4]
+    mov edi, BSS_RegisterSet
+    mov ecx, REGS_SIZE / 4
+    rep movsd
+
+    /* Set the stack segment/offset */
+    // Since BSS_CallbackReturn contains a ULONG, store in its high word
+    // the stack segment and in its low word the stack offset.
+    mov ax, word ptr [esp + 8]
+    shl eax, 16
+    mov ax, word ptr [esp + 12]
+    mov dword ptr ds:[BSS_CallbackReturn], eax
+
+    /*
+     * Set the code segment/offset (Copy entry point)
+     * NOTE: We permanently *ERASE* the contents of ds:[BSS_RealModeEntry]
+     * but it is not a problem since we are going to place the machine in
+     * a permanent new CPU state.
+     */
+    // Since BSS_RealModeEntry contains a ULONG, store in its high word
+    // the code segment and in its low word the code offset.
+    mov ax, word ptr [esp + 16]
+    shl eax, 16
+    mov ax, word ptr [esp + 20]
+    mov dword ptr ds:[BSS_RealModeEntry], eax
+
+    /* Set the function ID and switch to real mode (we don't return) */
+    mov bx, FNID_Relocator16Boot
+    jmp SwitchToReal
+
+
+/*
+ * U16 PxeCallApi(U16 Segment, U16 Offset, U16 Service, VOID *Parameter);
+ *
+ * RETURNS:
+ */
+PUBLIC _PxeCallApi
+_PxeCallApi:
+    /* copy entry point */
+    mov eax, [esp + 4]
+    shl eax, 16
+    mov ax, [esp + 8]
+    mov dword ptr ds:[BSS_PxeEntryPoint], eax
+
+    /* copy function */
+    mov ax, [esp + 12]
+    mov word ptr ds:[BSS_PxeFunction], ax
+
+    /* convert pointer to data buffer to segment/offset */
+    mov eax, [esp + 16]
+    shr eax, 4
+    and eax, HEX(0f000)
+    mov word ptr ds:[BSS_PxeBufferSegment], ax
+    mov eax, [esp + 16]
+    and eax, HEX(0ffff)
+    mov word ptr ds:[BSS_PxeBufferOffset], ax
+
+    pusha
+
+    /* Set the function ID and call realmode */
+    mov bx, FNID_PxeCallApi
+    call i386CallRealMode
+
+    popa
+
+    mov ax, word ptr [BSS_PxeResult]
+
+    ret
+
+
+PUBLIC i386CallRealMode
+i386CallRealMode:
+    /* Set continue address and switch to real mode */
+    mov dword ptr ds:[ContinueAddress], offset i386CallRealMode_return
+    jmp SwitchToReal
+i386CallRealMode_return:
+    ret
+
+
+/* Entrypoint for realmode function calls
+ * ContinueAddress must be set to the return point from realmode
+ * bx must be set to the ID of the realmode function to call. */
+PUBLIC SwitchToReal
+SwitchToReal:
+    /* Set sane segments */
+    mov ax, PMODE_DS
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+
+    /* Save 32-bit stack pointer */
+    mov dword ptr ds:[stack32], esp
+
+    /* jmp to 16-bit segment to set the limit correctly */
+    .byte HEX(0ea) // jmp far RMODE_CS:switch_to_real16
+SwitchToReal16Address:
+    .long 0 // receives address of switch_to_real16
+    .word RMODE_CS
+    nop

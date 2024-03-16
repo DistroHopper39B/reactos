@@ -13,8 +13,6 @@
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(HWDETECT);
 
-PBOOTINFO BootInfo;
-
 VOID
 AppleTVPrepareForReactOS(VOID)
 {
@@ -26,21 +24,8 @@ AppleTVPrepareForReactOS(VOID)
 VOID
 MachInit(const char *CmdLine)
 {
-    BootInfo = (PBOOTINFO) BootInfoPtr;
-    /* Check if we're running on an Apple TV or if we loaded correctly by verifying the magic number.*/
-    if (BootInfo->MagicNumber != ATV_LOADER_MAGIC_NUMBER) {
-        DebugDisableScreenPort();
-        
-        ERR("This is not an original Apple TV! System halted.\n");
-
-        /* disable and halt the CPU */
-        _disable();
-        __halt();
-        while (TRUE)
-            NOTHING;
-
-    }
-
+    
+    ERR("Boot args: 0x%X\n", BootArgs);
     /* Setup vtbl */
     RtlZeroMemory(&MachVtbl, sizeof(MachVtbl));
     MachVtbl.ConsPutChar = AppleTVConsPutChar;
@@ -72,7 +57,7 @@ MachInit(const char *CmdLine)
     MachVtbl.HwDetect = AppleTVHwDetect;
     MachVtbl.HwIdle = AppleTVHwIdle;
 
-    AppleTVVideoInit();
+    while (1);
     
     HalpCalibrateStallExecution();
 }

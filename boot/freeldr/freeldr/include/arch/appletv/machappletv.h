@@ -11,7 +11,8 @@
 #include "mm.h"
 #endif
 
-#include <arch/appletv/appletvbootinfo.h>
+#include "boot_args.h"
+#include "macho.h"
 
 VOID AppleTVConsPutChar(int Ch);
 
@@ -57,10 +58,6 @@ UCHAR AppleTVGetFloppyCount(VOID);
 VOID AppleTVGetExtendedBIOSData(PULONG ExtendedBIOSDataArea, PULONG ExtendedBIOSDataSize);
 VOID AppleTVHwIdle(VOID);
 VOID AppleTVBeep(VOID);
-
-
-extern PUINT32 BootInfoPtr;
-extern PBOOTINFO BootInfo;
 
 /* Platform-specific boot drive and partition numbers */
 extern UCHAR FrldrBootDrive;

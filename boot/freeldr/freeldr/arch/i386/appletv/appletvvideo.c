@@ -12,9 +12,6 @@
 #include <Uefi.h>
 #include <GraphicsOutput.h>
 
-#include <debug.h>
-DBG_DEFAULT_CHANNEL(WARNING);
-
 /* GLOBALS ********************************************************************/
 
 #define CHAR_WIDTH  8
@@ -33,19 +30,12 @@ AppleTVVideoInit(VOID)
 {
     RtlZeroMemory(&framebufferData, sizeof(framebufferData));
     
-    framebufferData.BaseAddress = (ULONG_PTR) BootInfo->VideoBaseAddr;
-    framebufferData.BufferSize = (BootInfo->VideoPitch * BootInfo->VideoHeight);
-    framebufferData.ScreenWidth = (BootInfo->VideoPitch / 4); // work around weird bug with appletv firmware
-    framebufferData.ScreenHeight = BootInfo->VideoHeight;
-    framebufferData.PixelsPerScanLine = (BootInfo->VideoPitch / 4); // ScreenWidth = PixelsPerScanLine
+    framebufferData.BaseAddress = (ULONG_PTR) BootArgs->Video.BaseAddress;
+    framebufferData.BufferSize = (BootArgs->Video.Pitch * BootArgs->Video.Height);
+    framebufferData.ScreenWidth = BootArgs->Video.Width;
+    framebufferData.ScreenHeight = BootArgs->Video.Height;
+    framebufferData.PixelsPerScanLine = (BootArgs->Video.Pitch / 4);
     framebufferData.PixelFormat = PixelBlueGreenRedReserved8BitPerColor; // UEFI UGA frame buffer
-    
-    TRACE("Framebuffer BaseAddress       : %X\n", framebufferData.BaseAddress);
-    TRACE("Framebuffer BufferSize        : %d\n", framebufferData.BufferSize);
-    TRACE("Framebuffer ScreenWidth       : %d\n", framebufferData.ScreenWidth);
-    TRACE("Framebuffer ScreenHeight      : %d\n", framebufferData.ScreenHeight);
-    TRACE("Framebuffer PixelsPerScanLine : %d\n", framebufferData.PixelsPerScanLine);
-    TRACE("Framebuffer PixelFormat       : %d\n", framebufferData.PixelFormat);
 }
 
 static ULONG
