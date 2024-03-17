@@ -144,6 +144,9 @@ enum _FRLDR_BUGCHECK_CODES
 #ifdef UEFIBOOT
     EXIT_BOOTSERVICES_FAILURE,
 #endif
+#ifdef SARCH_APPLETV
+    UNSUPPORTED_IDE_CONTROLLER,
+#endif
 };
 
 extern char *BugCodeStrings[];

@@ -22,7 +22,10 @@ AppleTVEarlyInit(VOID)
 {
     // set up boot args
     BootArgs = (PMACH_BOOTARGS) BootArgPtr;
-    
+    if (!BootArgs)
+    {
+        Reboot();
+    }
     // Hardcode boot device to first partition of first device
     FrldrBootDrive = 0x80;
     FrldrBootPartition = 1;
@@ -40,8 +43,9 @@ Reboot(VOID)
     if (BootArgs)
     {
         // Do UEFI reboot
-        ((EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable)->RuntimeServices->ResetSystem(EfiResetCold,
-                                                                                    EFI_SUCCESS, 0, NULL);
+        ((EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable)
+                            ->RuntimeServices->ResetSystem(EfiResetCold,
+                            EFI_SUCCESS, 0, NULL);
         // if it fails, hang
         while (1);
     }

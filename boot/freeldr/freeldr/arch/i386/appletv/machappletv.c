@@ -11,7 +11,6 @@
 #include <GraphicsOutput.h>
 
 #include <debug.h>
-DBG_DEFAULT_CHANNEL(HWDETECT);
 
 VOID
 AppleTVPrepareForReactOS(VOID)
@@ -24,8 +23,6 @@ AppleTVPrepareForReactOS(VOID)
 VOID
 MachInit(const char *CmdLine)
 {
-    
-    ERR("Boot args: 0x%X\n", BootArgs);
     /* Setup vtbl */
     RtlZeroMemory(&MachVtbl, sizeof(MachVtbl));
     MachVtbl.ConsPutChar = AppleTVConsPutChar;
@@ -56,8 +53,8 @@ MachInit(const char *CmdLine)
     MachVtbl.InitializeBootDevices = PcInitializeBootDevices; // in hwdisk.c
     MachVtbl.HwDetect = AppleTVHwDetect;
     MachVtbl.HwIdle = AppleTVHwIdle;
-
-    while (1);
+    
+    printf("Loading FreeLoader...\n");
     
     HalpCalibrateStallExecution();
 }

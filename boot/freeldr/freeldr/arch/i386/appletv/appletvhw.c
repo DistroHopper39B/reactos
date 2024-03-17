@@ -794,25 +794,23 @@ DetectIsaBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 static PRSDP_DESCRIPTOR
 FindAcpiBios(VOID)
 {
-    PUCHAR Ptr;
-
-    /* Find the 'Root System Descriptor Table Pointer' */
-    Ptr = (PUCHAR)0xE0000;
-    while ((ULONG_PTR)Ptr < 0x100000)
+    PRSDP_DESCRIPTOR    Rsdp = NULL;
+    UINTN               i;
+    EFI_GUID            Acpi2Guid = EFI_ACPI_20_TABLE_GUID;
+    
+    GlobalSystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
+    
+    for (i = 0; i < GlobalSystemTable->NumberOfTableEntries; i++)
     {
-        if (!memcmp(Ptr, "RSD PTR ", 8))
+        if (!memcmp(&GlobalSystemTable->ConfigurationTable[i].VendorGuid,
+                    &Acpi2Guid, sizeof(Acpi2Guid)))\
         {
-            TRACE("ACPI supported\n");
-
-            return (PRSDP_DESCRIPTOR)Ptr;
+            Rsdp = (PRSDP_DESCRIPTOR) GlobalSystemTable->ConfigurationTable[i].VendorTable;
+            break;
         }
-
-        Ptr = (PUCHAR)((ULONG_PTR)Ptr + 0x10);
     }
 
-    ERR("ACPI not supported\n");
-
-    return NULL;
+    return Rsdp;
 }
 
 VOID

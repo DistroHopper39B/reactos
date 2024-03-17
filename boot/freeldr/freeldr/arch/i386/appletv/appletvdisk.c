@@ -18,6 +18,64 @@ static PDEVICE_UNIT HardDrive = NULL;
 static PDEVICE_UNIT CdDrive = NULL;
 static BOOLEAN AtaInitialized = FALSE;
 
+static
+VOID
+AppleTVFixupIdeController(VOID)
+{
+    PCI_TYPE1_CFG_BITS  PciCfg1;
+    ULONG               PciData;
+    UINT8               ClassCode, Subclass, ProgIf, RevId;
+    
+    /* Select IDE controller */
+    PciCfg1.u.bits.Enable           = 1;
+    PciCfg1.u.bits.BusNumber        = 0x00;
+    PciCfg1.u.bits.DeviceNumber     = 0x1f;
+    PciCfg1.u.bits.FunctionNumber   = 0x1;
+    
+    /* Select register */
+    PciCfg1.u.bits.RegisterNumber   = 0x8;
+    PciCfg1.u.bits.Reserved         = 0;
+    
+    WRITE_PORT_ULONG(PCI_TYPE1_ADDRESS_PORT, PciCfg1.u.AsULONG);
+    PciData = READ_PORT_ULONG((PULONG)PCI_TYPE1_DATA_PORT);
+    
+    ClassCode   = (PciData >> 24) & 0xFF;
+    Subclass    = (PciData >> 16) & 0xFF;
+    ProgIf      = (PciData >> 8) & 0xFF;
+    RevId       = (PciData) & 0xFF;
+    
+    
+    
+    if (ProgIf == 0x8A)
+    {
+        // nothing to do
+        TRACE("PCI: Nothing to do.\n");
+    }
+    else if (ProgIf == 0x8F)
+    {
+        TRACE("PCI: Changing Prog IF to work on Apple TV\n");
+        // change value
+        ProgIf = 0x8A;
+        
+        // reconstruct data
+        PciData = (UINT32) (ClassCode << 24)
+                            | (UINT32) (Subclass << 16)
+                            | (UINT32) (ProgIf << 8)
+                            | (UINT32) (RevId);
+        WRITE_PORT_ULONG(PCI_TYPE1_ADDRESS_PORT, PciCfg1.u.AsULONG);
+        WRITE_PORT_ULONG((PULONG)PCI_TYPE1_DATA_PORT, PciData);
+    }
+    else
+    {
+        FrLdrBugCheckWithMessage(UNSUPPORTED_IDE_CONTROLLER,
+            __FILE__,
+            __LINE__,
+            "Unsupported IDE controller. \
+            Are you trying to run this on an Intel Mac?\n\
+            I'll save you the trouble here. It won't work.");
+    }
+}
+
 VOID
 AppleTVDiskInit(BOOLEAN Init)
 {
@@ -27,6 +85,8 @@ AppleTVDiskInit(BOOLEAN Init)
 
     if (Init & !AtaInitialized)
     {
+        // Fixup IDE contoller
+        AppleTVFixupIdeController();
         /* Find first HDD and CD */
         AtaInit(&DetectedCount);
         for (UnitNumber = 0; UnitNumber <= DetectedCount; UnitNumber++)

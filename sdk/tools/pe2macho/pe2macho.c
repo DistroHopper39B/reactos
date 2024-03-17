@@ -21,6 +21,8 @@
 #define __builtin_ctz(x) __tzcnt_u32(x)
 #endif
 
+#define HEADER_ADDITIONAL_BYTES 0x1000 // 1 page (UEFI)
+
 static
 PIMAGE_FILE_HEADER
 FindFileHeaderFromDosHeader(PIMAGE_DOS_HEADER PeBase)
@@ -101,11 +103,11 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, PUINT Siz
     
     strcpy(MachoSegmentCommand->SegmentName, "__TEXT");
     
-    MachoSegmentCommand->VMAddress          = OptionalHeader->ImageBase;
-    MachoSegmentCommand->VMSize             = SizeOfExecData;
+    MachoSegmentCommand->VMAddress          = OptionalHeader->ImageBase - HEADER_ADDITIONAL_BYTES;
+    MachoSegmentCommand->VMSize             = SizeOfExecData + HEADER_ADDITIONAL_BYTES;
     
     MachoSegmentCommand->FileOffset         = 0;
-    MachoSegmentCommand->FileSize           = SizeOfExecData;
+    MachoSegmentCommand->FileSize           = SizeOfExecData + HEADER_ADDITIONAL_BYTES;
     
     MachoSegmentCommand->MaximumProtection  = 7; // ???
     MachoSegmentCommand->InitialProtection  = 5; // ???
@@ -153,8 +155,8 @@ INT
 main(INT argc, PCHAR argv[])
 {
     FILE    *InputFile, *OutputFile;
-    UINT32  FileLength;
-    PUCHAR  FileBuffer;
+    UINT32  InputFileLength, OutputFileLength;
+    PUCHAR  InputFileBuffer, OutputFileBuffer;
     UINT32  ObjectsWritten;
     
     PIMAGE_FILE_HEADER          PeFileHeader;
@@ -181,30 +183,30 @@ main(INT argc, PCHAR argv[])
     
     // Find end of file
     fseek(InputFile, 0, SEEK_END);
-    FileLength = ftell(InputFile);
+    InputFileLength = ftell(InputFile);
     fseek(InputFile, 0, SEEK_SET);
     
-    FileBuffer = malloc(FileLength + 1);
-    if (!FileBuffer)
+    InputFileBuffer = malloc(InputFileLength + 1);
+    if (!InputFileBuffer)
     {
-        fprintf(stderr, "Could not allocate %d bytes for input file\n", FileLength + 1);
+        fprintf(stderr, "Could not allocate %d bytes for input file\n", InputFileLength + 1);
         fclose(InputFile);
         return 3;
     }
     
     // Read contents of file into buffer and then close file
-    fread(FileBuffer, FileLength, 1, InputFile);
+    fread(InputFileBuffer, InputFileLength, 1, InputFile);
     fclose(InputFile);
     
     // Find DOS header
-    if (((PIMAGE_DOS_HEADER) FileBuffer)->e_magic != IMAGE_DOS_MAGIC)
+    if (((PIMAGE_DOS_HEADER) InputFileBuffer)->e_magic != IMAGE_DOS_MAGIC)
     {
-        fprintf(stderr, "Input file not a valid MZ image. (expected 0x%X, got 0x%X)\n", IMAGE_DOS_MAGIC, ((PIMAGE_DOS_HEADER)FileBuffer)->e_magic);
+        fprintf(stderr, "Input file not a valid MZ image. (expected 0x%X, got 0x%X)\n", IMAGE_DOS_MAGIC, ((PIMAGE_DOS_HEADER)InputFileBuffer)->e_magic);
         return 4;
     }
     
     // Find PE/COFF file header
-    PeFileHeader = FindFileHeaderFromDosHeader((PIMAGE_DOS_HEADER) FileBuffer);
+    PeFileHeader = FindFileHeaderFromDosHeader((PIMAGE_DOS_HEADER) InputFileBuffer);
     if (!PeFileHeader)
     {
         fprintf(stderr, "Input file not a valid PE/COFF image!\n");
@@ -241,26 +243,37 @@ main(INT argc, PCHAR argv[])
         return 9;
     }
     
-    // Remove PE header
-    memset(FileBuffer, 0, PeOptionalHeader->SizeOfHeaders);
+    // Allocate new buffer for output file
+    OutputFileLength = InputFileLength + HEADER_ADDITIONAL_BYTES;
+    OutputFileBuffer = malloc(OutputFileLength);
+    if (!OutputFileBuffer)
+    {
+        fprintf(stderr, "Failed to allocate %d bytes for output file\n", OutputFileLength);
+        return 10;
+    }
+    memset(OutputFileBuffer, 0, OutputFileLength);
     
     // Copy Mach-O header to top of buffer
-    memcpy(FileBuffer, MachoHeader, MachoSize);
+    memcpy(OutputFileBuffer, MachoHeader, MachoSize);
+    
+    // Copy output file 4096 bytes in
+    // It will be loaded at its original load addr
+    memcpy(OutputFileBuffer + HEADER_ADDITIONAL_BYTES, InputFileBuffer, InputFileLength);
     
     // Open output file
     OutputFile = fopen(argv[2], "wb");
     if (!OutputFile)
     {
         fprintf(stderr, "Cannot open output file: %s\n", argv[2]);
-        return 10;
+        return 11;
     }
     
-    ObjectsWritten = fwrite(FileBuffer, FileLength, 1, OutputFile);
+    ObjectsWritten = fwrite(OutputFileBuffer, OutputFileLength, 1, OutputFile);
     if (!ObjectsWritten)
     {
         fprintf(stderr, "Cannot write to output file: %s\n", argv[2]);
         fclose(OutputFile);
-        return 11;
+        return 12;
     }
     
     fclose(OutputFile);
