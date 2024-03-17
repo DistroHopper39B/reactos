@@ -14,10 +14,30 @@
 
 PMACH_BOOTARGS BootArgs;
 extern UINT32 BootArgPtr;
+extern ULONG DebugPort;
+
+#define SCREEN 1
 
 /* FUNCTIONS *****************************************************************/
 
+static
 VOID
+AppleTVSetupCmdLine(IN PCCH CmdLine)
+{
+    // If verbose mode is enabled according to Mach, enable it here
+    if (strstr(CmdLine, "-v\0") || strstr(CmdLine, "-v ") || 
+        strstr(CmdLine, "-s\0") || strstr(CmdLine, "-s "))
+    {
+        // Clear screen
+        AppleTVVideoClearScreen(0x00);
+        
+        // Enable screen debug
+        DebugPort |= SCREEN;
+    }
+}
+
+VOID
+__cdecl
 AppleTVEarlyInit(VOID)
 {
     // set up boot args
@@ -33,11 +53,15 @@ AppleTVEarlyInit(VOID)
     // Set up video
     AppleTVVideoInit();
     
-    // Start BootMain
+    // Set up command line
+    AppleTVSetupCmdLine(BootArgs->CmdLine);
+    
+    // Start main FreeLoader runtime
     BootMain(BootArgs->CmdLine);
 }
 
 VOID
+__cdecl
 Reboot(VOID)
 {
     if (BootArgs)
@@ -47,11 +71,16 @@ Reboot(VOID)
                             ->RuntimeServices->ResetSystem(EfiResetCold,
                             EFI_SUCCESS, 0, NULL);
         // if it fails, hang
-        while (1);
+        _disable();
+        __halt();
+        for (;;);
     }
     else
     {
         // No UEFI reboot; hang
-        while (1);
+        _disable();
+        __halt();
+        for (;;);
     }
 }
+

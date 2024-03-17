@@ -803,7 +803,7 @@ FindAcpiBios(VOID)
     for (i = 0; i < GlobalSystemTable->NumberOfTableEntries; i++)
     {
         if (!memcmp(&GlobalSystemTable->ConfigurationTable[i].VendorGuid,
-                    &Acpi2Guid, sizeof(Acpi2Guid)))\
+                    &Acpi2Guid, sizeof(Acpi2Guid)))
         {
             Rsdp = (PRSDP_DESCRIPTOR) GlobalSystemTable->ConfigurationTable[i].VendorTable;
             break;
@@ -1038,8 +1038,6 @@ DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
     //FIXME: Detect more devices
 }
-
-
 
 PCONFIGURATION_COMPONENT_DATA
 AppleTVHwDetect(_In_opt_ PCSTR Options)
