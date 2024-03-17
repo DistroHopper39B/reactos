@@ -12,7 +12,6 @@
 #endif
 
 #include "boot_args.h"
-#include "macho.h"
 
 VOID AppleTVConsPutChar(int Ch);
 
