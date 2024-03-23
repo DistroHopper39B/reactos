@@ -217,7 +217,7 @@ DetectPciIrqRoutingTable(PCONFIGURATION_COMPONENT_DATA BusKey)
     }
 }
 
-
+#if 0
 VOID
 DetectPci(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 {
@@ -325,7 +325,7 @@ PcFindPciBios(&BusData);
         }
 
 }
-
+#endif
 
 static
 VOID
@@ -1111,9 +1111,9 @@ UefiHwDetect(
     DetectAcpiBios(SystemKey, &BusNumber);
     DetectInternal(SystemKey, &BusNumber);
 
-     DetectPci(SystemKey, &BusNumber);
+   //  DetectPci(SystemKey, &BusNumber);
    // DetectAcpiBios(SystemKey, &BusNumber);
-    DetectIsaBios(SystemKey, &BusNumber);
+   // DetectIsaBios(SystemKey, &BusNumber);
     TRACE("DetectHardware() Done\n");
     return SystemKey;
 }

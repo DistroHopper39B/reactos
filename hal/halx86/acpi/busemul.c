@@ -9,7 +9,7 @@
 /* INCLUDES *******************************************************************/
 
 #include <hal.h>
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 
 /* GLOBALS ********************************************************************/
@@ -51,6 +51,9 @@ HalpAssignSlotResources(IN PUNICODE_STRING RegistryPath,
                         IN ULONG SlotNumber,
                         IN OUT PCM_RESOURCE_LIST *AllocatedResources)
 {
+
+    DPRINT1("HalpAssignSlotResources: Called\n");
+    __debugbreak();
     BUS_HANDLER BusHandler;
     PAGED_CODE();
 
@@ -134,6 +137,7 @@ HalAssignSlotResources(IN PUNICODE_STRING RegistryPath,
                        IN ULONG SlotNumber,
                        IN OUT PCM_RESOURCE_LIST *AllocatedResources)
 {
+    __debugbreak();
     /* Check the bus type */
     if (BusType != PCIBus)
     {

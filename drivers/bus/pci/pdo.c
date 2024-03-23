@@ -12,10 +12,10 @@
 #include <initguid.h>
 #include <wdmguid.h>
 
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 
-#if 0
+#if 1
 #define DBGPRINT(...) DbgPrint(__VA_ARGS__)
 #else
 #define DBGPRINT(...)

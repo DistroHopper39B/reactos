@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 
 static DRIVER_DISPATCH PciDispatchDeviceControl;
