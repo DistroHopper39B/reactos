@@ -30,12 +30,12 @@ AppleTVVideoInit(VOID)
 {
     RtlZeroMemory(&framebufferData, sizeof(framebufferData));
     
-    framebufferData.BaseAddress = (ULONG_PTR) BootArgs->Video.BaseAddress;
-    framebufferData.BufferSize = (BootArgs->Video.Pitch * BootArgs->Video.Height);
-    framebufferData.ScreenWidth = BootArgs->Video.Width;
-    framebufferData.ScreenHeight = BootArgs->Video.Height;
-    framebufferData.PixelsPerScanLine = (BootArgs->Video.Pitch / 4);
-    framebufferData.PixelFormat = PixelBlueGreenRedReserved8BitPerColor; // UEFI UGA frame buffer
+    framebufferData.BaseAddress         = (ULONG_PTR) BootArgs->Video.BaseAddress;
+    framebufferData.BufferSize          = (BootArgs->Video.Pitch * BootArgs->Video.Height);
+    framebufferData.ScreenWidth         = BootArgs->Video.Width;
+    framebufferData.ScreenHeight        = BootArgs->Video.Height;
+    framebufferData.PixelsPerScanLine   = (BootArgs->Video.Pitch / 4);
+    framebufferData.PixelFormat         = PixelBlueGreenRedReserved8BitPerColor; // UEFI UGA frame buffer
 }
 
 static ULONG

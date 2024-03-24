@@ -25,8 +25,8 @@ VOID
 AppleTVSetupCmdLine(IN PCCH CmdLine)
 {
     // If verbose mode is enabled according to Mach, enable it here
-    if (strstr(CmdLine, "-v\0") || strstr(CmdLine, "-v ") || 
-        strstr(CmdLine, "-s\0") || strstr(CmdLine, "-s "))
+    if (strstr(CmdLine, "-v\0") || strstr(CmdLine, "-v ") || // Command-V (verbose mode)
+        strstr(CmdLine, "-s\0") || strstr(CmdLine, "-s "))   // Command-S (single-user mode)
     {
         // Clear screen
         AppleTVVideoClearScreen(0x00);

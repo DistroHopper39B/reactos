@@ -22,6 +22,9 @@ DBG_DEFAULT_CHANNEL(WARNING);
 
 extern UCHAR PcBiosDiskCount; /* hwdisk.c */
 extern UINT32 FreeldrDescCount; /* appletvmem.c */
+extern BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS]; /* appletvmem.c */
+extern REACTOS_INTERNAL_BGCONTEXT framebufferData; /* appletvvideo.c */
+
 BOOLEAN AcpiPresent = FALSE;
 
 EFI_SYSTEM_TABLE *GlobalSystemTable;
@@ -868,7 +871,7 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         }
 
         AcpiBiosData->Count = FreeldrDescCount;
-        memcpy(AcpiBiosData->MemoryMap, (void *) 5,
+        memcpy(AcpiBiosData->MemoryMap, (void *) BiosMap,
             FreeldrDescCount * sizeof(BIOS_MEMORY_MAP));
 
         TRACE("RSDT %p, data size %x\n", Rsdp->rsdt_physical_address, TableSize);
@@ -889,8 +892,6 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         (*BusNumber)++;
     }
 }
-
-extern REACTOS_INTERNAL_BGCONTEXT framebufferData;
 
 static VOID
 DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)

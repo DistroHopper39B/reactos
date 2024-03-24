@@ -3,8 +3,9 @@
  * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
  * PURPOSE:     Drive access routines for the original Apple TV
  * COPYRIGHT:   Copyright 2023 DistroHopper39B (distrohopper39b.business@gmail.com)
- *              See ../xbox/xboxdisk.c
  */
+
+/* INCLUDES ******************************************************************/
 
 #include <freeldr.h>
 #include <hwide.h>
@@ -12,15 +13,17 @@
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(DISK);
 
-// Note: This code is heavily based on ../xbox/xboxdisk.c
+/* GLOBALS *******************************************************************/
 
 static PDEVICE_UNIT HardDrive = NULL;
 static PDEVICE_UNIT CdDrive = NULL;
 static BOOLEAN AtaInitialized = FALSE;
 
+/* FUNCTIONS *****************************************************************/
+
 static
 VOID
-AppleTVFixupIdeController(VOID)
+AppleTVIdeUpdateProgIf(VOID)
 {
     PCI_TYPE1_CFG_BITS  PciCfg1;
     ULONG               PciData;
@@ -44,8 +47,6 @@ AppleTVFixupIdeController(VOID)
     ProgIf      = (PciData >> 8) & 0xFF;
     RevId       = (PciData) & 0xFF;
     
-    
-    
     if (ProgIf == 0x8A)
     {
         // nothing to do
@@ -67,12 +68,9 @@ AppleTVFixupIdeController(VOID)
     }
     else
     {
-        FrLdrBugCheckWithMessage(UNSUPPORTED_IDE_CONTROLLER,
-            __FILE__,
-            __LINE__,
-            "Unsupported IDE controller. \
-            Are you trying to run this on an Intel Mac?\n\
-            I'll save you the trouble here. It won't work.");
+        // Either running in VirtualBox or on a Mac, either way don't stop here; we'll either
+        // have no problem or later problems.
+        ERR("Unsupported IDE controller!\n");
     }
 }
 
@@ -86,7 +84,7 @@ AppleTVDiskInit(BOOLEAN Init)
     if (Init & !AtaInitialized)
     {
         // Fixup IDE contoller
-        AppleTVFixupIdeController();
+        AppleTVIdeUpdateProgIf();
         /* Find first HDD and CD */
         AtaInit(&DetectedCount);
         for (UnitNumber = 0; UnitNumber <= DetectedCount; UnitNumber++)

@@ -526,9 +526,6 @@ char *BugCodeStrings[] =
 #ifdef UEFIBOOT
     "EXIT_BOOTSERVICES_FAILURE",
 #endif
-#ifdef SARCH_APPLETV
-    "UNSUPPORTED_IDE_CONTROLLER",
-#endif
 };
 
 ULONG_PTR BugCheckInfo[5];

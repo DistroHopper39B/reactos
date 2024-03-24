@@ -22,7 +22,6 @@ list(APPEND APPLETVLDR_COMMON_ASM_SOURCE
     # arch/i386/i386trap.S
     )
 
-# FIXME: Disable Linux booting; it's broken on the TV
 list(APPEND APPLETVLDR_BOOTMGR_SOURCE
     ${FREELDR_BOOTMGR_SOURCE}
     )
@@ -55,7 +54,6 @@ list(APPEND APPLETVLDR_ARC_SOURCE
     # arch/i386/halstub.c
     # arch/i386/ntoskrnl.c
     arch/i386/drivemap.c
-    arch/i386/hwapm.c
     arch/i386/hwdisk.c
     arch/i386/hwpci.c
     # arch/i386/i386bug.c

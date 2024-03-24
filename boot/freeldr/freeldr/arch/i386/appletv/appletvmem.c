@@ -15,7 +15,6 @@ DBG_DEFAULT_CHANNEL(WARNING);
 
 #define NEXT_MEMORY_DESCRIPTOR(Descriptor, DescriptorSize) \
     (EFI_MEMORY_DESCRIPTOR*)((char*)(Descriptor) + (DescriptorSize))
-#define EXIT_STACK_SIZE 0x1000
 
 /* GLOBALS *******************************************************************/
     

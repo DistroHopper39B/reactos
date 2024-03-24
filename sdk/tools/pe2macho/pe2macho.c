@@ -66,11 +66,14 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, PUINT Siz
     PMACHO_THREAD_COMMAND_X86   MachoUnixThread;
     UINT32                      SizeOfExecData;
     
-    // HACK ALERT!!!
-    // PE executables can have the entry point anywhere within the executable's .text segment but static Mach-O executables expect it to be at __TEXT,__text all the time. We are going
-    // to work around this by making the executable have one massive __TEXT,__text segment starting at PE ImageBase + EntryPoint and going to the end of the file.
+    // We only use a single segment with a single section, which doesn't impact runtime but does impact things like disassembling.
+    // Disassembling should be done with the original PE file.
     
-    MachoInfoSize = sizeof(MACHO_HEADER) + sizeof(MACHO_SEGMENT_COMMAND) + sizeof(MACHO_SECTION) + sizeof(MACHO_THREAD_COMMAND_X86);
+    MachoInfoSize = sizeof(MACHO_HEADER)
+                    + sizeof(MACHO_SEGMENT_COMMAND)
+                    + sizeof(MACHO_SECTION)
+                    + sizeof(MACHO_THREAD_COMMAND_X86);
+                    
     MachoHeader = malloc(MachoInfoSize);
     if (!MachoHeader)
     {
@@ -90,7 +93,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, PUINT Siz
     
     MachoHeader->FileType       = 2; // kernel (static linked)
     
-    MachoHeader->NumberOfCmds   = 2; // HACK ALERT!!!
+    MachoHeader->NumberOfCmds   = 2;
     MachoHeader->SizeOfCmds     = MachoInfoSize - sizeof(MACHO_HEADER);
     
     MachoHeader->Flags          = 1;
@@ -118,7 +121,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, PUINT Siz
     // Fill out first and only section.
     MachoSection = (PMACHO_SECTION) (((PUCHAR) MachoSegmentCommand) + sizeof(MACHO_SEGMENT_COMMAND));
     
-    strcpy(MachoSection->SectionName, "__text");
+    strcpy(MachoSection->SectionName, "__entry");
     strcpy(MachoSection->SegmentName, "__TEXT");
     
     MachoSection->Address               = OptionalHeader->ImageBase + OptionalHeader->AddressOfEntryPoint; // Entry address!!

@@ -5,12 +5,18 @@
  * COPYRIGHT:   Copyright 2023 DistroHopper39B (distrohopper39b.business@gmail.com)
  */
 
+/* INCLUDES ******************************************************************/
+
 #include <freeldr.h>
 
+/* GLOBALS *******************************************************************/
+
 #define RTC_REGISTER_A   0x0A
-#define   RTC_REG_A_UIP  0x80  /* Update In Progress bit */
+#define RTC_REG_A_UIP    0x80  /* Update In Progress bit */
 
 #define BCD_INT(bcd) (((bcd & 0xf0) >> 4) * 10 + (bcd &0x0f))
+
+/* FUNCTIONS *****************************************************************/
 
 static UCHAR
 HalpQueryCMOS(UCHAR Reg)

@@ -3,18 +3,19 @@
  * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
  * PURPOSE:     Console routines for the original Apple TV
  * COPYRIGHT:   Copyright 2023 DistroHopper39B (distrohopper39b.business@gmail.com)
- *              See ../xbox/xboxcons.c
  */
 
-// Note: This code is heavily based on xboxcons.c
+/* INCLUDES ******************************************************************/
 
 #include <freeldr.h>
 
-#include <debug.h>
+/* GLOBALS *******************************************************************/
 
 static unsigned CurrentCursorX = 0;
 static unsigned CurrentCursorY = 0;
 static unsigned CurrentAttr = 0x0f;
+
+/* FUNCTIONS *****************************************************************/
 
 VOID
 AppleTVConsPutChar(int c)

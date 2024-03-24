@@ -12,6 +12,7 @@
 /* FUNCTIONS *****************************************************************/
 
 /* GENERAL FUNCTIONS *********************************************************/
+
 UCHAR
 AppleTVGetFloppyCount(VOID)
 {
@@ -38,6 +39,7 @@ AppleTVBeep(VOID)
 
 
 /* VIDEO FUNCTIONS ***********************************************************/
+
 VOID
 AppleTVVideoGetFontsFromFirmware(PULONG RomFontPointers)
 {
