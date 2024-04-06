@@ -233,7 +233,7 @@ DetectPciBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
                 /* Initialize resource descriptor */
                 RtlZeroMemory(PartialResourceList, Size);
-                PartialResourceList->Version  = 1;
+                PartialResourceList->Version = 1;
                 PartialResourceList->Revision = 1;
                 PartialResourceList->Count = 1;
                 PartialDescriptor = &PartialResourceList->PartialDescriptors[0];

@@ -24,7 +24,11 @@ PEPROCESS CmpSystemProcess;
 PVOID CmpRegistryLockCallerCaller, CmpRegistryLockCaller;
 BOOLEAN CmpFlushOnLockRelease;
 BOOLEAN CmpSpecialBootCondition;
-BOOLEAN CmpNoWrite;
+
+/* Disable registry hive writes, until the IO subsystem is initialized
+ * and disk access is enabled (when the SM signals so after AUTOCHK) */
+BOOLEAN CmpNoWrite = TRUE;
+
 BOOLEAN CmpWasSetupBoot;
 BOOLEAN CmpProfileLoaded;
 BOOLEAN CmpNoVolatileCreates;
@@ -228,7 +232,7 @@ CmpQueryKeyName(IN PVOID ObjectBody,
 
     /* Check if the provided buffer is too small to fit even anything */
     if ((Length <= sizeof(OBJECT_NAME_INFORMATION)) ||
-        ((Length < (*ReturnLength)) && (BytesToCopy < sizeof(WCHAR))))
+        ((Length < *ReturnLength) && (BytesToCopy < sizeof(WCHAR))))
     {
         /* Free the buffer allocated by CmpConstructName */
         ExFreePoolWithTag(KeyName, TAG_CM);
@@ -238,7 +242,7 @@ CmpQueryKeyName(IN PVOID ObjectBody,
     }
 
     /* Check if the provided buffer can be partially written */
-    if (Length < (*ReturnLength))
+    if (Length < *ReturnLength)
     {
         /* Yes, indicate so in the return status */
         Status = STATUS_INFO_LENGTH_MISMATCH;
@@ -328,7 +332,7 @@ CmpInitHiveFromFile(IN PCUNICODE_STRING HiveName,
         *New = FALSE;
     }
 
-    /* Check if we're sharing hives */
+    /* Check if the system hives are opened in shared mode */
     if (CmpShareSystemHives)
     {
         /* Then force using the primary hive */
@@ -687,7 +691,7 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         ValueInfo = (PKEY_VALUE_FULL_INFORMATION)ValueInfoBuffer;
 
         /* Check if we failed or got a non DWORD-value */
-        if (!(NT_SUCCESS(Status)) || (ValueInfo->Type != REG_DWORD))
+        if (!NT_SUCCESS(Status) || (ValueInfo->Type != REG_DWORD))
         {
             Status = STATUS_SUCCESS;
             goto Cleanup;
@@ -728,7 +732,7 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     Status = NtOpenKey(&ProfileHandle,
                        KEY_READ | KEY_WRITE,
                        &ObjectAttributes);
-    if (!NT_SUCCESS (Status))
+    if (!NT_SUCCESS(Status))
     {
         /* Cleanup and exit */
         Status = STATUS_SUCCESS;
@@ -924,11 +928,9 @@ CmpInitializeSystemHive(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     if (!RtlCreateUnicodeString(&SystemHive->FileFullPath, L"\\SystemRoot\\System32\\Config\\SYSTEM"))
         return FALSE;
 
-    /* Manually set the hive as volatile, if in Live CD mode */
+    /* Load the system hive as volatile, if opened in shared mode */
     if (HiveBase && CmpShareSystemHives)
-    {
         SystemHive->Hive.HiveFlags = HIVE_VOLATILE;
-    }
 
     /* Save the boot type */
     CmpBootType = SystemHive->Hive.BaseBlock->BootType;
@@ -1319,8 +1321,8 @@ CmpLoadHiveThread(IN PVOID StartContext)
                                      &CmHive,
                                      &CmpMachineHiveList[i].Allocate,
                                      CM_CHECK_REGISTRY_PURGE_VOLATILES);
-        if (!(NT_SUCCESS(Status)) ||
-            (!(CmpShareSystemHives) && !(CmHive->FileHandles[HFILE_TYPE_LOG])))
+        if (!NT_SUCCESS(Status) ||
+            (!CmpShareSystemHives && !CmHive->FileHandles[HFILE_TYPE_LOG]))
         {
             /*
              * We failed, or could not get a log file (unless
@@ -1356,7 +1358,7 @@ CmpLoadHiveThread(IN PVOID StartContext)
                                       TRUE,
                                       FALSE,
                                       &ClusterSize);
-            if (!(NT_SUCCESS(Status)) || !(AlternateHandle))
+            if (!NT_SUCCESS(Status) || !AlternateHandle)
             {
                 /* Couldn't open the hive or its alternate file, raise a hard error */
                 ErrorParameters = &FileName;
@@ -1469,9 +1471,10 @@ CmpInitializeHiveList(VOID)
     ULONG i;
     USHORT RegStart;
     PSECURITY_DESCRIPTOR SecurityDescriptor;
+
     PAGED_CODE();
 
-    /* Allow writing for now */
+    /* Reenable hive writes now */
     CmpNoWrite = FALSE;
 
     /* Build the file name and registry name strings */
@@ -1503,7 +1506,7 @@ CmpInitializeHiveList(VOID)
         /* Make sure the list is set up */
         ASSERT(CmpMachineHiveList[i].Name != NULL);
 
-        /* Load the hive as volatile, if in LiveCD mode */
+        /* Load this root hive as volatile, if opened in shared mode */
         if (CmpShareSystemHives)
             CmpMachineHiveList[i].HHiveFlags |= HIVE_VOLATILE;
 
@@ -1625,7 +1628,7 @@ CmInitSystem1(VOID)
     /* Check if this is PE-boot */
     if (InitIsWinPEMode)
     {
-        /* Set registry to PE mode */
+        /* Set the registry in PE mode and load the system hives in shared mode */
         CmpMiniNTBoot = TRUE;
         CmpShareSystemHives = TRUE;
     }
@@ -2111,14 +2114,14 @@ CmpReleaseTwoKcbLockByKey(IN ULONG ConvKey1,
     Index1 = GET_HASH_INDEX(ConvKey1);
     Index2 = GET_HASH_INDEX(ConvKey2);
     ASSERT((GET_HASH_ENTRY(CmpCacheTable, ConvKey2)->Owner == KeGetCurrentThread()) ||
-           (CmpTestRegistryLockExclusive()));
+           CmpTestRegistryLockExclusive());
 
     /* See which one is highest */
     if (Index1 < Index2)
     {
         /* Grab them in the proper order */
         ASSERT((GET_HASH_ENTRY(CmpCacheTable, ConvKey1)->Owner == KeGetCurrentThread()) ||
-               (CmpTestRegistryLockExclusive()));
+               CmpTestRegistryLockExclusive());
         CmpReleaseKcbLockByKey(ConvKey2);
         CmpReleaseKcbLockByKey(ConvKey1);
     }
@@ -2128,7 +2131,7 @@ CmpReleaseTwoKcbLockByKey(IN ULONG ConvKey1,
         if (Index1 != Index2)
         {
             ASSERT((GET_HASH_ENTRY(CmpCacheTable, ConvKey1)->Owner == KeGetCurrentThread()) ||
-                   (CmpTestRegistryLockExclusive()));
+                   CmpTestRegistryLockExclusive());
             CmpReleaseKcbLockByKey(ConvKey1);
         }
         CmpReleaseKcbLockByKey(ConvKey2);

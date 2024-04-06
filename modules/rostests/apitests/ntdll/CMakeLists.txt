@@ -7,6 +7,7 @@ spec2def(ntdll_apitest.exe ntdll_apitest.spec)
 
 list(APPEND SOURCE
     LdrEnumResources.c
+    LdrLoadDll.c
     load_notifications.c
     locale.c
     NtAcceptConnectPort.c
@@ -79,6 +80,7 @@ list(APPEND SOURCE
     RtlGetLengthWithoutTrailingPathSeperators.c
     RtlGetLongestNtPathLength.c
     RtlGetNtProductType.c
+    RtlGetProcessHeaps.c
     RtlGetUnloadEventTrace.c
     RtlHandle.c
     RtlImageDirectoryEntryToData.c

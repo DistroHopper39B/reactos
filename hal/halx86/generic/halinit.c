@@ -54,12 +54,14 @@ HalInitializeProcessor(
     KeGetPcr()->StallScaleFactor = INITIAL_STALL_COUNT;
 
     /* Update the interrupt affinity and processor mask */
-    InterlockedBitTestAndSet((PLONG)&HalpActiveProcessors, ProcessorNumber);
-    InterlockedBitTestAndSet((PLONG)&HalpDefaultInterruptAffinity,
-                             ProcessorNumber);
+    InterlockedBitTestAndSetAffinity(&HalpActiveProcessors, ProcessorNumber);
+    InterlockedBitTestAndSetAffinity(&HalpDefaultInterruptAffinity, ProcessorNumber);
 
-    /* Register routines for KDCOM */
-    HalpRegisterKdSupportFunctions();
+    if (ProcessorNumber == 0)
+    {
+        /* Register routines for KDCOM */
+        HalpRegisterKdSupportFunctions();
+    }
 }
 
 /*
@@ -154,7 +156,7 @@ HalInitSystem(IN ULONG BootPhase,
         HalpInitPhase1();
 
         /* Initialize Phase 1 of the x86 emulator */
-        HalInitializeBios(1, LoaderBlock);
+       // HalInitializeBios(1, LoaderBlock);
     }
 
     /* All done, return */

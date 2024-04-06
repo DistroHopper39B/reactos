@@ -67,7 +67,7 @@ BOOL APIENTRY Imm32InquireIme(PIMEDPI pImeDpi)
     }
     else if (IS_CICERO_MODE() && !IS_16BIT_MODE())
     {
-        if (!pImeDpi->CtfImeInquireExW(pImeInfo, szUIClass, dwSysInfoFlags, pImeDpi->hKL))
+        if (pImeDpi->CtfImeInquireExW(pImeInfo, szUIClass, dwSysInfoFlags, pImeDpi->hKL) != S_OK)
         {
             ERR("\n");
             return FALSE;
@@ -904,7 +904,7 @@ HWND WINAPI ImmGetDefaultIMEWnd(HWND hWnd)
 /***********************************************************************
  *		ImmNotifyIME (IMM32.@)
  */
-BOOL WINAPI ImmNotifyIME(HIMC hIMC, DWORD dwAction, DWORD dwIndex, DWORD dwValue)
+BOOL WINAPI ImmNotifyIME(HIMC hIMC, DWORD dwAction, DWORD dwIndex, DWORD_PTR dwValue)
 {
     HKL hKL;
     PIMEDPI pImeDpi;
@@ -923,15 +923,6 @@ BOOL WINAPI ImmNotifyIME(HIMC hIMC, DWORD dwAction, DWORD dwIndex, DWORD dwValue
     ret = pImeDpi->NotifyIME(hIMC, dwAction, dwIndex, dwValue);
     ImmUnlockImeDpi(pImeDpi);
     return ret;
-}
-
-/***********************************************************************
- *              ImmDisableLegacyIME(IMM32.@)
- */
-BOOL WINAPI ImmDisableLegacyIME(void)
-{
-    FIXME("stub\n");
-    return TRUE;
 }
 
 /***********************************************************************

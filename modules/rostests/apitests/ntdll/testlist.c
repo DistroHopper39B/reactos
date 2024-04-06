@@ -4,6 +4,7 @@
 #include <apitest.h>
 
 extern void func_LdrEnumResources(void);
+extern void func_LdrLoadDll(void);
 extern void func_load_notifications(void);
 extern void func_NtAcceptConnectPort(void);
 extern void func_NtAccessCheck(void);
@@ -76,6 +77,7 @@ extern void func_RtlGetLengthWithoutLastFullDosOrNtPathElement(void);
 extern void func_RtlGetLengthWithoutTrailingPathSeperators(void);
 extern void func_RtlGetLongestNtPathLength(void);
 extern void func_RtlGetNtProductType(void);
+extern void func_RtlGetProcessHeaps(void);
 extern void func_RtlGetUnloadEventTrace(void);
 extern void func_RtlHandle(void);
 extern void func_RtlImageDirectoryEntryToData(void);
@@ -93,6 +95,7 @@ extern void func_RtlRemovePrivileges(void);
 extern void func_RtlUnicodeStringToAnsiString(void);
 extern void func_RtlUnicodeStringToCountedOemString(void);
 extern void func_RtlUnicodeToOemN(void);
+extern void func_RtlUnwind(void);
 extern void func_RtlUpcaseUnicodeStringToCountedOemString(void);
 extern void func_RtlValidateUnicodeString(void);
 extern void func_RtlxUnicodeStringToAnsiSize(void);
@@ -104,6 +107,7 @@ extern void func_UserModeException(void);
 const struct test winetest_testlist[] =
 {
     { "LdrEnumResources",               func_LdrEnumResources },
+    { "LdrLoadDll",                     func_LdrLoadDll },
     { "load_notifications",             func_load_notifications },
     { "NtAcceptConnectPort",            func_NtAcceptConnectPort },
     { "NtAccessCheck",                  func_NtAccessCheck },
@@ -175,6 +179,7 @@ const struct test winetest_testlist[] =
     { "RtlGetLengthWithoutTrailingPathSeperators", func_RtlGetLengthWithoutTrailingPathSeperators },
     { "RtlGetLongestNtPathLength",      func_RtlGetLongestNtPathLength },
     { "RtlGetNtProductType",            func_RtlGetNtProductType },
+    { "RtlGetProcessHeaps",             func_RtlGetProcessHeaps },
     { "RtlGetUnloadEventTrace",         func_RtlGetUnloadEventTrace },
     { "RtlHandle",                      func_RtlHandle },
     { "RtlImageDirectoryEntryToData",   func_RtlImageDirectoryEntryToData },
@@ -199,6 +204,9 @@ const struct test winetest_testlist[] =
     { "StackOverflow",                  func_StackOverflow },
     { "TimerResolution",                func_TimerResolution },
     { "UserModeException",              func_UserModeException },
+#ifdef _M_IX86
+    { "RtlUnwind",                      func_RtlUnwind },
+#endif
 #ifdef _M_AMD64
     { "RtlCaptureContext",              func_RtlCaptureContext },
 #endif

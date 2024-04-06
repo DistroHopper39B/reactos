@@ -4,7 +4,7 @@
  * PURPOSE:     Romanian resource file
  * TRANSLATORS: Copyright 2009 Petru Dimitriu <petrimetri@gmail.com>
  *              Copyright 2011-2018 Ștefan Fulea <stefan.fulea@mail.com>
- *              Copyright 2022-2023 Andrei Miloiu <miloiuandrei@gmail.com>
+ *              Copyright 2022-2024 Andrei Miloiu <miloiuandrei@gmail.com>
  */
 
 LANGUAGE LANG_ROMANIAN, SUBLANG_NEUTRAL
@@ -28,9 +28,9 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Transmite...", IDM_FILESEND
         MENUITEM SEPARATOR
-        MENUITEM "Decor de birou (în c&arou)", IDM_FILEASWALLPAPERPLANE
-        MENUITEM "Decor de birou (&centrat)", IDM_FILEASWALLPAPERCENTERED
-        MENUITEM "Decor de birou (e&xtins)", IDM_FILEASWALLPAPERSTRETCHED
+        MENUITEM "Fundal de desktop (în c&arou)", IDM_FILEASWALLPAPERPLANE
+        MENUITEM "Fundal de desktop (&centrat)", IDM_FILEASWALLPAPERCENTERED
+        MENUITEM "Fundal de desktop (e&xtins)", IDM_FILEASWALLPAPERSTRETCHED
         MENUITEM SEPARATOR
         MENUITEM "Cel mai recent fișier", IDM_FILEMOSTRECENTLYUSEDFILE, GRAYED
         MENUITEM SEPARATOR
@@ -44,6 +44,8 @@ BEGIN
         MENUITEM "&Decupează\tCtrl+X", IDM_EDITCUT
         MENUITEM "&Copiază\tCtrl+C", IDM_EDITCOPY
         MENUITEM "&Lipește\tCtrl+V", IDM_EDITPASTE
+        MENUITEM SEPARATOR
+        MENUITEM "Crop &selection", IDM_CROPSELECTION
         MENUITEM "Șt&erge selecția\tDel", IDM_EDITDELETESELECTION
         MENUITEM "In&versează selecția", IDM_EDITINVERTSELECTION
         MENUITEM "Selecte&ază tot\tCtrl+A", IDM_EDITSELECTALL
@@ -108,6 +110,8 @@ BEGIN
         MENUITEM "&Decupează\tCtrl+X", IDM_EDITCUT
         MENUITEM "&Copiază\tCtrl+C", IDM_EDITCOPY
         MENUITEM "&Lipește\tCtrl+V", IDM_EDITPASTE
+        MENUITEM SEPARATOR
+        MENUITEM "Crop &selection", IDM_CROPSELECTION
         MENUITEM "Șt&erge selecția\tDel", IDM_EDITDELETESELECTION
         MENUITEM "Selecte&ază tot\tCtrl+A", IDM_EDITSELECTALL
         MENUITEM SEPARATOR
@@ -230,9 +234,9 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_PROGRAMNAME "Pictare"
-    IDS_WINDOWTITLE "%s - Pictare"
-    IDS_INFOTITLE "Pictare pentru ReactOS"
+    IDS_PROGRAMNAME "Paint"
+    IDS_WINDOWTITLE "%s - Paint"
+    IDS_INFOTITLE "Paint pentru ReactOS"
     IDS_INFOTEXT "Disponibilă sub licența GNU Lesser General Public (vedeți www.gnu.org)"
     IDS_SAVEPROMPTTEXT "Doriți salvarea modificărilor din %s?"
     IDS_DEFAULTFILENAME "Fără nume"
@@ -266,8 +270,8 @@ BEGIN
     IDS_UNDERLINE "Subliniat"
     IDS_VERTICAL "Vertical"
     IDS_PRINTRES "%d x %d pixeli/cm"
-    IDS_CANTPASTE "Nu a putut fi lipit din clipboard. Formatul de date este fie incorect, fie nesuportat."
-    IDS_SAVEERROR "Eșec în salvarea imaginii bitmap („hartă de biți”) în fișierul:\n\n%s"
-    IDS_CANTSENDMAIL "Eșec în trimiterea unei scrisori."
-    IDS_LOSECOLOR "În această operațiune informațiile legate de culoare vor fi pierdute. Sigur veți continua?"
+    IDS_CANTPASTE "Nu s-a putut lipi din clipboard. Formatul de date este fie incorect, fie nesuportat."
+    IDS_SAVEERROR "Nu s-a putut salva imaginea bitmap („hartă de biți”) în fișierul:\n\n%s"
+    IDS_CANTSENDMAIL "Nu s-a putut trimite un e-mail."
+    IDS_LOSECOLOR "În această operațiune informațiile legate de culoare vor fi pierdute. Sunteți sigur că veți continua?"
 END

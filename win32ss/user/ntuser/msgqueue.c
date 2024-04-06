@@ -634,7 +634,7 @@ co_MsqInsertMouseMessage(MSG* Msg, DWORD flags, ULONG_PTR dwExtraInfo, BOOL Hook
    else
    {
        pwnd = IntTopLevelWindowFromPoint(Msg->pt.x, Msg->pt.y);
-       if (pwnd) Msg->hwnd = pwnd->head.h;
+       if (pwnd) Msg->hwnd = UserHMGetHandle(pwnd);
    }
 
    hdcScreen = IntGetScreenDC();
@@ -813,7 +813,7 @@ MsqRemoveWindowMessagesFromQueue(PWND Window)
    {
       PostedMessage = CONTAINING_RECORD(CurrentEntry, USER_MESSAGE, ListEntry);
 
-      if (PostedMessage->Msg.hwnd == Window->head.h)
+      if (PostedMessage->Msg.hwnd == UserHMGetHandle(Window))
       {
          if (PostedMessage->Msg.message == WM_QUIT && pti->QuitPosted == 0)
          {
@@ -837,7 +837,7 @@ MsqRemoveWindowMessagesFromQueue(PWND Window)
    {
       SentMessage = CONTAINING_RECORD(CurrentEntry, USER_SENT_MESSAGE, ListEntry);
 
-      if(SentMessage->Msg.hwnd == Window->head.h)
+      if(SentMessage->Msg.hwnd == UserHMGetHandle(Window))
       {
          ERR("Remove Window Messages %p From Sent Queue\n",SentMessage);
 #if 0 // Should mark these as invalid and allow the rest clean up, so far no harm by just commenting out. See CORE-9210.
@@ -1769,17 +1769,16 @@ BOOL co_IntProcessKeyboardMessage(MSG* Msg, BOOL* RemoveMessages)
     USER_REFERENCE_ENTRY Ref;
     PWND pWnd;
     UINT ImmRet;
-    BOOL Ret = TRUE;
+    BOOL Ret = TRUE, bKeyUpDown = FALSE;
     PTHREADINFO pti = PsGetCurrentThreadWin32Thread();
+    const UINT uMsg = Msg->message;
 
-    if (Msg->message == VK_PACKET)
-    {
-       pti->wchInjected = HIWORD(Msg->wParam);
-    }
+    if (uMsg == VK_PACKET)
+        pti->wchInjected = HIWORD(Msg->wParam);
 
-    if (Msg->message == WM_KEYDOWN || Msg->message == WM_SYSKEYDOWN ||
-        Msg->message == WM_KEYUP || Msg->message == WM_SYSKEYUP)
+    if (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN || uMsg == WM_KEYUP || uMsg == WM_SYSKEYUP)
     {
+        bKeyUpDown = TRUE;
         switch (Msg->wParam)
         {
             case VK_LSHIFT: case VK_RSHIFT:
@@ -1797,7 +1796,7 @@ BOOL co_IntProcessKeyboardMessage(MSG* Msg, BOOL* RemoveMessages)
     pWnd = ValidateHwndNoErr(Msg->hwnd);
     if (pWnd) UserRefObjectCo(pWnd, &Ref);
 
-    Event.message = Msg->message;
+    Event.message = uMsg;
     Event.hwnd    = Msg->hwnd;
     Event.time    = Msg->time;
     Event.paramL  = (Msg->wParam & 0xFF) | (HIWORD(Msg->lParam) << 8);
@@ -1807,7 +1806,7 @@ BOOL co_IntProcessKeyboardMessage(MSG* Msg, BOOL* RemoveMessages)
 
     if (*RemoveMessages)
     {
-        if ((Msg->message == WM_KEYDOWN) &&
+        if ((uMsg == WM_KEYDOWN) &&
             (Msg->hwnd != IntGetDesktopWindow()))
         {
             /* Handle F1 key by sending out WM_HELP message */
@@ -1822,7 +1821,7 @@ BOOL co_IntProcessKeyboardMessage(MSG* Msg, BOOL* RemoveMessages)
                 co_IntSendMessage(Msg->hwnd, WM_APPCOMMAND, (WPARAM)Msg->hwnd, MAKELPARAM(0, (FAPPCOMMAND_KEY | (Msg->wParam - VK_BROWSER_BACK + 1))));
             }
         }
-        else if (Msg->message == WM_KEYUP)
+        else if (uMsg == WM_KEYUP)
         {
             /* Handle VK_APPS key by posting a WM_CONTEXTMENU message */
             if (Msg->wParam == VK_APPS && pti->MessageQueue->MenuOwner == NULL)
@@ -1831,7 +1830,7 @@ BOOL co_IntProcessKeyboardMessage(MSG* Msg, BOOL* RemoveMessages)
     }
 
     //// Key Down!
-    if ( *RemoveMessages && Msg->message == WM_SYSKEYDOWN )
+    if (*RemoveMessages && uMsg == WM_SYSKEYDOWN)
     {
         if ( HIWORD(Msg->lParam) & KF_ALTDOWN )
         {
@@ -1869,9 +1868,10 @@ BOOL co_IntProcessKeyboardMessage(MSG* Msg, BOOL* RemoveMessages)
         Ret = FALSE;
     }
 
-    if ( pWnd && Ret && *RemoveMessages && Msg->message == WM_KEYDOWN && !(pti->TIF_flags & TIF_DISABLEIME))
+    if (pWnd && Ret && *RemoveMessages && bKeyUpDown && !(pti->TIF_flags & TIF_DISABLEIME))
     {
-        if ( (ImmRet = IntImmProcessKey(pti->MessageQueue, pWnd, Msg->message, Msg->wParam, Msg->lParam)) )
+        ImmRet = IntImmProcessKey(pti->MessageQueue, pWnd, uMsg, Msg->wParam, Msg->lParam);
+        if (ImmRet)
         {
             if ( ImmRet & (IPHK_HOTKEY|IPHK_SKIPTHISKEY) )
             {
@@ -1984,10 +1984,9 @@ co_MsqPeekHardwareMessage(IN PTHREADINFO pti,
  */
       if ( ( !Window || // 1
             ( Window == PWND_BOTTOM && CurrentMessage->Msg.hwnd == NULL ) || // 2
-            ( Window != PWND_BOTTOM && Window->head.h == CurrentMessage->Msg.hwnd ) || // 3
+            ( Window != PWND_BOTTOM && UserHMGetHandle(Window) == CurrentMessage->Msg.hwnd ) || // 3
             ( is_mouse_message(CurrentMessage->Msg.message) ) ) && // Null window for anything mouse.
-            ( ( ( MsgFilterLow == 0 && MsgFilterHigh == 0 ) && CurrentMessage->QS_Flags & QSflags ) ||
-              ( MsgFilterLow <= CurrentMessage->Msg.message && MsgFilterHigh >= CurrentMessage->Msg.message ) ) )
+            ( CurrentMessage->QS_Flags & QSflags ) )
       {
          idSave = MessageQueue->idSysPeek;
          MessageQueue->idSysPeek = (ULONG_PTR)CurrentMessage;
@@ -2000,6 +1999,13 @@ co_MsqPeekHardwareMessage(IN PTHREADINFO pti,
 
          UpdateKeyStateFromMsg(MessageQueue, &msg);
          AcceptMessage = co_IntProcessHardwareMessage(&msg, &Remove, &NotForUs, ExtraInfo, MsgFilterLow, MsgFilterHigh);
+         
+         if (MsgFilterLow != 0 || MsgFilterHigh != 0)
+         {
+             /* Don't return message if not in range */
+             if (msg.message < MsgFilterLow || msg.message > MsgFilterHigh)
+                 AcceptMessage = FALSE;
+         }
 
          if (Remove)
          {
@@ -2072,7 +2078,7 @@ MsqPeekMessage(IN PTHREADINFO pti,
  */
       if ( ( !Window || // 1
             ( Window == PWND_BOTTOM && CurrentMessage->Msg.hwnd == NULL ) || // 2
-            ( Window != PWND_BOTTOM && Window->head.h == CurrentMessage->Msg.hwnd ) ) && // 3
+            ( Window != PWND_BOTTOM && UserHMGetHandle(Window) == CurrentMessage->Msg.hwnd ) ) && // 3
             ( ( ( MsgFilterLow == 0 && MsgFilterHigh == 0 ) && CurrentMessage->QS_Flags & QSflags ) ||
               ( MsgFilterLow <= CurrentMessage->Msg.message && MsgFilterHigh >= CurrentMessage->Msg.message ) ) )
       {
