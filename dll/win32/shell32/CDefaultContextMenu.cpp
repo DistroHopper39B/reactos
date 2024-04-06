@@ -128,19 +128,19 @@ class CDefaultContextMenu :
         HRESULT WINAPI Initialize(const DEFCONTEXTMENU *pdcm, LPFNDFMCALLBACK lpfn);
 
         // IContextMenu
-        virtual HRESULT WINAPI QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags);
-        virtual HRESULT WINAPI InvokeCommand(LPCMINVOKECOMMANDINFO lpcmi);
-        virtual HRESULT WINAPI GetCommandString(UINT_PTR idCommand, UINT uFlags, UINT *lpReserved, LPSTR lpszName, UINT uMaxNameLen);
+        STDMETHOD(QueryContextMenu)(HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags) override;
+        STDMETHOD(InvokeCommand)(LPCMINVOKECOMMANDINFO lpcmi) override;
+        STDMETHOD(GetCommandString)(UINT_PTR idCommand, UINT uFlags, UINT *lpReserved, LPSTR lpszName, UINT uMaxNameLen) override;
 
         // IContextMenu2
-        virtual HRESULT WINAPI HandleMenuMsg(UINT uMsg, WPARAM wParam, LPARAM lParam);
+        STDMETHOD(HandleMenuMsg)(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
         // IContextMenu3
-        virtual HRESULT WINAPI HandleMenuMsg2(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT *plResult);
+        STDMETHOD(HandleMenuMsg2)(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT *plResult) override;
 
         // IObjectWithSite
-        virtual HRESULT STDMETHODCALLTYPE SetSite(IUnknown *pUnkSite);
-        virtual HRESULT STDMETHODCALLTYPE GetSite(REFIID riid, void **ppvSite);
+        STDMETHOD(SetSite)(IUnknown *pUnkSite) override;
+        STDMETHOD(GetSite)(REFIID riid, void **ppvSite) override;
 
         BEGIN_COM_MAP(CDefaultContextMenu)
         COM_INTERFACE_ENTRY_IID(IID_IContextMenu, IContextMenu)
@@ -540,7 +540,7 @@ CDefaultContextMenu::AddStaticContextMenusToMenu(
         }
 
         UINT cmdFlags = 0;
-        BOOL hide = FALSE;
+        bool hide = false;
         HKEY hkVerb;
         if (idResource > 0)
         {
@@ -585,12 +585,13 @@ CDefaultContextMenu::AddStaticContextMenusToMenu(
             // FIXME: GetAsyncKeyState should not be called here, clients
             // need to be updated to set the CMF_EXTENDEDVERBS flag.
             if (!(uFlags & CMF_EXTENDEDVERBS) && GetAsyncKeyState(VK_SHIFT) >= 0)
-                hide |= RegValueExists(hkVerb, L"Extended");
+                hide = RegValueExists(hkVerb, L"Extended");
 
-            hide |= RegValueExists(hkVerb, L"ProgrammaticAccessOnly");
+            if (!hide)
+                hide = RegValueExists(hkVerb, L"ProgrammaticAccessOnly");
 
-            if (!(uFlags & CMF_DISABLEDVERBS))
-                hide |= RegValueExists(hkVerb, L"LegacyDisable");
+            if (!hide && !(uFlags & CMF_DISABLEDVERBS))
+                hide = RegValueExists(hkVerb, L"LegacyDisable");
 
             if (RegValueExists(hkVerb, L"NeverDefault"))
                 fState &= ~MFS_DEFAULT;
@@ -1192,7 +1193,7 @@ CDefaultContextMenu::TryToBrowse(
     hr = SHILCombine(m_pidlFolder, pidlChild, &pidl);
     if (FAILED_UNEXPECTEDLY(hr))
         return hr;
-    
+
     hr = psb->BrowseObject(pidl, wFlags & ~SBSP_RELATIVE);
     ILFree(pidl);
     return hr;

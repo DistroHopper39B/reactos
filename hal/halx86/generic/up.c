@@ -32,3 +32,39 @@ HalStartNextProcessor(
     /* Always return false on UP systems */
     return FALSE;
 }
+
+VOID
+HalpSetupProcessorsTable(
+    _In_ UINT32 NTProcessorNumber)
+{
+    NOTHING;
+}
+
+VOID
+FASTCALL
+HalpBroadcastClockIpi(
+    _In_ UCHAR Vector)
+{
+    NOTHING;
+}
+
+#ifdef _M_AMD64
+
+VOID
+NTAPI
+HalSendNMI(
+    _In_ KAFFINITY TargetSet)
+{
+    NOTHING;
+}
+
+VOID
+NTAPI
+HalSendSoftwareInterrupt(
+    _In_ KAFFINITY TargetSet,
+    _In_ KIRQL Irql)
+{
+    NOTHING;
+}
+
+#endif // _M_AMD64

@@ -22,6 +22,7 @@ extern void func_IShellFolderViewCB(void);
 extern void func_menu(void);
 extern void func_OpenAs_RunDLL(void);
 extern void func_PathIsEqualOrSubFolder(void);
+extern void func_PathIsTemporary(void);
 extern void func_PathResolve(void);
 extern void func_SHAppBarMessage(void);
 extern void func_SHChangeNotify(void);
@@ -37,6 +38,7 @@ extern void func_ShellState(void);
 extern void func_SHGetAttributesFromDataObject(void);
 extern void func_SHLimitInputEdit(void);
 extern void func_SHParseDisplayName(void);
+extern void func_SHRestricted(void);
 
 const struct test winetest_testlist[] =
 {
@@ -59,6 +61,7 @@ const struct test winetest_testlist[] =
     { "menu", func_menu },
     { "OpenAs_RunDLL", func_OpenAs_RunDLL },
     { "PathIsEqualOrSubFolder", func_PathIsEqualOrSubFolder },
+    { "PathIsTemporary", func_PathIsTemporary },
     { "PathResolve", func_PathResolve },
     { "SHAppBarMessage", func_SHAppBarMessage },
     { "SHChangeNotify", func_SHChangeNotify },
@@ -74,5 +77,7 @@ const struct test winetest_testlist[] =
     { "SHGetAttributesFromDataObject", func_SHGetAttributesFromDataObject },
     { "SHLimitInputEdit", func_SHLimitInputEdit },
     { "SHParseDisplayName", func_SHParseDisplayName },
+    { "SHRestricted", func_SHRestricted },
+
     { 0, 0 }
 };

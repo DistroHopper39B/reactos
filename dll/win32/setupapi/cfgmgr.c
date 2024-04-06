@@ -603,7 +603,7 @@ CMP_RegisterNotification(
     _Out_ PHDEVNOTIFY phDevNotify)
 {
     RPC_BINDING_HANDLE BindingHandle = NULL;
-    PNOTIFY_DATA pNotifyData = NULL;
+    PNOTIFY_DATA pNotifyData;
     WCHAR szNameBuffer[256];
     INT nLength;
     DWORD ulUnknown9 = 0;
@@ -636,6 +636,8 @@ CMP_RegisterNotification(
     pNotifyData->ulMagic = NOTIFY_MAGIC;
     pNotifyData->hNotifyHandle = NULL;
 
+    ZeroMemory(szNameBuffer, sizeof(szNameBuffer));
+
     if ((ulFlags & DEVICE_NOTIFY_SERVICE_HANDLE) == DEVICE_NOTIFY_WINDOW_HANDLE)
     {
         FIXME("Register a window\n");
@@ -645,8 +647,7 @@ CMP_RegisterNotification(
                                  ARRAYSIZE(szNameBuffer));
         if (nLength == 0)
         {
-            HeapFree(GetProcessHeap(), 0, pNotifyData);
-            return CR_INVALID_DATA;
+            szNameBuffer[0] = UNICODE_NULL;
         }
 
         FIXME("Register window: %S\n", szNameBuffer);
@@ -670,7 +671,7 @@ CMP_RegisterNotification(
     RpcTryExcept
     {
         ret = PNP_RegisterNotification(BindingHandle,
-                                       0,            /* ??? */
+                                       (DWORD_PTR)hRecipient,
                                        szNameBuffer,
                                        (BYTE*)lpvNotificationFilter,
                                        ((DEV_BROADCAST_HDR*)lpvNotificationFilter)->dbch_size,
@@ -692,8 +693,7 @@ CMP_RegisterNotification(
     }
     else
     {
-        if (pNotifyData->hNotifyHandle == NULL)
-            HeapFree(GetProcessHeap(), 0, pNotifyData);
+        HeapFree(GetProcessHeap(), 0, pNotifyData);
 
         *phDevNotify = (HDEVNOTIFY)NULL;
     }
@@ -1464,7 +1464,7 @@ CM_Create_Range_List(
     _Out_ PRANGE_LIST prlh,
     _In_ ULONG ulFlags)
 {
-    PINTERNAL_RANGE_LIST pRangeList = NULL;
+    PINTERNAL_RANGE_LIST pRangeList;
 
     FIXME("CM_Create_Range_List(%p %lx)\n",
           prlh, ulFlags);
@@ -2903,7 +2903,7 @@ CM_Get_Class_Registry_PropertyA(
     ULONG ulFlags,
     HMACHINE hMachine)
 {
-    PWSTR BufferW = NULL;
+    PWSTR BufferW;
     ULONG ulLength = 0;
     ULONG ulType;
     CONFIGRET ret;
@@ -3189,7 +3189,7 @@ CM_Get_DevNode_Custom_Property_ExA(
     _In_ ULONG ulFlags,
     _In_opt_ HMACHINE hMachine)
 {
-    LPWSTR pszPropertyNameW = NULL;
+    LPWSTR pszPropertyNameW;
     PVOID BufferW;
     ULONG ulLengthW;
     ULONG ulDataType = REG_NONE;
@@ -3420,7 +3420,6 @@ CM_Get_DevNode_Registry_Property_ExA(
 
     LengthW = *pulLength * sizeof(WCHAR);
     BufferW = HeapAlloc(GetProcessHeap(), 0, LengthW);
-
     if (!BufferW)
         return CR_OUT_OF_MEMORY;
 
@@ -7256,7 +7255,7 @@ CM_Register_Device_Interface_ExA(
     _In_opt_ HMACHINE hMachine)
 {
     LPWSTR pszReferenceW = NULL;
-    LPWSTR pszDeviceInterfaceW = NULL;
+    LPWSTR pszDeviceInterfaceW;
     ULONG ulLength;
     CONFIGRET ret;
 

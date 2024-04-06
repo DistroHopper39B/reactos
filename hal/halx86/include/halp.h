@@ -10,6 +10,14 @@
 #define HAL_BUILD_TYPE ((DBG ? PRCB_BUILD_DEBUG : 0) | PRCB_BUILD_UNIPROCESSOR)
 #endif
 
+/* Don't include this in freeloader */
+#ifndef _BLDR_
+extern KIRQL HalpIrqlSynchLevel;
+
+#undef SYNCH_LEVEL
+#define SYNCH_LEVEL HalpIrqlSynchLevel
+#endif
+
 typedef struct _HAL_BIOS_FRAME
 {
     ULONG SegSs;
@@ -227,6 +235,7 @@ extern BOOLEAN HalpProfilingStopped;
 /* timer.c */
 CODE_SEG("INIT") VOID NTAPI HalpInitializeClock(VOID);
 VOID __cdecl HalpClockInterrupt(VOID);
+VOID __cdecl HalpClockIpi(VOID);
 VOID __cdecl HalpProfileInterrupt(VOID);
 
 typedef struct _HALP_ROLLOVER
@@ -504,6 +513,12 @@ KeUpdateSystemTime(
     IN ULONG Increment,
     IN KIRQL OldIrql
 );
+
+VOID
+NTAPI
+KeUpdateRunTime(
+    _In_ PKTRAP_FRAME TrapFrame,
+    _In_ KIRQL Irql);
 
 CODE_SEG("INIT")
 VOID

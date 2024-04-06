@@ -49,13 +49,11 @@ typedef struct _TRAYNOTIFYDATAW
 
 #endif /* defined (_SHELLAPI_H) || defined (_INC_SHELLAPI) */
 
-
 /****************************************************************************
  * Taskbar WM_COMMAND identifiers
  */
 #define TWM_DOEXITWINDOWS (WM_USER + 342)
 #define TWM_CYCLEFOCUS (WM_USER + 348)
-
 
 /****************************************************************************
  *  IDList Functions
@@ -95,7 +93,6 @@ HRESULT WINAPI SHILCreateFromPathW (
 */
 BOOL WINAPI StrRetToStrNA(LPSTR,DWORD,LPSTRRET,const ITEMIDLIST*);
 BOOL WINAPI StrRetToStrNW(LPWSTR,DWORD,LPSTRRET,const ITEMIDLIST*);
-
 
 /****************************************************************************
  * SHChangeNotifyRegister API
@@ -258,6 +255,7 @@ ExtractIconResInfoW(
 /****************************************************************************
  * File Menu Routines
  */
+
 /* FileMenu_Create nSelHeight constants */
 #define FM_DEFAULT_SELHEIGHT  -1
 #define FM_FULL_SELHEIGHT     0
@@ -500,6 +498,9 @@ BOOL WINAPI PathFindOnPathAW(LPVOID sFile, LPCVOID *sOtherDirs);
 
 BOOL WINAPI PathIsEqualOrSubFolder(_In_ LPCWSTR pszFile1OrCSIDL, _In_ LPCWSTR pszFile2);
 
+BOOL WINAPI PathIsTemporaryA(_In_ LPCSTR Str);
+BOOL WINAPI PathIsTemporaryW(_In_ LPCWSTR Str);
+
 /****************************************************************************
  * Shell File Operations error codes - SHFileOperationA/W
  */
@@ -728,6 +729,8 @@ Activate_RunDLL(
     _In_ HINSTANCE hinst,
     _In_ LPCWSTR cmdline,
     _In_ INT cmdshow);
+
+BOOL WINAPI SHSettingsChanged(LPCVOID unused, LPCWSTR pszKey);
 
 /*****************************************************************************
  * Shell32 resources
