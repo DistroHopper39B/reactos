@@ -134,7 +134,14 @@ if(ARCH STREQUAL "i386")
         ${CMAKE_CURRENT_BINARY_DIR}/freeldr_pe.def)
 endif()
 
-include(pcat.cmake)
-if(NOT ARCH STREQUAL "i386" OR NOT (SARCH STREQUAL "pc98" OR SARCH STREQUAL "xbox"))
+if (NOT SARCH STREQUAL "appletv")
+    include(pcat.cmake)
+endif()
+
+if(NOT ARCH STREQUAL "i386" OR NOT (SARCH STREQUAL "pc98" OR SARCH STREQUAL "xbox" OR SARCH STREQUAL "appletv"))
     include(uefi.cmake)
+endif()
+
+if(SARCH STREQUAL "appletv")
+    include(appletv.cmake)
 endif()

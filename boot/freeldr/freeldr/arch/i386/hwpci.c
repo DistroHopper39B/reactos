@@ -75,7 +75,6 @@ GetPciIrqRoutingTable(VOID)
     return NULL;
 }
 
-
 BOOLEAN
 PcFindPciBios(PPCI_REGISTRY_INFO BusData)
 {
@@ -111,7 +110,6 @@ PcFindPciBios(PPCI_REGISTRY_INFO BusData)
     return FALSE;
 }
 
-
 static
 VOID
 DetectPciIrqRoutingTable(PCONFIGURATION_COMPONENT_DATA BusKey)
@@ -127,7 +125,7 @@ DetectPciIrqRoutingTable(PCONFIGURATION_COMPONENT_DATA BusKey)
     {
         TRACE("Table size: %u\n", Table->TableSize);
 
-        /* Set 'Configuration Data' value */
+        // Set 'Configuration Data' value
         Size = FIELD_OFFSET(CM_PARTIAL_RESOURCE_LIST, PartialDescriptors) +
                2 * sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) + Table->TableSize;
         PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
@@ -137,10 +135,10 @@ DetectPciIrqRoutingTable(PCONFIGURATION_COMPONENT_DATA BusKey)
             return;
         }
 
-        /* Initialize resource descriptor */
+        // Initialize resource descriptor
         RtlZeroMemory(PartialResourceList, Size);
-        PartialResourceList->Version = 1;
-        PartialResourceList->Revision = 1;
+        PartialResourceList->Version  = ARC_VERSION;
+        PartialResourceList->Revision = ARC_REVISION;
         PartialResourceList->Count = 2;
 
         PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
@@ -212,7 +210,6 @@ DetectPciBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
         /* Increment bus number */
         (*BusNumber)++;
-
         DetectPciIrqRoutingTable(BiosKey);
 
         /* Report PCI buses */
@@ -268,8 +265,8 @@ DetectPciBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
             FldrCreateComponentKey(SystemKey,
                                    AdapterClass,
                                    MultiFunctionAdapter,
-                                   0,
-                                   0,
+                                   0x0,
+                                   0x0,
                                    0xFFFFFFFF,
                                    "PCI",
                                    PartialResourceList,

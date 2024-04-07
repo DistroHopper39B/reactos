@@ -43,6 +43,7 @@ add_subdirectory(unicode)
 add_subdirectory(widl)
 add_subdirectory(wpp)
 add_subdirectory(xml2sdb)
+add_subdirectory(pe2macho)
 
 if ((ARCH STREQUAL "amd64") AND (TARGET_COMPILER_ID STREQUAL "GNU"))
     add_subdirectory(gcc_plugin_seh)

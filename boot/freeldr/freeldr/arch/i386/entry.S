@@ -88,7 +88,11 @@ _FrldrStartup:
     call _InitIdt
 
     /* Pass the command line to BootMain */
+#ifdef SARCH_APPLETV
+    mov eax, cmdline /* Command line is a pointer on Apple TV */
+#else
     mov eax, offset cmdline
+#endif
 
     /* GO! */
     push eax

@@ -24,11 +24,12 @@ extern UCHAR BitmapFont8x16[256 * 16];
 UCHAR MachDefaultTextColor = COLOR_GRAY;
 REACTOS_INTERNAL_BGCONTEXT framebufferData;
 EFI_GUID EfiGraphicsOutputProtocol = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+/****/EFI_PIXEL_BITMASK UefiGopPixelBitmask;/****/
 
 /* FUNCTIONS ******************************************************************/
 
 EFI_STATUS
-UefiInitalizeVideo(VOID)
+UefiInitializeVideo(VOID)
 {
     EFI_STATUS Status;
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop = NULL;
@@ -42,7 +43,7 @@ UefiInitalizeVideo(VOID)
     }
 
     /* We don't need high resolutions for freeldr */
-    gop->SetMode(gop, LOWEST_SUPPORTED_RES);
+   // gop->SetMode(gop, LOWEST_SUPPORTED_RES);
 
     framebufferData.BaseAddress        = (ULONG_PTR)gop->Mode->FrameBufferBase;
     framebufferData.BufferSize         = gop->Mode->FrameBufferSize;
@@ -50,7 +51,7 @@ UefiInitalizeVideo(VOID)
     framebufferData.ScreenHeight       = gop->Mode->Info->VerticalResolution;
     framebufferData.PixelsPerScanLine  = gop->Mode->Info->PixelsPerScanLine;
     framebufferData.PixelFormat        = gop->Mode->Info->PixelFormat;
-
+    /****/UefiGopPixelBitmask = gop->Mode->Info->PixelInformation;/****/
     return Status;
 }
 

@@ -795,6 +795,8 @@ Bus_PDO_QueryResources(
      PPDO_DEVICE_DATA     DeviceData,
       PIRP   Irp )
 {
+    DPRINT1("Bus_PDO_QueryResources\n");
+    __debugbreak();
     ULONG NumberOfResources = 0;
     PCM_RESOURCE_LIST ResourceList;
     PCM_PARTIAL_RESOURCE_DESCRIPTOR ResourceDescriptor;

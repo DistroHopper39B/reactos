@@ -151,7 +151,7 @@ if(NOT CMAKE_CROSSCOMPILING)
     add_subdirectory(sdk/tools)
     add_subdirectory(sdk/lib)
 
-    set(NATIVE_TARGETS asmpp bin2c widl gendib cabman fatten hpp isohybrid mkhive mkisofs obj2bin spec2def geninc mkshelllink utf16le xml2sdb)
+    set(NATIVE_TARGETS asmpp bin2c widl gendib cabman fatten hpp isohybrid mkhive mkisofs obj2bin spec2def geninc mkshelllink utf16le xml2sdb pe2macho)
     if(NOT MSVC)
         list(APPEND NATIVE_TARGETS rsym pefixup)
     endif()
@@ -246,6 +246,8 @@ Enable this if the module uses typeid or dynamic_cast. You will probably need to
             add_definitions(-DSARCH_XBOX)
         elseif(SARCH STREQUAL "pc98")
             add_definitions(-DSARCH_PC98)
+        elseif(SARCH STREQUAL "appletv")
+            add_definitions(-DSARCH_APPLETV)
         endif()
     elseif(ARCH STREQUAL "amd64")
         # clang-cl defines this one for itself
