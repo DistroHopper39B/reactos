@@ -9,14 +9,12 @@
 
 #include <stdlib.h>
 
-#define WIN32_NO_STATUS
 #define COBJMACROS
 #define INITGUID
 
 #include <windows.h>
 #include <oleacc.h>
 #include <imm.h>
-#include <ddk/immdev.h>
 #include <undocuser.h>
 #include <cguid.h>
 #include <msctf.h>
@@ -26,11 +24,10 @@
 #include <atlbase.h>
 #include <atlcom.h>
 #include <strsafe.h>
-#undef STATUS_NO_MEMORY
 
 #include "resource.h"
-#include <cicero/cicreg.h>
-#include <cicero/cicutb.h>
-#include <cicero/cicuif.h>
+#include <cicreg.h>
+#include <cicutb.h>
+#include <cicuif.h>
 
 #include <wine/debug.h>
