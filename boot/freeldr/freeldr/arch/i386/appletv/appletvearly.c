@@ -49,9 +49,7 @@ AppleTVEarlyInit(VOID)
     // Hardcode boot device to first partition of first device
     FrldrBootDrive = 0x80;
     FrldrBootPartition = 1;
-    
-    memset((void *) 0xFFF29B7, 0, 1);
-    
+        
     // Set up video
     AppleTVVideoInit();
     
