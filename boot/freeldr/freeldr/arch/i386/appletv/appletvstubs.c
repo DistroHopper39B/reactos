@@ -43,12 +43,6 @@ DriveMapGetBiosDriveNumber(PCSTR DeviceName)
     return 0;
 }
 
-int __cdecl
-Int386(int ivec, REGS* in, REGS* out)
-{
-    return 0;
-}
-
 BOOLEAN
 PxeInit(VOID)
 {

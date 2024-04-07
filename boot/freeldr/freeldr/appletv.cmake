@@ -33,16 +33,13 @@ list(APPEND APPLETVLDR_ARC_SOURCE
     arch/i386/appletv/appletvvideo.c
     arch/i386/appletv/machappletv.c
     arch/i386/appletv/appletvhw.c
-    arch/i386/appletv/appletvstubs.c
-    arch/i386/pc/pcdisk.c
-    arch/i386/pc/pcmem.c)
+    arch/i386/appletv/appletvstubs.c)
 
 # extra stuff we need
 list(APPEND APPLETVLDR_ARC_SOURCE
     arch/vgafont.c
     arch/drivers/hwide.c
     arch/i386/hwdisk.c
-    arch/i386/hwpci.c
     arch/i386/i386idt.c)
 
 add_asm_files(freeldr_common_asm ${FREELDR_COMMON_ASM_SOURCE} ${APPLETVLDR_COMMON_ASM_SOURCE})

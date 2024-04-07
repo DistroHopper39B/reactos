@@ -225,7 +225,7 @@ AppleTVFindPciBios(PPCI_REGISTRY_INFO BusData)
     
     BusData->MajorRevision = 0x02;
     BusData->MinorRevision = 0x10;
-    BusData->NoBuses = 0;
+    BusData->NoBuses = 7;
     BusData->HardwareMechanism = 1;
     return TRUE;
 }
@@ -985,7 +985,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
                            Output | ConsoleOut,
                            0,
                            0xFFFFFFFF,
-                           "EFI 1.x UGA Framebuffer",
+                           "Apple TV Framebuffer",
                            PartialResourceList,
                            Size,
                            &ControllerKey);

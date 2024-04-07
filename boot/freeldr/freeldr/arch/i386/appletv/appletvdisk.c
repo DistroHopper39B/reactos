@@ -190,3 +190,13 @@ AppleTVDiskGetCacheableBlockCount(UCHAR DriveNumber)
     else
         return DeviceUnit->Sectors;
 }
+
+static LONG lReportError = 0; // >= 0: display errors; < 0: hide errors.
+
+LONG DiskReportError(BOOLEAN bShowError)
+{
+    /* Set the reference count */
+    if (bShowError) ++lReportError;
+    else            --lReportError;
+    return lReportError;
+}

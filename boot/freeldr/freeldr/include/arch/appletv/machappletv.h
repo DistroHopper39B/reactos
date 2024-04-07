@@ -62,7 +62,6 @@ VOID AppleTVBeep(VOID);
 extern UCHAR FrldrBootDrive;
 extern ULONG FrldrBootPartition;
 LONG DiskReportError(BOOLEAN bShowError);
-BOOLEAN DiskResetController(UCHAR DriveNumber);
 
 /* see uefildr.h */
 //TODO: this version of the struct is temporary

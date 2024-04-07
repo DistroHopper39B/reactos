@@ -17,25 +17,14 @@ DBG_DEFAULT_CHANNEL(WARNING);
     (EFI_MEMORY_DESCRIPTOR*)((char*)(Descriptor) + (DescriptorSize))
 
 /* GLOBALS *******************************************************************/
-    
-extern VOID
-SetMemory(
-    PFREELDR_MEMORY_DESCRIPTOR MemoryMap,
-    ULONG_PTR BaseAddress,
-    SIZE_T Size,
-    TYPE_OF_MEMORY MemoryType);
 
-extern VOID
-ReserveMemory(
-    PFREELDR_MEMORY_DESCRIPTOR MemoryMap,
-    ULONG_PTR BaseAddress,
-    SIZE_T Size,
-    TYPE_OF_MEMORY MemoryType,
-    PCHAR Usage);
-
-extern ULONG
-PcMemFinalizeMemoryMap(
-    PFREELDR_MEMORY_DESCRIPTOR MemoryMap);
+ULONG
+AddMemoryDescriptor(
+    IN OUT PFREELDR_MEMORY_DESCRIPTOR List,
+    IN ULONG MaxCount,
+    IN PFN_NUMBER BasePage,
+    IN PFN_NUMBER PageCount,
+    IN TYPE_OF_MEMORY MemoryType);
 
 // we love statically allocated memory, don't we? :D
 BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS];
@@ -44,6 +33,122 @@ INT FreeldrDescCount;
 FREELDR_MEMORY_DESCRIPTOR FreeldrMemMap[MAX_BIOS_DESCRIPTORS + 1];
 
 /* FUNCTIONS *****************************************************************/
+
+VOID
+ReserveMemory(
+    PFREELDR_MEMORY_DESCRIPTOR MemoryMap,
+    ULONG_PTR BaseAddress,
+    SIZE_T Size,
+    TYPE_OF_MEMORY MemoryType,
+    PCHAR Usage)
+{
+    ULONG_PTR BasePage, PageCount;
+    ULONG i;
+
+    BasePage = BaseAddress / PAGE_SIZE;
+    PageCount = ADDRESS_AND_SIZE_TO_SPAN_PAGES(BaseAddress, Size);
+
+    for (i = 0; i < FreeldrDescCount; i++)
+    {
+        /* Check for conflicting descriptor */
+        if ((MemoryMap[i].BasePage < BasePage + PageCount) &&
+            (MemoryMap[i].BasePage + MemoryMap[i].PageCount > BasePage))
+        {
+            /* Check if the memory is free */
+            if (MemoryMap[i].MemoryType != LoaderFree)
+            {
+                FrLdrBugCheckWithMessage(
+                    MEMORY_INIT_FAILURE,
+                    __FILE__,
+                    __LINE__,
+                    "Failed to reserve memory in the range 0x%Ix - 0x%Ix for %s",
+                    BaseAddress,
+                    Size,
+                    Usage);
+            }
+        }
+    }
+
+    /* Add the memory descriptor */
+    FreeldrDescCount = AddMemoryDescriptor(MemoryMap,
+                                        MAX_BIOS_DESCRIPTORS,
+                                        BasePage,
+                                        PageCount,
+                                        MemoryType);
+}
+
+VOID
+SetMemory(
+    PFREELDR_MEMORY_DESCRIPTOR MemoryMap,
+    ULONG_PTR BaseAddress,
+    SIZE_T Size,
+    TYPE_OF_MEMORY MemoryType)
+{
+    ULONG_PTR BasePage, PageCount;
+
+    BasePage = BaseAddress / PAGE_SIZE;
+    PageCount = ADDRESS_AND_SIZE_TO_SPAN_PAGES(BaseAddress, Size);
+
+    /* Add the memory descriptor */
+    FreeldrDescCount = AddMemoryDescriptor(MemoryMap,
+                                        MAX_BIOS_DESCRIPTORS,
+                                        BasePage,
+                                        PageCount,
+                                        MemoryType);
+}
+
+ULONG
+PcMemFinalizeMemoryMap(
+    PFREELDR_MEMORY_DESCRIPTOR MemoryMap)
+{
+    ULONG i;
+
+    /* Reserve some static ranges for freeldr */
+    ReserveMemory(MemoryMap, 0x1000, STACKLOW - 0x1000, LoaderFirmwareTemporary, "BIOS area");
+    ReserveMemory(MemoryMap, STACKLOW, STACKADDR - STACKLOW, LoaderOsloaderStack, "FreeLdr stack");
+    ReserveMemory(MemoryMap, FREELDR_BASE, FrLdrImageSize, LoaderLoadedProgram, "FreeLdr image");
+
+    /* Default to 1 page above freeldr for the disk read buffer */
+    DiskReadBuffer = (PUCHAR)ALIGN_UP_BY(FREELDR_BASE + FrLdrImageSize, PAGE_SIZE);
+    DiskReadBufferSize = PAGE_SIZE;
+
+    /* Scan for free range above freeldr image */
+    for (i = 0; i < FreeldrDescCount; i++)
+    {
+        if ((MemoryMap[i].BasePage > (FREELDR_BASE / PAGE_SIZE)) &&
+            (MemoryMap[i].MemoryType == LoaderFree))
+        {
+            /* Use this range for the disk read buffer */
+            DiskReadBuffer = (PVOID)(MemoryMap[i].BasePage * PAGE_SIZE);
+            DiskReadBufferSize = min(MemoryMap[i].PageCount * PAGE_SIZE,
+                                     MAX_DISKREADBUFFER_SIZE);
+            break;
+        }
+    }
+
+    TRACE("DiskReadBuffer=0x%p, DiskReadBufferSize=0x%lx\n",
+          DiskReadBuffer, DiskReadBufferSize);
+
+    ASSERT(DiskReadBufferSize > 0);
+
+    /* Now reserve the range for the disk read buffer */
+    ReserveMemory(MemoryMap,
+                  (ULONG_PTR)DiskReadBuffer,
+                  DiskReadBufferSize,
+                  LoaderFirmwareTemporary,
+                  "Disk read buffer");
+
+    TRACE("Dumping resulting memory map:\n");
+    for (i = 0; i < FreeldrDescCount; i++)
+    {
+        TRACE("BasePage=0x%lx, PageCount=0x%lx, Type=%s\n",
+              MemoryMap[i].BasePage,
+              MemoryMap[i].PageCount,
+              MmGetSystemMemoryMapTypeString(MemoryMap[i].MemoryType));
+    }
+    return FreeldrDescCount;
+}
+
 
 static
 BIOS_MEMORY_TYPE
