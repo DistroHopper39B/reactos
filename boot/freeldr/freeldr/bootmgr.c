@@ -232,10 +232,12 @@ LoadOperatingSystem(
 
 #ifdef _M_IX86
 #ifndef UEFIBOOT
+#ifndef SARCH_APPLETV
     /* Install the drive mapper according to this section drive mappings */
     DriveMapMapDrivesInSection(SectionId);
-#endif
-#endif
+#endif /* _M_IX86 */
+#endif /* UEFIBOOT */
+#endif /* SARCH_APPLETV */
 
     /* Start the OS loader */
     OSLoadingMethod->OsLoader(Argc, Argv, NULL);

@@ -14,14 +14,6 @@ include_directories(BEFORE
 spec2def(freeldr_pe.exe freeldr.spec)
 
 # PC stuff
-list(APPEND APPLETVLDR_COMMON_ASM_SOURCE
-    arch/i386/drvmap.S
-    arch/i386/int386.S
-    arch/i386/irqsup.S
-    arch/i386/pnpbios.S
-    # arch/i386/i386trap.S
-    )
-
 list(APPEND APPLETVLDR_BOOTMGR_SOURCE
     ${FREELDR_BOOTMGR_SOURCE}
     )
@@ -49,14 +41,8 @@ list(APPEND APPLETVLDR_ARC_SOURCE
 list(APPEND APPLETVLDR_ARC_SOURCE
     arch/vgafont.c
     arch/drivers/hwide.c
-    # disk/scsiport.c
-    lib/fs/pxe.c
-    # arch/i386/halstub.c
-    # arch/i386/ntoskrnl.c
-    arch/i386/drivemap.c
     arch/i386/hwdisk.c
     arch/i386/hwpci.c
-    # arch/i386/i386bug.c
     arch/i386/i386idt.c)
 
 add_asm_files(freeldr_common_asm ${FREELDR_COMMON_ASM_SOURCE} ${APPLETVLDR_COMMON_ASM_SOURCE})

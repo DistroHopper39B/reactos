@@ -37,6 +37,23 @@ AppleTVBeep(VOID)
     /* No beeper speaker support */
 }
 
+UCHAR
+DriveMapGetBiosDriveNumber(PCSTR DeviceName)
+{
+    return 0;
+}
+
+int __cdecl
+Int386(int ivec, REGS* in, REGS* out)
+{
+    return 0;
+}
+
+BOOLEAN
+PxeInit(VOID)
+{
+    return FALSE;
+}
 
 /* VIDEO FUNCTIONS ***********************************************************/
 

@@ -161,10 +161,12 @@ ARC_STATUS ArcOpen(CHAR* Path, OPENMODE OpenMode, ULONG* FileId)
 #endif
 #if defined(_M_IX86) || defined(_M_AMD64)
 #ifndef UEFIBOOT
+#ifndef SARCH_APPLETV
                 if (!FileData[DeviceId].FileFuncTable)
                     FileData[DeviceId].FileFuncTable = PxeMount(DeviceId);
-#endif
-#endif
+#endif /* SARCH_APPLETV */
+#endif /* UEFIBOOT */
+#endif /* defined(_M_IX86) || defined(_M_AMD64) */
                 if (!FileData[DeviceId].FileFuncTable)
                 {
                     /* Error, unable to detect file system */
