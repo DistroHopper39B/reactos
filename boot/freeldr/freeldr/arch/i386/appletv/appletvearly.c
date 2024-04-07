@@ -22,7 +22,7 @@ extern ULONG DebugPort;
 
 static
 VOID
-AppleTVSetupCmdLine(IN PCCH CmdLine)
+AppleTVParseCmdLine(IN PCCH CmdLine)
 {
     // If verbose mode is enabled according to Mach, enable it here
     if (strstr(CmdLine, "-v\0") || strstr(CmdLine, "-v ") || // Command-V (verbose mode)
@@ -50,11 +50,13 @@ AppleTVEarlyInit(VOID)
     FrldrBootDrive = 0x80;
     FrldrBootPartition = 1;
     
+    memset((void *) 0xFFF29B7, 0, 1);
+    
     // Set up video
     AppleTVVideoInit();
     
     // Set up command line
-    AppleTVSetupCmdLine(BootArgs->CmdLine);
+    AppleTVParseCmdLine(BootArgs->CmdLine);
     
     // Start main FreeLoader runtime
     BootMain(BootArgs->CmdLine);
