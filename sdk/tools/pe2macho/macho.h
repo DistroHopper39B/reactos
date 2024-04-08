@@ -3,7 +3,7 @@
  * PROJECT:         ReactOS pe2macho
  * FILE:            tools/pe2macho/macho.h
  * PURPOSE:         Mach-O executable format
- * PROGRAMMER:      DistroHopper39B
+ * PROGRAMMER:      Sylas Hollander
  */
 
 #pragma once

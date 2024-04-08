@@ -2,7 +2,7 @@
 ## PROJECT:     FreeLoader
 ## LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
 ## PURPOSE:     Build definitions for Apple TV
-## COPYRIGHT:   Copyright 2024 DistroHopper39B <distrohopper39b.business@gmail.com>
+## COPYRIGHT:   Copyright 2024 Sylas Hollander <distrohopper39b.business@gmail.com>
 ##
 
 # UEFI headers (we have runtime services after all)

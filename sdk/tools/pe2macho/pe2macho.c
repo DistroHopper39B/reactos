@@ -3,7 +3,7 @@
  * PROJECT:         ReactOS pe2macho
  * FILE:            tools/pe2macho/pe2macho.c
  * PURPOSE:         Converts a static PE file to a static Mach-O file
- * PROGRAMMER:      DistroHopper39B
+ * PROGRAMMER:      Sylas Hollander
  */
 
 #include <stdio.h>
