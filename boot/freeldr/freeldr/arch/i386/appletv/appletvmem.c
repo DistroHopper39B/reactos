@@ -158,7 +158,8 @@ UefiConvertToBiosType(EFI_MEMORY_TYPE MemoryType)
     {
         // Unusable memory types
         case EfiReservedMemoryType:
-        case EfiUnusableMemory:
+        case EfiRuntimeServicesCode:
+        case EfiRuntimeServicesData:
         case EfiMemoryMappedIO:
         case EfiMemoryMappedIOPortSpace:
         case EfiPalCode:
@@ -170,16 +171,14 @@ UefiConvertToBiosType(EFI_MEMORY_TYPE MemoryType)
         case EfiBootServicesCode:
         case EfiBootServicesData:
         case EfiConventionalMemory:
-        case EfiRuntimeServicesCode:
-        case EfiRuntimeServicesData:
         case EfiLoaderCode:
         case EfiLoaderData:
             return BiosMemoryUsable;
         // NVS memory
         case EfiACPIMemoryNVS:
             return BiosMemoryAcpiNvs;
+        case EfiUnusableMemory:
         default:
-            ERR("Unknown type. Memory map probably corrupted!\n");
             return BiosMemoryUnusable;
     }
 }

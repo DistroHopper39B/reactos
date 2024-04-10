@@ -26,7 +26,6 @@ DBG_DEFAULT_CHANNEL(HWDETECT);
 
 /* FUNCTIONS *****************************************************************/
 
-static
 VOID
 CopySmbios(VOID)
 {
@@ -46,6 +45,11 @@ CopySmbios(VOID)
                                                     .VendorTable;
             break;
         }
+    }
+    
+    if (!SmbiosTable)
+    {
+        ERR("Cannot find SMBIOS!\n");
     }
     
     memcpy((PVOID) SMBIOS_TABLE_LOW, SmbiosTable, sizeof(SMBIOS_TABLE_HEADER));

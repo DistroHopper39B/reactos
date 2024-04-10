@@ -65,7 +65,8 @@
 #include <fs.h>
 #include <inifile.h>
 #include <keycodes.h>
-#include <linux.h>
+//#include <linux.h>
+#include <linux_new.h>
 #include <custom.h>
 #include <miscboot.h>
 #include <machine.h>

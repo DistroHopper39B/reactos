@@ -59,12 +59,10 @@ OSLoadingMethods[] =
 #if defined(_M_IX86) || defined(_M_AMD64)
 
 #ifndef UEFIBOOT
-#ifndef SARCH_APPLETV
     {"Drive"       , EditCustomBootDisk      , LoadAndBootDevice},
     {"Partition"   , EditCustomBootPartition , LoadAndBootDevice},
     {"BootSector"  , EditCustomBootSectorFile, LoadAndBootDevice},
     {"Linux"       , EditCustomBootLinux, LoadAndBootLinux  },
-#endif /* SARCH_APPLETV */
 #endif /* UEFIBOOT */
 
 #endif

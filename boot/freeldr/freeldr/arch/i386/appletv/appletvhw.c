@@ -794,7 +794,7 @@ DetectIsaBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     /* FIXME: Detect more ISA devices */
 }
 
-static PRSDP_DESCRIPTOR
+PRSDP_DESCRIPTOR
 FindAcpiBios(VOID)
 {
     PRSDP_DESCRIPTOR    Rsdp = NULL;
