@@ -36,7 +36,6 @@ extern REACTOS_INTERNAL_BGCONTEXT framebufferData;
 extern INT FreeldrDescCount;
 
 PRSDP_DESCRIPTOR FindAcpiBios(VOID);
-VOID CopySmbios(VOID);
 
 /* FUNCTIONS *****************************************************************/
 
@@ -449,7 +448,7 @@ LoadAndBootLinux(
     SetupHeader->CommandLine = (ULONG) (UINT_PTR) LinuxCommandLine;
     SetupHeader->LoadFlags &= ~(1 << 5); // print early messages
     SetupHeader->VideoMode = 0xFFFF;
-    SetupHeader->TypeOfLoader = 0xFF;
+    SetupHeader->TypeOfLoader = LINUX_LOADER_TYPE_FREELOADER;
     
     // Load the kernel into memory
     Status = ArcGetFileInformation(LinuxKernel, &FileInfo);
@@ -489,7 +488,7 @@ LoadAndBootLinux(
     }
     
     // Set up EFI stuff
-    // Currently reliant on Apple TV code, for now
+    // Half this damn code is literally just wrong lmao
     ScreenInfo = &BootParams->ScreenInfo;
     
     ScreenInfo->Capabilities        = (1 << 1) | (1 << 0); // skip quirks
@@ -515,9 +514,7 @@ LoadAndBootLinux(
     BootParams->Rsdp    = (UINT_PTR) FindAcpiBios();
     
     // EFI
-    #ifdef UEFIBOOT
     RtlCopyMemory(&BootParams->EfiInfo.EfiLoaderSignature, "EL32", 4);
-    
     
     BootParams->EfiInfo.EfiSystemTable              = (UINT32) (UINT64) (UINT_PTR) BootArgs->EfiSystemTable;
     BootParams->EfiInfo.EfiSystemTableHigh          = (UINT32) ((UINT64) (UINT_PTR) BootArgs->EfiSystemTable >> 32);
@@ -526,8 +523,6 @@ LoadAndBootLinux(
     BootParams->EfiInfo.EfiMemoryMapSize            = BootArgs->EfiMemoryMapSize;
     BootParams->EfiInfo.EfiMemoryDescriptorSize     = BootArgs->EfiMemoryDescriptorSize;
     BootParams->EfiInfo.EfiMemoryDescriptorVersion  = BootArgs->EfiMemoryDescriptorVersion;
-    */
-    #endif
     
     // E820 memory map
     E820Table = MmAllocateMemoryWithType(LINUX_E820_MAX * sizeof(LINUX_E820_ENTRY), LoaderSystemCode);
@@ -548,9 +543,7 @@ LoadAndBootLinux(
     RtlCopyMemory(&BootParams->E820Table, E820Table, LINUX_E820_MAX * sizeof(LINUX_E820_ENTRY));
     
     MmFreeMemory(E820Table);
-    
-    CopySmbios();
-    
+        
     UiUpdateProgressBar(100, "Starting kernel...");
     
     // Hack start until we have something better.
