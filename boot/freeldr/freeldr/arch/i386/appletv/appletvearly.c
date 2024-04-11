@@ -46,6 +46,7 @@ AppleTVEarlyInit(VOID)
     {
         Reboot();
     }
+        
     // Hardcode boot device to first partition of first device
     FrldrBootDrive = 0x80;
     FrldrBootPartition = 1;
