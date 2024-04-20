@@ -33,7 +33,7 @@ PLINUX_E820_ENTRY   E820Table = NULL;
 
 extern BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS];
 extern REACTOS_INTERNAL_BGCONTEXT framebufferData;
-extern INT FreeldrDescCount;
+extern UINT32 BiosMapNumberOfEntries;
 
 PRSDP_DESCRIPTOR FindAcpiBios(VOID);
 
@@ -527,7 +527,7 @@ LoadAndBootLinux(
     // E820 memory map
     E820Table = MmAllocateMemoryWithType(LINUX_E820_MAX * sizeof(LINUX_E820_ENTRY), LoaderSystemCode);
     
-    for (SIZE_T i = 0, j = 0; i < FreeldrDescCount; i++)
+    for (SIZE_T i = 0, j = 0; i < BiosMapNumberOfEntries; i++)
     {
         if (BiosMap[i].Type >= 0x1000)
         {
