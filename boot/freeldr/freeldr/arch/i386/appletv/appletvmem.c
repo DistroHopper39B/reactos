@@ -28,6 +28,7 @@ AddMemoryDescriptor(
 
 // we love statically allocated memory, don't we? :D
 BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS];
+UINT32 BiosMapNumberOfEntries = 0;
 
 INT FreeldrDescCount;
 FREELDR_MEMORY_DESCRIPTOR FreeldrMemMap[MAX_BIOS_DESCRIPTORS + 1];
@@ -194,15 +195,8 @@ BiosConvertToFreeldrType(BIOS_MEMORY_TYPE MemoryType)
             return LoaderFree;
         case BiosMemoryReserved:
             return LoaderFirmwarePermanent;
-        case BiosMemoryAcpiReclaim:
-            return LoaderFirmwareTemporary;
-        case BiosMemoryAcpiNvs:
-            return LoaderFirmwarePermanent;
-        case BiosMemoryUnusable:
-            return LoaderFirmwarePermanent;
         default:
-            ERR("Unknown type %d. Memory map definitely corrupted!\n", MemoryType);
-            return LoaderFirmwarePermanent;
+            return LoaderSpecialMemory;
     }
 }
 
@@ -293,7 +287,6 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     SIZE_T                  EfiMemoryDescriptorSize;
     
     PBIOS_MEMORY_MAP        BiosMap;
-    UINT32                  BiosMapNumberOfEntries = 0;
     
     // Convert EFI memory map to BIOS memory map.
     EfiMemoryMap            = (EFI_MEMORY_DESCRIPTOR *) BootArgs->EfiMemoryMap;
