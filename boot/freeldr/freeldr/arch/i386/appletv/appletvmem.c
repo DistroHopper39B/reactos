@@ -163,6 +163,8 @@ UefiConvertToBiosType(EFI_MEMORY_TYPE MemoryType)
         case EfiMemoryMappedIO:
         case EfiMemoryMappedIOPortSpace:
         case EfiPalCode:
+        case EfiRuntimeServicesCode:
+        case EfiRuntimeServicesData:
             return BiosMemoryReserved;
         // Types usable after ACPI initialization
         case EfiACPIReclaimMemory:
@@ -171,8 +173,6 @@ UefiConvertToBiosType(EFI_MEMORY_TYPE MemoryType)
         case EfiBootServicesCode:
         case EfiBootServicesData:
         case EfiConventionalMemory:
-        case EfiRuntimeServicesCode:
-        case EfiRuntimeServicesData:
         case EfiLoaderCode:
         case EfiLoaderData:
             return BiosMemoryUsable;
@@ -286,19 +286,19 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     SIZE_T                  EfiMemoryMapSize;
     SIZE_T                  EfiMemoryDescriptorSize;
     
-    PBIOS_MEMORY_MAP        BiosMap;
+    PBIOS_MEMORY_MAP        BiosMapPtr = BiosMap;
     
     // Convert EFI memory map to BIOS memory map.
     EfiMemoryMap            = (EFI_MEMORY_DESCRIPTOR *) BootArgs->EfiMemoryMap;
     EfiMemoryMapSize        = BootArgs->EfiMemoryMapSize;
     EfiMemoryDescriptorSize = BootArgs->EfiMemoryDescriptorSize;
     
-    BiosMap = UefiConvertToBiosMemoryMap(EfiMemoryMap,
+    BiosMapPtr = UefiConvertToBiosMemoryMap(EfiMemoryMap,
                                         EfiMemoryMapSize,
                                         EfiMemoryDescriptorSize,
                                         &BiosMapNumberOfEntries);
     // Convert BIOS memory map to FreeLoader memory map
-    BiosConvertToFreeldrMap(BiosMap,
+    BiosConvertToFreeldrMap(BiosMapPtr,
                             BiosMapNumberOfEntries);
     
     // reserve some ranges to prevent windows bugs

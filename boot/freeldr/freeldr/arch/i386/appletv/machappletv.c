@@ -8,14 +8,17 @@
 /* INCLUDES ******************************************************************/
 
 #include <freeldr.h>
-#include <drivers/bootvid/framebuf.h>
 #include <Uefi.h>
-#include <GraphicsOutput.h>
 
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(HWDETECT);
 
 /* GLOBALS *******************************************************************/
+
+extern PMACH_BOOTARGS BootArgs; // from eax register; see appletventry.S
+
+UCHAR FrldrBootDrive;
+ULONG FrldrBootPartition;
 
 #define SMBIOS_TABLE_GUID \
   { \
@@ -25,6 +28,22 @@ DBG_DEFAULT_CHANNEL(HWDETECT);
 #define SMBIOS_TABLE_LOW 0xF0000
 
 /* FUNCTIONS *****************************************************************/
+
+static
+VOID
+AppleTVParseCmdLine(IN PCCH CmdLine)
+{
+    // If verbose mode is enabled according to Mach, enable it here
+    if (strstr(CmdLine, "-v\0") || strstr(CmdLine, "-v ") || // Command-V (verbose mode)
+        strstr(CmdLine, "-s\0") || strstr(CmdLine, "-s "))   // Command-S (single-user mode)
+    {
+        // Clear screen
+        AppleTVVideoClearScreen(0x00);
+        
+        // Enable screen debug
+        DebugEnableScreenPort();
+    }
+}
 
 static
 VOID
@@ -51,6 +70,8 @@ CopySmbios(VOID)
     memcpy((PVOID) SMBIOS_TABLE_LOW, SmbiosTable, sizeof(SMBIOS_TABLE_HEADER));
 }
 
+
+
 VOID
 AppleTVPrepareForReactOS(VOID)
 {
@@ -73,7 +94,7 @@ MachInit(const char *CmdLine)
         __halt();
         for (;;);
     }
-    
+        
     /* Setup vtbl */
     RtlZeroMemory(&MachVtbl, sizeof(MachVtbl));
     MachVtbl.ConsPutChar = AppleTVConsPutChar;
@@ -105,7 +126,34 @@ MachInit(const char *CmdLine)
     MachVtbl.HwDetect = AppleTVHwDetect;
     MachVtbl.HwIdle = AppleTVHwIdle;
     
-    printf("Loading FreeLoader...\n");
+    FrldrBootDrive = 0x80;
+    FrldrBootPartition = 1;
+    
+    AppleTVVideoInit();
+    AppleTVParseCmdLine(CmdLine);
     
     HalpCalibrateStallExecution();
+}
+
+VOID
+__cdecl
+Reboot(VOID)
+{
+    if (BootArgs)
+    {
+        // Do UEFI reboot
+        EFI_RESET_SYSTEM ResetSystem = ((EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable)->RuntimeServices->ResetSystem;
+        ResetSystem(EfiResetCold, EFI_SUCCESS, 0, NULL);
+        // if it fails, hang
+        _disable();
+        __halt();
+        for (;;);
+    }
+    else
+    {
+        // No UEFI reboot; hang
+        _disable();
+        __halt();
+        for (;;);
+    }
 }

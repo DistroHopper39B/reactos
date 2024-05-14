@@ -79,7 +79,7 @@ add_asm_files(freeldr_base_asm ${APPLETVLDR_BASE_ASM_SOURCE})
 list(APPEND APPLETVLDR_BASE_SOURCE
     ${freeldr_base_asm}
     ${FREELDR_BASE_SOURCE}
-    arch/i386/appletv/appletvearly.c)
+    )
 
 add_executable(freeldr_pe ${APPLETVLDR_BASE_SOURCE})
 

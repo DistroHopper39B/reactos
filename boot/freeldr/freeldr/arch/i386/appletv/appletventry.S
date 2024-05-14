@@ -14,7 +14,10 @@ EXTERN __bss_start__:DWORD
 EXTERN __bss_end__:DWORD
 #endif
 
-EXTERN _AppleTVEarlyInit
+#define APPLETV_COMMAND_LINE_OFFSET 4
+
+/* VOID __cdecl BootMain(IN PCCH CmdLine) */
+EXTERN _BootMain
 
 /* Align to 32 bits boundary */
 .align 4
@@ -22,16 +25,22 @@ EXTERN _AppleTVEarlyInit
 .code32
 ASSUME ES:NOTHING, FS:NOTHING, GS:NOTHING
 
-
+/* PMACH_BOOTARGS BootArgs */
+PUBLIC _BootArgs
+_BootArgs:
+    .long 0
 
 PUBLIC _AppleTVEntry
 _AppleTVEntry:
     /* Set up stack */
     mov esp, dword ptr ds:[stack32]
     
-    /* Store the bootArgs pointer */
-    mov dword ptr ds:[_BootArgPtr], eax
+    /* Test if the bootArgs pointer is valid */
+    test eax, eax
+    jz InfiniteLoop
     
+    /* Store the bootArgs pointer */
+    mov dword ptr ds:[_BootArgs], eax
     /* Load GDT */
 #ifdef _USE_ML
     lgdt fword ptr gdtptr
@@ -56,27 +65,33 @@ _AppleTVEntry:
     /* Initialize the idt */
     call _InitIdt
     
-    /* Call Apple TV early init */
-    call _AppleTVEarlyInit
+    /* Set up CmdLine */
+    mov eax, dword ptr ds:[(_BootArgs)]
+    add eax, APPLETV_COMMAND_LINE_OFFSET
     
-PUBLIC _BootArgPtr
-_BootArgPtr:
-    .long 0
+    /* GO!! */
+    push eax
+    call _BootMain
+    
+    /* If this fails, halt the system */
+    jmp InfiniteLoop
+    
+InfiniteLoop:
+    cld
+    hlt
+    jmp InfiniteLoop
 
 stack32:
     .long STACKADDR
     .align 4    /* force 4-byte alignment */
-    
-PUBLIC ContinueAddress
-ContinueAddress:
-    .long _AppleTVEntry
+
 .align 4
 gdt:
     /* NULL Descriptor */
-   .word HEX(0000)
-   .word HEX(0000)
-   .word HEX(0000)
-   .word HEX(0000)
+    .word HEX(0000)
+    .word HEX(0000)
+    .word HEX(0000)
+    .word HEX(0000)
 
     /* 32-bit flat CS */
     .word HEX(FFFF)
@@ -111,13 +126,5 @@ PUBLIC i386idtptr
 i386idtptr:
     .word 255           /* Limit */
     .long _i386Idt      /* Base Address */
-
-PUBLIC _FrldrBootDrive
-_FrldrBootDrive:
-    .byte 0
-
-PUBLIC _FrldrBootPartition
-_FrldrBootPartition:
-    .long 0
 
 END

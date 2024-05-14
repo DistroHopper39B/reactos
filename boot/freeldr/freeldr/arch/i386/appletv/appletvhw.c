@@ -799,7 +799,7 @@ FindAcpiBios(VOID)
 {
     PRSDP_DESCRIPTOR    Rsdp = NULL;
     UINTN               i;
-    EFI_GUID            Acpi2Guid = EFI_ACPI_20_TABLE_GUID;
+    EFI_GUID            Acpi2Guid = ACPI_TABLE_GUID;
     
     GlobalSystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
     
