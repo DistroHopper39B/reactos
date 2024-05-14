@@ -97,7 +97,7 @@ RtlAssert(
     /* These are always printed */
     #define DPRINT1(fmt, ...) do { \
         if (DbgPrint("(%s:%d) " fmt, __RELFILE__, __LINE__, ##__VA_ARGS__))  \
-            DbgPrint("(%s:%d) DbgPrint() failed!\n", __RELFILE__, __LINE__); \
+            /*DbgPrint("(%s:%d) DbgPrint() failed!\n", __RELFILE__, __LINE__)*/; \
     } while (0)
 
     /* These are printed only if NDEBUG is NOT defined */
@@ -105,7 +105,7 @@ RtlAssert(
 
         #define DPRINT(fmt, ...) do { \
             if (DbgPrint("(%s:%d) " fmt, __RELFILE__, __LINE__, ##__VA_ARGS__))  \
-                DbgPrint("(%s:%d) DbgPrint() failed!\n", __RELFILE__, __LINE__); \
+                /*DbgPrint("(%s:%d) DbgPrint() failed!\n", __RELFILE__, __LINE__)*/; \
         } while (0)
 
     #else

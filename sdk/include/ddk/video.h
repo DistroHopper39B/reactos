@@ -57,7 +57,7 @@ extern "C" {
 #define PAGED_CODE()
 #endif /* DBG */
 
-ULONG
+NTSTATUS
 NTAPI
 DriverEntry(
   PVOID Context1,

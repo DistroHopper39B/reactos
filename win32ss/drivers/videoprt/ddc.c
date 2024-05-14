@@ -21,7 +21,7 @@
 
 #include "videoprt.h"
 
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 
 #define DDC_EEPROM_ADDRESS  0xA0
@@ -183,7 +183,7 @@ VideoPortDDCMonitorHelper(
    PUCHAR pBuffer = (PUCHAR)pEdidBuffer;
    BOOL Ack;
 
-   TRACE_(VIDEOPRT, "VideoPortDDCMonitorHelper()\n");
+   DPRINT1("VideoPortDDCMonitorHelper()\n");
 
    ASSERT_IRQL_LESS_OR_EQUAL(PASSIVE_LEVEL);
    if (ddc->Size != sizeof (ddc))
@@ -217,11 +217,11 @@ VideoPortDDCMonitorHelper(
        pBuffer[4] != 0xff || pBuffer[5] != 0xff ||
        pBuffer[6] != 0xff || pBuffer[7] != 0x00)
      {
-        WARN_(VIDEOPRT, "VideoPortDDCMonitorHelper(): Invalid EDID header!\n");
+        DPRINT1("VideoPortDDCMonitorHelper(): Invalid EDID header!\n");
         return FALSE;
      }
 
-   INFO_(VIDEOPRT, "VideoPortDDCMonitorHelper(): EDID version %d rev. %d\n", pBuffer[18], pBuffer[19]);
-   INFO_(VIDEOPRT, "VideoPortDDCMonitorHelper() - SUCCESS!\n");
+   DPRINT1("VideoPortDDCMonitorHelper(): EDID version %d rev. %d\n", pBuffer[18], pBuffer[19]);
+   DPRINT1("VideoPortDDCMonitorHelper() - SUCCESS!\n");
    return TRUE;
 }

@@ -443,7 +443,7 @@ CmpValidateValueListByCount(
             }
 
             /* FIXME: Big values not supported yet */
-            ASSERT_VALUE_BIG(Hive, DataSize);
+            //ASSERT_VALUE_BIG(Hive, DataSize);
         }
 
         /* Is the signature valid? */

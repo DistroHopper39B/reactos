@@ -17,9 +17,9 @@
 
 #include <section_attribs.h>
 
-#include <debug.h>
-// #define DPRINT(fmt, ...)    VideoDebugPrint((Info, fmt, ##__VA_ARGS__))
-// #define DPRINT1(fmt, ...)   VideoDebugPrint((Error, fmt, ##__VA_ARGS__))
+//#include <debug.h>
+#define DPRINT(fmt, ...)    VideoDebugPrint((Info, fmt, ##__VA_ARGS__))
+#define DPRINT1(fmt, ...)   VideoDebugPrint((Error, fmt, ##__VA_ARGS__))
 
 #include <drivers/bootvid/framebuf.h>
 #include <drivers/bootvid/framebuf.c> // FIXME: Temporary HACK
@@ -87,6 +87,7 @@ GenFbVmpMapVideoMemory(
     _Out_ PVIDEO_MEMORY_INFORMATION MapInformation,
     _Out_ PSTATUS_BLOCK StatusBlock)
 {
+    DPRINT1("GenFbVmpMapVideoMemory(%lx, %lx, %lx, %lx)\n", DeviceExtension, RequestedAddress, MapInformation, StatusBlock);
     VP_STATUS Status;
     PGENFB_DISPLAY_INFO DisplayInfo = &DeviceExtension->DisplayInfo;
     PHYSICAL_ADDRESS FrameBuffer = DisplayInfo->BaseAddress;
@@ -163,6 +164,8 @@ GenFbVmpSetupCurrentMode(
     PCM_FRAMEBUF_DEVICE_DATA VideoData  = &DisplayInfo->VideoConfigData;
     PCM_MONITOR_DEVICE_DATA MonitorData = &DisplayInfo->MonitorConfigData;
     UCHAR BytesPerPixel;
+    
+    DPRINT1("GenFbVmpSetupCurrentMode(0x%lx)\n", DeviceExtension);
 
     VideoMode->Length = sizeof(VIDEO_MODE_INFORMATION);
     VideoMode->ModeIndex = 0;
@@ -296,6 +299,8 @@ GenFbAcquireResources(
 {
     VP_STATUS status;
     ULONG i;
+    
+    DPRINT1("GenFbAcquireResources(%lx, %u, %lx)\n", HwDeviceExtension, NumAccessRanges, AccessRanges);
 
     /*
      * Claim the video resources if we are loaded as fall-back device.
@@ -319,6 +324,7 @@ GenFbAcquireResources(
          * We could not obtain the resources exclusively: this means
          * another driver is handling this display. Fail to load!
          */
+        DPRINT1("Error verifying access ranges (%lx)\n", status);
         return status;
     }
 
@@ -365,7 +371,7 @@ GenFbGetDeviceDataCallback(
     PCM_COMPONENT_INFORMATION CompInfo = ComponentInformation;
     VIDEO_ACCESS_RANGE accessRanges[1];
     VP_STATUS status;
-
+    
     switch (DeviceDataType)
     {
         case VpControllerData:
@@ -641,6 +647,11 @@ GenFbVmpInitialize(
     PAGED_CODE();
 
     DPRINT1("GenFbVmpInitialize(%p)\n", HwDeviceExtension);
+    
+    //DeviceExtension->DisplayInfo.FrameAddress = (PVOID) 0xF947D000;
+    
+    DPRINT1("FrameAddress: 0x%lx\n", DeviceExtension->DisplayInfo.FrameAddress);
+    DPRINT1("BufferSize: 0x%lx\n", DeviceExtension->DisplayInfo.BufferSize);
 
     /* Zero the frame buffer */
     VideoPortZeroDeviceMemory(DeviceExtension->DisplayInfo.FrameAddress,
@@ -887,7 +898,9 @@ GenFbVmpStartIO(
 {
     PSTATUS_BLOCK StatusBlock = RequestPacket->StatusBlock;
     VP_STATUS Status = ERROR_INVALID_PARAMETER;
-
+    
+    DPRINT1("GenFbVmpStartIO(%p, %p)\n", HwDeviceExtension, RequestPacket);
+    
     PAGED_CODE();
 
     GenFbVmpShowIOControl(RequestPacket->IoControlCode);
@@ -1076,7 +1089,7 @@ GenFbVmpGetVideoChildDescriptor(
 }
 
 CODE_SEG("INIT")
-ULONG NTAPI
+NTSTATUS NTAPI
 DriverEntry(
     _In_ PVOID Context1,
     _In_ PVOID Context2)
@@ -1135,6 +1148,7 @@ DriverEntry(
             for (Interface = 0; Interface < MaximumInterfaceType; ++Interface)
             {
                 VideoInitData.AdapterInterfaceType = Interface;
+                DPRINT1("VideoPortInitialize call: 1\n");
                 Status = VideoPortInitialize(Context1, Context2, &VideoInitData, NULL);
                 if (Status == STATUS_SUCCESS)
                     break;
@@ -1143,6 +1157,7 @@ DriverEntry(
         else
         {
             VideoInitData.AdapterInterfaceType = Interface;
+            DPRINT1("VideoPortInitialize call: 2\n");
             Status = VideoPortInitialize(Context1, Context2, &VideoInitData, NULL);
             // if (Status == STATUS_SUCCESS)
             //     break;
@@ -1167,9 +1182,14 @@ DriverEntry(
     // VideoInitData.AllowEarlyEnumeration = FALSE;
 
     VideoInitData.AdapterInterfaceType = 0;
+    
+    DPRINT1("VideoPortInitialize call: 3\n");
     Status = VideoPortInitialize(Context1, Context2, &VideoInitData, NULL);
-
-    return (ULONG)Status;
+    
+    DPRINT1("AddDevice: %lx\n", ((PDRIVER_OBJECT) Context1)->DriverExtension->AddDevice);
+    DPRINT1("Context1: %lx\n", Context1);
+    
+    return Status;
 }
 
 /* EOF */
