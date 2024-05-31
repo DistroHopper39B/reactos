@@ -66,8 +66,7 @@ _AppleTVEntry:
     call _InitIdt
     
     /* Set up CmdLine */
-    mov eax, dword ptr ds:[(_BootArgs)]
-    add eax, APPLETV_COMMAND_LINE_OFFSET
+    mov eax, offset _BootArgs + APPLETV_COMMAND_LINE_OFFSET
     
     /* GO!! */
     push eax
