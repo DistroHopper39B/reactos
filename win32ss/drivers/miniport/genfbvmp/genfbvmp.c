@@ -509,6 +509,9 @@ GenFbGetDeviceDataCallback(
     }
 }
 #endif
+
+static BOOLEAN AdapterFound = FALSE;
+
 CODE_SEG("PAGE")
 VP_STATUS NTAPI
 GenFbVmpFindAdapter(
@@ -529,8 +532,11 @@ GenFbVmpFindAdapter(
 
     DPRINT1("GenFbVmpFindAdapter(%p, %p, %s, %p, %p)\n",
         HwDeviceExtension, HwContext, ArgumentString, ConfigInfo, Again);
-
-    *Again = FALSE;
+    if (AdapterFound)
+    {
+        return ERROR_DEV_NOT_EXIST;
+    }
+    //*Again = FALSE;
 
     if (ConfigInfo->Length < sizeof(VIDEO_PORT_CONFIG_INFO))
         return ERROR_INVALID_PARAMETER;
@@ -697,6 +703,8 @@ GenFbVmpFindAdapter(
         // L"HardwareInformation.CurrentMemClockSpeed"
         // L"HardwareInformation.CurrentPixelClockSpeed"
     }
+    
+    AdapterFound = TRUE;
 
     return NO_ERROR;
 }
@@ -1194,7 +1202,7 @@ DriverEntry(
     }
     else
     {
-        #if 0
+        #if 1
         DPRINT1("Boot framebuffer detected; registering.\n");
 
         /* If the interface on which the boot-time display controller
