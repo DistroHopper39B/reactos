@@ -38,16 +38,7 @@ DBG_DEFAULT_CHANNEL(DISK);
                             (PUSHORT)(Buffer), (Count)/sizeof(USHORT))
 
 /* IDE/ATA Channels base - Primary, Secondary, Tertiary, Quaternary */
-static const ULONG BaseArray[] =
-{
-#if defined(SARCH_XBOX)
-    0x1F0
-#elif defined(SARCH_PC98)
-    0x640, 0x640
-#else
-    0x1F0, 0x170, 0x1E8, 0x168
-#endif
-};
+static ULONG BaseArray[ATA_CHANNELS];
 
 #define MAX_CHANNELS RTL_NUMBER_OF(BaseArray)
 #define MAX_DEVICES  2 /* Master/Slave */
@@ -146,6 +137,23 @@ AtaInit(OUT PUCHAR DetectedCount)
     *DetectedCount = 0;
 
     RtlZeroMemory(&Units, sizeof(Units));
+    
+    /* Set up channels 
+     * FIXME: should be autodetected (new routines go here)
+     */
+    
+    #if defined(SARCH_XBOX)
+    BaseArray[ATA_PRIMARY_MASTER]   = 0x1F0;
+    #elif defined(SARCH_PC98)
+    BaseArray[ATA_PRIMARY_MASTER]   = 0x640;
+    BaseArray[ATA_PRIMARY_SLAVE]    = 0x640;
+    #else
+    BaseArray[ATA_PRIMARY_MASTER]   = 0x1F0;
+    BaseArray[ATA_PRIMARY_SLAVE]    = 0x170;
+    BaseArray[ATA_SECONDARY_MASTER] = 0x1E8;
+    BaseArray[ATA_SECONDARY_SLAVE]  = 0x168;
+    #endif
+    
 
     /* Detect and enumerate ATA/ATAPI devices */
     for (Channel = 0; Channel < MAX_CHANNELS; ++Channel)
