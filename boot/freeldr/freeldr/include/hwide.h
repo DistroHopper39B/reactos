@@ -307,6 +307,12 @@ typedef struct _DEVICE_UNIT
 #define ATA_DEVICE_LBA          (1 << 4)
 #define ATA_DEVICE_CHS          (1 << 5)
 
+#define ATA_PRIMARY_MASTER      0
+#define ATA_PRIMARY_SLAVE       1
+#define ATA_SECONDARY_MASTER    2
+#define ATA_SECONDARY_SLAVE     3
+#define ATA_CHANNELS            4
+
 /* PROTOTYPES ****************************************************************/
 
 BOOLEAN
