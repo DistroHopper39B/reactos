@@ -31,22 +31,6 @@ ULONG FrldrBootPartition;
 
 static
 VOID
-AppleTVParseCmdLine(IN PCCH CmdLine)
-{
-    // If verbose mode is enabled according to Mach, enable it here
-    if (strstr(CmdLine, "-v\0") || strstr(CmdLine, "-v ") || // Command-V (verbose mode)
-        strstr(CmdLine, "-s\0") || strstr(CmdLine, "-s "))   // Command-S (single-user mode)
-    {
-        // Clear screen
-        AppleTVVideoClearScreen(0x00);
-        
-        // Enable screen debug
-        DebugEnableScreenPort();
-    }
-}
-
-static
-VOID
 CopySmbios(VOID)
 {
     PSMBIOS_TABLE_HEADER    SmbiosTable = NULL;
@@ -97,6 +81,7 @@ MachInit(const char *CmdLine)
         
     /* Setup vtbl */
     RtlZeroMemory(&MachVtbl, sizeof(MachVtbl));
+    
     MachVtbl.ConsPutChar = AppleTVConsPutChar;
     MachVtbl.ConsKbHit = AppleTVConsKbHit;
     MachVtbl.ConsGetCh = AppleTVConsGetCh;
@@ -130,7 +115,16 @@ MachInit(const char *CmdLine)
     FrldrBootPartition = 1;
     
     AppleTVVideoInit();
-    AppleTVParseCmdLine(CmdLine);
+    
+    // If verbose mode is enabled according to Mach, enable it here
+    if (BootArgs->Video.DisplayMode == DISPLAY_MODE_TEXT)
+    {
+        // Clear screen
+        AppleTVVideoClearScreen(COLOR_BLACK);
+        
+        // Enable screen debug
+        DebugEnableScreenPort();
+    }
     
     HalpCalibrateStallExecution();
 }
