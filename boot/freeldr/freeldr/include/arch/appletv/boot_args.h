@@ -9,6 +9,9 @@
 
 #define MACH_CMDLINE 1024
 
+#define DISPLAY_MODE_GRAPHICS 1
+#define DISPLAY_MODE_TEXT 2
+
 /* Video parameters passed to kernel. */
 typedef struct {
     UINT32 BaseAddress; /* Base video address */
