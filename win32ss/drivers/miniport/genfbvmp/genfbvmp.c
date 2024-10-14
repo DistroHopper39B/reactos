@@ -4,6 +4,7 @@
  * PURPOSE:     Main file.
  * COPYRIGHT:   Copyright 2022-2023 Justin Miller <justinmiller100@gmail.com>
  *              Copyright 2023 Hermès Bélusca-Maïto <hermes.belusca-maito@reactos.org>
+ *              Copyright 2024 Sylas Hollander <distrohopper39b.business@gmail.com>
  */
 
 #include <ntifs.h>
@@ -17,9 +18,9 @@
 
 #include <section_attribs.h>
 
-//#include <debug.h>
-#define DPRINT(fmt, ...)    VideoDebugPrint((Error, fmt, ##__VA_ARGS__))
-#define DPRINT1(fmt, ...)   VideoDebugPrint((Error, fmt, ##__VA_ARGS__))
+#include <debug.h>
+// #define DPRINT(fmt, ...)    VideoDebugPrint((Info, fmt, ##__VA_ARGS__))
+// #define DPRINT1(fmt, ...)   VideoDebugPrint((Error, fmt, ##__VA_ARGS__))
 
 #include <drivers/bootvid/framebuf.h>
 #include <drivers/bootvid/framebuf.c> // FIXME: Temporary HACK
@@ -35,6 +36,7 @@
 static const WCHAR AdapterString[]   = L"Generic Framebuffer"; // "Basic Display Driver"
 static const WCHAR AdapterChipType[] = L"Framebuffer";
 static const WCHAR AdapterDacType[]  = L"Internal";
+static const WCHAR AdapterBiosString[]  = L"Unknown";
 
 #if 0
 typedef struct
@@ -346,246 +348,47 @@ GenFbAcquireResources(
  * - ERROR_DEV_NOT_EXIST if we did not find the device.
  * - ERROR_INVALID_PARAMETER otherwise.
  **/
- #if 0
-static VP_STATUS
-NTAPI
-GenFbGetDeviceDataCallback(
-    _In_ PVOID HwDeviceExtension,
-    _In_ PVOID Context,
-    _In_ VIDEO_DEVICE_DATA_TYPE DeviceDataType,
-    _In_ PVOID Identifier,
-    _In_ ULONG IdentifierLength,
-    _In_ PVOID ConfigurationData,
-    _In_ ULONG ConfigurationDataLength,
-    _Inout_ PVOID ComponentInformation,
-    _In_ ULONG ComponentInformationLength)
-{
-    PGENFB_DEVICE_EXTENSION DeviceExtension = HwDeviceExtension;
-    PVIDEO_PORT_CONFIG_INFO ConfigInfo = Context;
-    PWCHAR identifier = Identifier;
-    PCM_COMPONENT_INFORMATION CompInfo = ComponentInformation;
-    VIDEO_ACCESS_RANGE accessRanges[1];
-    VP_STATUS status;
-    
-    if (DeviceDataType == VpBusData) DeviceDataType = VpControllerData;
-    
-    switch (DeviceDataType)
-    {
-        case VpControllerData:
-        {
-            NTSTATUS Status;
-
-            DPRINT1("Getting controller information: Display: '%.*ws'\n",
-                    IdentifierLength/sizeof(WCHAR), identifier);
-
-            if (!ConfigurationData ||
-                (ConfigurationDataLength < sizeof(VIDEO_HARDWARE_CONFIGURATION_DATA)))
-            {
-                DPRINT1("Invalid display configuration data %p %lu\n",
-                        ConfigurationData, ConfigurationDataLength);
-                return ERROR_DEV_NOT_EXIST;
-            }
-
-            if (CompInfo && (ComponentInformationLength == sizeof(CM_COMPONENT_INFORMATION)) &&
-                !(CompInfo->Flags.Output && CompInfo->Flags.ConsoleOut))
-            {
-                DPRINT1("Weird: this DisplayController has flags %lu\n", CompInfo->Flags);
-            }
-
-            /* Pre-initialize VideoConfigData */
-            VideoPortZeroMemory(&DeviceExtension->DisplayInfo.VideoConfigData,
-                                sizeof(DeviceExtension->DisplayInfo.VideoConfigData));
-
-            Status = GetFramebufferVideoData(&DeviceExtension->DisplayInfo.BaseAddress,
-                                             &DeviceExtension->DisplayInfo.BufferSize,
-                                             &DeviceExtension->DisplayInfo.VideoConfigData,
-                                             GET_LEGACY_DATA(ConfigurationData),
-                                             GET_LEGACY_DATA_LEN(ConfigurationDataLength));
-            if (!NT_SUCCESS(Status) ||
-                (DeviceExtension->DisplayInfo.BaseAddress.QuadPart == 0) ||
-                (DeviceExtension->DisplayInfo.BufferSize == 0))
-            {
-                /* Fail if no framebuffer was provided */
-                DPRINT1("No framebuffer found!\n");
-                return ERROR_DEV_NOT_EXIST;
-            }
-
-            /*
-             * Fill up the device extension and the configuration
-             * information with the appropriate data.
-             */
-
-            DBG_UNREFERENCED_PARAMETER(ConfigInfo);
-            // ConfigInfo->BusInterruptLevel  = ConfigData->Irql;
-            // ConfigInfo->BusInterruptVector = ConfigData->Vector;
-            // HalGetInterruptVector(...)
-
-            /* Setup the access ranges */
-            // QUESTION: Do we need to also set up the
-            // ConfigData->ControlBase/Size and ConfigData->CursorBase/Size
-            // memory ports, or any other resource we get,
-            // besides setting up the framebuffer?
-            accessRanges[0].RangeStart = DeviceExtension->DisplayInfo.BaseAddress;
-            accessRanges[0].RangeLength = DeviceExtension->DisplayInfo.BufferSize;
-            accessRanges[0].RangeInIoSpace = VIDEO_MEMORY_SPACE_MEMORY;
-            accessRanges[0].RangeVisible = FALSE;
-            accessRanges[0].RangeShareable = FALSE;
-            accessRanges[0].RangePassive = FALSE;
-
-            /* Try to acquire those hardware resources */
-            status = GenFbAcquireResources(HwDeviceExtension,
-                                           RTL_NUMBER_OF(accessRanges),
-                                           accessRanges);
-            if (status != NO_ERROR)
-                return status;
-
-            /* Save framebuffer information */
-            // DeviceExtension->PhysicalFrameAddress = ConfigData->FrameBase;
-            // DeviceExtension->FrameLength = ConfigData->FrameSize;
-
-            // QUESTION: If set up above, should we also map the
-            // video controller and cursor register?
-            // DeviceExtension->VideoAddress
-
-            /* Map the video memory into the system virtual
-             * address space so we can clear it out. */
-            DeviceExtension->DisplayInfo.FrameAddress =
-                VideoPortGetDeviceBase(DeviceExtension,
-                                       accessRanges[0].RangeStart, // Frame
-                                       accessRanges[0].RangeLength,
-                                       accessRanges[0].RangeInIoSpace);
-            if (!DeviceExtension->DisplayInfo.FrameAddress)
-            {
-                /* We failed, release the acquired resources and bail out */
-                VideoPortVerifyAccessRanges(HwDeviceExtension, 0, NULL);
-                return ERROR_INVALID_PARAMETER;
-            }
-
-            DPRINT1("GenFbVmpFindAdapter: Mapped framebuffer 0x%I64x to 0x%p - size %lu\n",
-                    accessRanges[0].RangeStart,
-                    DeviceExtension->DisplayInfo.FrameAddress,
-                    accessRanges[0].RangeLength);
-
-            return NO_ERROR;
-        }
-
-        case VpMonitorData:
-        {
-            DPRINT1("Getting monitor information: Monitor: '%.*ws'\n",
-                    IdentifierLength/sizeof(WCHAR), identifier);
-
-            if (!ConfigurationData ||
-                (ConfigurationDataLength < sizeof(MONITOR_HARDWARE_CONFIGURATION_DATA)))
-            {
-                DPRINT1("Invalid monitor configuration data %p %lu\n",
-                        ConfigurationData, ConfigurationDataLength);
-                return ERROR_DEV_NOT_EXIST;
-            }
-
-            if (CompInfo && (ComponentInformationLength == sizeof(CM_COMPONENT_INFORMATION)) &&
-                !(CompInfo->Flags.Output && CompInfo->Flags.ConsoleOut))
-            {
-                DPRINT1("Weird: this MonitorPeripheral has flags %lu\n", CompInfo->Flags);
-            }
-
-            /* Pre-initialize MonitorConfigData */
-            VideoPortZeroMemory(&DeviceExtension->DisplayInfo.MonitorConfigData,
-                                sizeof(DeviceExtension->DisplayInfo.MonitorConfigData));
-
-            /* Retrieve optional monitor configuration data;
-             * ignore any error if it does not exist. */
-            GetFramebufferMonitorData(&DeviceExtension->DisplayInfo.MonitorConfigData,
-                                      GET_LEGACY_DATA(ConfigurationData),
-                                      GET_LEGACY_DATA_LEN(ConfigurationDataLength));
-
-            return NO_ERROR;
-        }
-
-        default:
-        {
-            DPRINT1("Unknown device type %lu\n", DeviceDataType);
-            return ERROR_INVALID_PARAMETER;
-        }
-    }
-}
-#endif
-
-static BOOLEAN AdapterFound = FALSE;
 
 CODE_SEG("PAGE")
 VP_STATUS NTAPI
 GenFbVmpFindAdapter(
-    _In_ PVOID HwDeviceExtension,
-    _In_ PVOID HwContext,
-    _In_ PWSTR ArgumentString,
+    _In_ PVOID  HwDeviceExtension,
+    _In_ PVOID  HwContext,
+    _In_ PWSTR  ArgumentString,
     _Inout_ PVIDEO_PORT_CONFIG_INFO ConfigInfo,
-    _In_ PUCHAR Again)
+    _Out_ PUCHAR Again
+)
 {
     PGENFB_DEVICE_EXTENSION DeviceExtension = HwDeviceExtension;
-    PGENFB_DISPLAY_INFO DisplayInfo = &DeviceExtension->DisplayInfo;
-    PCM_FRAMEBUF_DEVICE_DATA VideoData = &DisplayInfo->VideoConfigData;
+    //PGENFB_DISPLAY_INFO DisplayInfo = &DeviceExtension->DisplayInfo;
+    //PCM_FRAMEBUF_DEVICE_DATA VideoData = &DisplayInfo->VideoConfigData;
     ULONG VRamInMB;
-    VIDEO_ACCESS_RANGE accessRanges[1];
-    VP_STATUS status;
-
+    
     PAGED_CODE();
-
+    
     DPRINT1("GenFbVmpFindAdapter(%p, %p, %s, %p, %p)\n",
         HwDeviceExtension, HwContext, ArgumentString, ConfigInfo, Again);
-    if (AdapterFound)
-    {
-        return ERROR_DEV_NOT_EXIST;
-    }
-    //*Again = FALSE;
-
+    //__debugbreak();
+        
     if (ConfigInfo->Length < sizeof(VIDEO_PORT_CONFIG_INFO))
         return ERROR_INVALID_PARAMETER;
-
-    //
-    // TODO: Detect whether this is the detection for the boot-time console
-    // that has been searched for during initialization. If we are in PnP mode
-    // just skip the detection.
-    //
-
-    /*
-     * Retrieve any configuration data for the display controller and monitor.
-     */
-
-    //GENFB_DISPLAY_INFO DisplayInfo;
-
-   // VideoPortZeroMemory(FrameBufData, sizeof(*FrameBufData));
-
-    /* Enumerate and find the boot-time console display controller */
-    // ControllerClass, DisplayController
-    /*
-    if (VideoPortGetDeviceData(HwDeviceExtension,
-                               VpBusData,
-                               GenFbGetDeviceDataCallback,
-                               ConfigInfo) != NO_ERROR)
-    {
-        DPRINT1("GenFbVmp: getting controller info failed\n");
-        __debugbreak();
-        return ERROR_DEV_NOT_EXIST;
-    }
-    */
-
-    /* Now find the MonitorPeripheral to obtain more information.
-     * It should be child of the display controller. */
-    // PeripheralClass, MonitorPeripheral
-    /*
-    __debugbreak();
-    if (VideoPortGetDeviceData(HwDeviceExtension,
-                               VpMonitorData,
-                               GenFbGetDeviceDataCallback,
-                               ConfigInfo) != NO_ERROR)
-    {
-        // Ignore if no monitor data is given
-        DPRINT1("GenFbVmp: optional monitor info not found\n");
-    }
-    __debugbreak();
-    */
-    /* From the captured video framebuffer and monitor data,
-     * synthesize our single video mode information structure. */
+    
+    VideoPortSetRegistryParameters(HwDeviceExtension,
+                                   L"HardwareInformation.AdapterString",
+                                   (PVOID)AdapterString,
+                                   sizeof(AdapterString));
+    VideoPortSetRegistryParameters(HwDeviceExtension,
+                                   L"HardwareInformation.BiosString",
+                                   (PVOID)AdapterBiosString,
+                                   sizeof(AdapterBiosString));
+    VideoPortSetRegistryParameters(HwDeviceExtension,
+                                   L"HardwareInformation.ChipType",
+                                   (PVOID)AdapterChipType,
+                                   sizeof(AdapterChipType));
+    VideoPortSetRegistryParameters(HwDeviceExtension,
+                                   L"HardwareInformation.DacType",
+                                   (PVOID)AdapterDacType,
+                                   sizeof(AdapterDacType));
     
     // Scraping from the bottom of the barrel here.
     DeviceExtension->DisplayInfo.BaseAddress = gBootDisplay.BaseAddress;
@@ -599,60 +402,14 @@ GenFbVmpFindAdapter(
     DeviceExtension->DisplayInfo.VideoConfigData.PixelInformation.BlueMask = gBootDisplay.VideoConfigData.PixelInformation.BlueMask;
     DeviceExtension->DisplayInfo.VideoConfigData.PixelInformation.ReservedMask = gBootDisplay.VideoConfigData.PixelInformation.ReservedMask;
     
-    accessRanges[0].RangeStart = DeviceExtension->DisplayInfo.BaseAddress;
-    accessRanges[0].RangeLength = DeviceExtension->DisplayInfo.BufferSize;
-    accessRanges[0].RangeInIoSpace = VIDEO_MEMORY_SPACE_MEMORY;
-    accessRanges[0].RangeVisible = FALSE;
-    accessRanges[0].RangeShareable = FALSE;
-    accessRanges[0].RangePassive = FALSE;
+    VRamInMB = DeviceExtension->DisplayInfo.BufferSize / (1024 * 1024);
+    VideoPortSetRegistryParameters(HwDeviceExtension,
+                                   L"HardwareInformation.MemorySize",
+                                   &VRamInMB,
+                                   sizeof(VRamInMB));
     
-    DPRINT1("Display info: base 0x%08lx, mapped base 0x%08lx, width %u height %u\n",
-                DeviceExtension->DisplayInfo.BaseAddress.QuadPart,
-                DeviceExtension->DisplayInfo.FrameAddress,
-                DeviceExtension->DisplayInfo.VideoConfigData.ScreenWidth,
-                DeviceExtension->DisplayInfo.VideoConfigData.ScreenHeight);
+    GenFbVmpSetupCurrentMode(HwDeviceExtension);
     
-    /* Try to acquire those hardware resources */
-    status = GenFbAcquireResources(HwDeviceExtension,
-                                   RTL_NUMBER_OF(accessRanges),
-                                   accessRanges);
-    if (status != NO_ERROR)
-    {
-        DPRINT1("Failed to acquire resources: %lx\n", status);
-        __debugbreak();
-        return status;
-    }
-        
-
-    DeviceExtension->DisplayInfo.FrameAddress = VideoPortGetDeviceBase(DeviceExtension,
-                                       accessRanges[0].RangeStart, // Frame
-                                       accessRanges[0].RangeLength,
-                                       accessRanges[0].RangeInIoSpace);
-    if (!DeviceExtension->DisplayInfo.FrameAddress)
-    {
-        /* We failed, release the acquired resources and bail out */
-        VideoPortVerifyAccessRanges(HwDeviceExtension, 0, NULL);
-        __debugbreak();
-        return ERROR_INVALID_PARAMETER;
-    }
-
-    DPRINT1("GenFbVmpFindAdapter: Mapped framebuffer 0x%I64x to 0x%p - size %lu\n",
-                    accessRanges[0].RangeStart,
-                    DeviceExtension->DisplayInfo.FrameAddress,
-                    accessRanges[0].RangeLength);   
-                    
-    DPRINT1("Display info: base 0x%08lx, mapped base 0x%08lx, width %u height %u\n", DisplayInfo->BaseAddress.QuadPart, DisplayInfo->FrameAddress, DisplayInfo->VideoConfigData.ScreenWidth, DisplayInfo->VideoConfigData.ScreenHeight);
-    
-    if (!GenFbVmpSetupCurrentMode(HwDeviceExtension))
-    {
-        // We failed, release the acquired resources and bail out
-        // VideoPortFreeDeviceBase(HwDeviceExtension, ...);
-        VideoPortVerifyAccessRanges(HwDeviceExtension, 0, NULL);
-        return ERROR_DEV_NOT_EXIST;
-    }
-    
-     
-
     /* Zero out the emulator entries since we do not support them (not VGA) */
     ConfigInfo->NumEmulatorAccessEntries = 0;
     ConfigInfo->EmulatorAccessEntries = NULL;
@@ -661,51 +418,7 @@ GenFbVmpFindAdapter(
     ConfigInfo->VdmPhysicalVideoMemoryAddress.HighPart = 0;
     ConfigInfo->VdmPhysicalVideoMemoryLength = 0;
     ConfigInfo->HardwareStateSize = 0;
-
-    /*
-     * For a list of possible parameters, consult
-     * https://learn.microsoft.com/windows-hardware/drivers/display/setting-hardware-information-in-the-registry
-     */
-
-    /* Chipset information */
-    VideoPortSetRegistryParameters(HwDeviceExtension,
-                                   L"HardwareInformation.AdapterString",
-                                   (PVOID)AdapterString,
-                                   sizeof(AdapterString));
-    // L"HardwareInformation.BiosString"
-    VideoPortSetRegistryParameters(HwDeviceExtension,
-                                   L"HardwareInformation.ChipType",
-                                   (PVOID)AdapterChipType,
-                                   sizeof(AdapterChipType));
-    VideoPortSetRegistryParameters(HwDeviceExtension,
-                                   L"HardwareInformation.DacType",
-                                   (PVOID)AdapterDacType,
-                                   sizeof(AdapterDacType));
-
-    /* Video Memory in *MB* */
-    VRamInMB = DeviceExtension->DisplayInfo.BufferSize / (1024 * 1024);
-    VideoPortSetRegistryParameters(HwDeviceExtension,
-                                   L"HardwareInformation.MemorySize",
-                                   &VRamInMB,
-                                   sizeof(VRamInMB));
-
-    /* Note: Don't use VideoMode->Frequency since that value is
-     * the regularized one, and not the original reported one. */
-    if (VideoData->VideoClock != 0)
-    {
-        ULONG VideoClock = VideoData->VideoClock;
-        VideoPortSetRegistryParameters(HwDeviceExtension,
-                                       L"HardwareInformation.CurrentChipClockSpeed",
-                                       &VideoClock,
-                                       sizeof(VideoClock));
-
-        // Other undocumented speed indicators:
-        // L"HardwareInformation.CurrentMemClockSpeed"
-        // L"HardwareInformation.CurrentPixelClockSpeed"
-    }
     
-    AdapterFound = TRUE;
-
     return NO_ERROR;
 }
 
@@ -714,15 +427,15 @@ BOOLEAN NTAPI
 GenFbVmpInitialize(
     _In_ PVOID HwDeviceExtension)
 {
-    PGENFB_DEVICE_EXTENSION DeviceExtension = HwDeviceExtension;
+    //PGENFB_DEVICE_EXTENSION DeviceExtension = HwDeviceExtension;
 
     PAGED_CODE();
 
     DPRINT1("GenFbVmpInitialize(%p)\n", HwDeviceExtension);
 
     /* Zero the frame buffer */
-    VideoPortZeroDeviceMemory(DeviceExtension->DisplayInfo.FrameAddress,
-                              DeviceExtension->DisplayInfo.BufferSize);
+    //VideoPortZeroDeviceMemory(DeviceExtension->DisplayInfo.FrameAddress,
+    //                          DeviceExtension->DisplayInfo.BufferSize);
 
     return TRUE;
 }
@@ -1155,32 +868,38 @@ GenFbVmpGetVideoChildDescriptor(
 
 CODE_SEG("INIT")
 ULONG NTAPI
-DriverEntry(
-    _In_ PVOID Context1,
-    _In_ PVOID Context2)
+DriverEntry(IN PVOID Context1, IN PVOID Context2)
 {
-    VIDEO_HW_INITIALIZATION_DATA VideoInitData;
-    NTSTATUS Status;
-    INTERFACE_TYPE Interface;
-    ULONG BusNumber;
-
-    VideoDebugPrint((Info, "GenFbVmp: DriverEntry\n"));
-   // __debugbreak();
-
+    PAGED_CODE();
+    
+    VIDEO_HW_INITIALIZATION_DATA    VideoInitData;
+    ULONG                           Status = NO_ERROR;
+    INTERFACE_TYPE                  Interface;
+    ULONG                           BusNumber;
+    
+    DPRINT1("GenFbVmp: DriverEntry(%X, %X)\n", Context1, Context2);
+    
+    //__debugbreak();
+    
     VideoPortZeroMemory(&VideoInitData, sizeof(VideoInitData));
-    VideoInitData.HwInitDataSize = sizeof(VideoInitData);
-    VideoInitData.HwFindAdapter = GenFbVmpFindAdapter;
-    VideoInitData.HwInitialize = GenFbVmpInitialize;
-    // VideoInitData.HwInterrupt = NULL;
-    VideoInitData.HwStartIO = GenFbVmpStartIO;
-    VideoInitData.HwDeviceExtensionSize = sizeof(GENFB_DEVICE_EXTENSION);
-    // VideoInitData.HwResetHw = NULL;
-    // VideoInitData.HwTimer = NULL;
-    // VideoInitData.HwStartDma = NULL;
-
-    /* Start with parameters for Device0 */
-    VideoInitData.StartingDeviceNumber = 0;
-
+    
+    // Set up callbacks
+    VideoInitData.HwFindAdapter             = GenFbVmpFindAdapter;
+    VideoInitData.HwInitialize              = GenFbVmpInitialize;
+    VideoInitData.HwStartIO                 = GenFbVmpStartIO;
+    VideoInitData.HwSetPowerState           = GenFbVmpSetPowerState;
+    VideoInitData.HwGetPowerState           = GenFbVmpGetPowerState;
+    VideoInitData.HwGetVideoChildDescriptor = GenFbVmpGetVideoChildDescriptor;
+    
+    // Set up storage space
+    VideoInitData.HwDeviceExtensionSize     = sizeof(GENFB_DEVICE_EXTENSION);
+    
+    // FIXME: Windows 2000/NT4 support
+    VideoInitData.HwInitDataSize            = sizeof(VIDEO_HW_INITIALIZATION_DATA);
+    
+    // Ignored apparently in all but NT4
+    VideoInitData.AdapterInterfaceType      = PCIBus;
+    
     /*
      * Our main purpose is to detect, if any, and support the single
      * boot-time (POST) framebuffer display controller available on
@@ -1196,60 +915,18 @@ DriverEntry(
                              &gBootDisplay.MonitorConfigData,
                              &Interface,  // FIXME: Make it opt?
                              &BusNumber); // FIXME: Make it opt?
-    if (!NT_SUCCESS(Status))
-    {
-        DPRINT1("No boot framebuffer detected.\n");
-    }
-    else
-    {
-        #if 1
-        DPRINT1("Boot framebuffer detected; registering.\n");
-
-        /* If the interface on which the boot-time display controller
-         * is unknown, loop on all the supported buses to initialize.
-         * Otherwise if the interface is known, just call videoprt on
-         * this bus. */
-        if (Interface == InterfaceTypeUndefined)
-        {
-            for (Interface = 0; Interface < MaximumInterfaceType; ++Interface)
-            {
-                VideoInitData.AdapterInterfaceType = Interface;
-                Status = VideoPortInitialize(Context1, Context2, &VideoInitData, NULL);
-                if (Status == STATUS_SUCCESS)
-                    break;
-            }
-        }
-        else
-        {
-            VideoInitData.AdapterInterfaceType = Interface;
-            Status = VideoPortInitialize(Context1, Context2, &VideoInitData, NULL);
-            // if (Status == STATUS_SUCCESS)
-            //     break;
-        }
-        #endif
-    }
-
-
-    /*
-     * Now, whatever the result of the previous detection, register now
-     * ourselves as a PnP driver for handling any other framebuffer devices
-     * that may be present on the system or could appear in the future.
-     */
-    VideoInitData.HwSetPowerState = GenFbVmpSetPowerState;
-    VideoInitData.HwGetPowerState = GenFbVmpGetPowerState;
-    VideoInitData.HwGetVideoChildDescriptor = GenFbVmpGetVideoChildDescriptor;
-
-    // VideoInitData.HwQueryInterface = NULL;
-    // VideoInitData.HwChildDeviceExtensionSize = 0;
-    // VideoInitData.HwLegacyResourceList  = NULL;
-    // VideoInitData.HwLegacyResourceCount = 0;
-    // VideoInitData.HwGetLegacyResources  = NULL
-    // VideoInitData.AllowEarlyEnumeration = FALSE;
-
-    VideoInitData.AdapterInterfaceType = 0;
+    
+    VideoInitData.HwLegacyResourceList      = NULL;
+    VideoInitData.HwLegacyResourceCount     = 0;
+    
+    // Initialize video port driver
     Status = VideoPortInitialize(Context1, Context2, &VideoInitData, NULL);
-
-    return (ULONG)Status;
+    if (Status)
+    {
+        DPRINT1("GenFbVmp: VideoPortInitialize failed with status %#X!\n", Status);
+    }
+    
+    return Status;
 }
 
 /* EOF */
