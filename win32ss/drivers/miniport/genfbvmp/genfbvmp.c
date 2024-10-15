@@ -33,6 +33,7 @@
  * for "HardwareInformation.AdapterString", "HardwareInformation.BiosString",
  * "HardwareInformation.ChipType", and "HardwareInformation.DacType".
  **/
+ 
 static const WCHAR AdapterString[]   = L"Generic Framebuffer"; // "Basic Display Driver"
 static const WCHAR AdapterChipType[] = L"Framebuffer";
 static const WCHAR AdapterDacType[]  = L"Internal";
@@ -69,12 +70,6 @@ typedef struct _GENFB_DEVICE_EXTENSION
     /* The one and only video mode we support */
     VIDEO_MODE_INFORMATION CurrentVideoMode;
 } GENFB_DEVICE_EXTENSION, *PGENFB_DEVICE_EXTENSION;
-
-
-/* The unique boot-time display available */
-GENFB_DISPLAY_INFO gBootDisplay = {0};
-BOOLEAN gbBootDisplayFound = FALSE;
-
 
 /********************************** Private ***********************************/
 
@@ -360,9 +355,11 @@ GenFbVmpFindAdapter(
 )
 {
     PGENFB_DEVICE_EXTENSION DeviceExtension = HwDeviceExtension;
-    //PGENFB_DISPLAY_INFO DisplayInfo = &DeviceExtension->DisplayInfo;
-    //PCM_FRAMEBUF_DEVICE_DATA VideoData = &DisplayInfo->VideoConfigData;
+    PGENFB_DISPLAY_INFO DisplayInfo = &DeviceExtension->DisplayInfo;
     ULONG VRamInMB;
+    INTERFACE_TYPE Interface;
+    ULONG BusNumber;
+    NTSTATUS Status;
     
     PAGED_CODE();
     
@@ -372,6 +369,27 @@ GenFbVmpFindAdapter(
         
     if (ConfigInfo->Length < sizeof(VIDEO_PORT_CONFIG_INFO))
         return ERROR_INVALID_PARAMETER;
+    
+     /*
+     * Our main purpose is to detect, if any, and support the single
+     * boot-time (POST) framebuffer display controller available on
+     * the system. Thus, don't register ourselves as PnP in this call.
+     *
+     * Instead look at specific buses and enumerate the internal ARC
+     * device tree set up by the bootloader.
+     */
+    Status = FindBootDisplay(&DisplayInfo->BaseAddress,
+                             &DisplayInfo->BufferSize,
+                             &DisplayInfo->VideoConfigData,
+                             &DisplayInfo->MonitorConfigData,
+                             &Interface,  // FIXME: Make it opt?
+                             &BusNumber); // FIXME: Make it opt?
+                             
+    if (Status)
+    {
+        DPRINT1("GenFbVmpFindAdapter: FATAL ERROR: No displays found! (0x%08X)\n", Status);
+        return STATUS_NO_SUCH_DEVICE;
+    }
     
     VideoPortSetRegistryParameters(HwDeviceExtension,
                                    L"HardwareInformation.AdapterString",
@@ -389,18 +407,6 @@ GenFbVmpFindAdapter(
                                    L"HardwareInformation.DacType",
                                    (PVOID)AdapterDacType,
                                    sizeof(AdapterDacType));
-    
-    // Scraping from the bottom of the barrel here.
-    DeviceExtension->DisplayInfo.BaseAddress = gBootDisplay.BaseAddress;
-    DeviceExtension->DisplayInfo.BufferSize = gBootDisplay.BufferSize;
-    DeviceExtension->DisplayInfo.VideoConfigData.ScreenWidth = gBootDisplay.VideoConfigData.ScreenWidth;
-    DeviceExtension->DisplayInfo.VideoConfigData.ScreenHeight = gBootDisplay.VideoConfigData.ScreenHeight;
-    DeviceExtension->DisplayInfo.VideoConfigData.PixelsPerScanLine = gBootDisplay.VideoConfigData.PixelsPerScanLine;
-    DeviceExtension->DisplayInfo.VideoConfigData.BitsPerPixel = gBootDisplay.VideoConfigData.BitsPerPixel;
-    DeviceExtension->DisplayInfo.VideoConfigData.PixelInformation.RedMask = gBootDisplay.VideoConfigData.PixelInformation.RedMask;
-    DeviceExtension->DisplayInfo.VideoConfigData.PixelInformation.GreenMask = gBootDisplay.VideoConfigData.PixelInformation.GreenMask;
-    DeviceExtension->DisplayInfo.VideoConfigData.PixelInformation.BlueMask = gBootDisplay.VideoConfigData.PixelInformation.BlueMask;
-    DeviceExtension->DisplayInfo.VideoConfigData.PixelInformation.ReservedMask = gBootDisplay.VideoConfigData.PixelInformation.ReservedMask;
     
     VRamInMB = DeviceExtension->DisplayInfo.BufferSize / (1024 * 1024);
     VideoPortSetRegistryParameters(HwDeviceExtension,
@@ -874,8 +880,6 @@ DriverEntry(IN PVOID Context1, IN PVOID Context2)
     
     VIDEO_HW_INITIALIZATION_DATA    VideoInitData;
     ULONG                           Status = NO_ERROR;
-    INTERFACE_TYPE                  Interface;
-    ULONG                           BusNumber;
     
     DPRINT1("GenFbVmp: DriverEntry(%X, %X)\n", Context1, Context2);
     
@@ -900,25 +904,6 @@ DriverEntry(IN PVOID Context1, IN PVOID Context2)
     // Ignored apparently in all but NT4
     VideoInitData.AdapterInterfaceType      = PCIBus;
     
-    /*
-     * Our main purpose is to detect, if any, and support the single
-     * boot-time (POST) framebuffer display controller available on
-     * the system. Thus, don't register ourselves as PnP in this call.
-     *
-     * Instead look at specific buses and enumerate the internal ARC
-     * device tree set up by the bootloader.
-     */
-    RtlZeroMemory(&gBootDisplay, sizeof(gBootDisplay));
-    Status = FindBootDisplay(&gBootDisplay.BaseAddress,
-                             &gBootDisplay.BufferSize,
-                             &gBootDisplay.VideoConfigData,
-                             &gBootDisplay.MonitorConfigData,
-                             &Interface,  // FIXME: Make it opt?
-                             &BusNumber); // FIXME: Make it opt?
-    
-    VideoInitData.HwLegacyResourceList      = NULL;
-    VideoInitData.HwLegacyResourceCount     = 0;
-    
     // Initialize video port driver
     Status = VideoPortInitialize(Context1, Context2, &VideoInitData, NULL);
     if (Status)
@@ -926,7 +911,7 @@ DriverEntry(IN PVOID Context1, IN PVOID Context2)
         DPRINT1("GenFbVmp: VideoPortInitialize failed with status %#X!\n", Status);
     }
     
-    return Status;
+    return STATUS_SUCCESS;
 }
 
 /* EOF */
