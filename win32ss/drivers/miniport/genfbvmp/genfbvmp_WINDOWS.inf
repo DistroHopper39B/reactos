@@ -1,0 +1,79 @@
+; GenericFramebuffer.inf
+;
+; Installation file for the Intel HD 4000 display adapter
+; To be used with Windows installations of genfbvmp. Note: you will need to compile bootvid.dll and place it in the same directory as genfbvmp.sys.
+; 
+
+[Version]
+Signature  = "$Windows NT$"
+LayoutFile = layout.inf
+Class      = Display
+ClassGUID  = {4D36E968-E325-11CE-BFC1-08002BE10318}
+Provider   = %ReactOS%
+DriverVer  = 2/1/2023,1.00
+
+[DestinationDirs]
+DefaultDestDir = 12
+GenericFramebuffer.Display_CopyFiles = 11
+
+[Manufacturer]
+%GenericFramebuffer% = GenericFramebuffer
+
+
+; Allow the driver to be loaded on VGA and XGA exposed by PCI bus and ACPI
+[GenericFramebuffer]
+; You need to replace this with your GPU you are targeting
+;; %GenericFramebuffer.DeviceDesc% = GenericFramebuffer, PCI\VEN_80EE&DEV_BEEF
+%GenericFramebuffer.DeviceDesc% = GenericFramebuffer, PCI\CC_0300
+%GenericFramebuffer.DeviceDesc% = GenericFramebuffer, PCI\CC_0301
+%GenericFramebuffer.DeviceDesc% = GenericFramebuffer, ACPI\CLS_0003&SUBCLS_0000
+%GenericFramebuffer.DeviceDesc% = GenericFramebuffer, ACPI\CLS_0003&SUBCLS_0001
+
+;---------------------------- GenericFramebuffer DRIVER ----------------------------
+
+[GenericFramebuffer]
+CopyFiles = GenericFramebuffer.Miniport_CopyFiles, GenericFramebuffer.Display_CopyFiles
+
+[GenericFramebuffer.Miniport_CopyFiles]
+genfbvmp.sys
+
+[GenericFramebuffer.Display_CopyFiles]
+bootvid.dll
+
+[GenericFramebuffer.SoftwareSettings]
+AddReg = GenericFramebuffer_SoftwareSettings
+
+[GenericFramebuffer_SoftwareSettings]
+HKR,, InstalledDisplayDrivers, %REG_MULTI_SZ%, vga, framebuf, vga256, vga64k
+HKR,, VgaCompatible,           %REG_DWORD%,    1
+HKR,, Acceleration.Level,      %REG_DWORD%,    5
+
+[GenericFramebuffer.Services]
+AddService = GenericFramebuffer, 0x00000002, GenericFramebuffer_Service, GenericFramebuffer_EventLog
+
+[GenericFramebuffer_EventLog]
+AddReg=GenericFramebuffer_EventLog_Reg
+
+[GenericFramebuffer_EventLog_Reg]
+HKR,,EventMessageFile,0x00020000,"%%SystemRoot%%\System32\IoLogMsg.dll;%%SystemRoot%%\System32\drivers\vgapnp.sys"
+HKR,,TypesSupported,0x00010001,7
+
+[GenericFramebuffer_Service]
+ServiceType   = 1 ; %SERVICE_KERNEL_DRIVER%
+StartType     = 1 ; %SERVICE_DEMAND_START%
+ErrorControl  = 0 ; %SERVICE_ERROR_IGNORE%
+LoadOrderGroup = Video
+ServiceBinary = %12%\genfbvmp.sys
+
+;-------------------------------- STRINGS -------------------------------
+
+[Strings]
+; Non-localizable
+ReactOS = "ReactOS Project"
+GenericFramebuffer = "Generic Framebuffer"
+
+REG_MULTI_SZ   = 0x00010000
+REG_DWORD      = 0x00010001
+
+; Localizable
+GenericFramebuffer.DeviceDesc = "Generic Framebuffer Miniport Adapter"
