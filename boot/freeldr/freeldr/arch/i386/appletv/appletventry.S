@@ -41,6 +41,7 @@ _AppleTVEntry:
     
     /* Store the bootArgs pointer */
     mov dword ptr ds:[_BootArgs], eax
+    
     /* Load GDT */
 #ifdef _USE_ML
     lgdt fword ptr gdtptr

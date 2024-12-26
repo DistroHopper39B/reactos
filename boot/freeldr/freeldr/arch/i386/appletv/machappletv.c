@@ -111,10 +111,9 @@ MachInit(const char *CmdLine)
     MachVtbl.HwDetect = AppleTVHwDetect;
     MachVtbl.HwIdle = AppleTVHwIdle;
     
+    // FIXME: Do this somewhere else!
     FrldrBootDrive = 0x80;
     FrldrBootPartition = 1;
-    
-    AppleTVVideoInit();
     
     // If verbose mode is enabled according to Mach, enable it here
     if (BootArgs->Video.DisplayMode == DISPLAY_MODE_TEXT)
