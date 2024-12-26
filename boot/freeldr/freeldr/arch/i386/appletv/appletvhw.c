@@ -23,7 +23,6 @@ DBG_DEFAULT_CHANNEL(WARNING);
 extern UCHAR PcBiosDiskCount; /* hwdisk.c */
 extern UINT32 FreeldrDescCount; /* appletvmem.c */
 extern BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS]; /* appletvmem.c */
-extern REACTOS_INTERNAL_BGCONTEXT framebufferData; /* appletvvideo.c */
 
 BOOLEAN AcpiPresent = FALSE;
 
@@ -901,9 +900,8 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     PCM_PARTIAL_RESOURCE_DESCRIPTOR PartialDescriptor;
     PCM_FRAMEBUF_DEVICE_DATA FramebufferData;
     ULONG Size;
-
-    if (framebufferData.BufferSize == 0)
-        return;
+    
+    PMACH_VIDEO Video = &BootArgs->Video;
 
     TRACE("\nStructure sizes:\n"
         "    sizeof(CM_PARTIAL_RESOURCE_LIST)       = %lu\n"
@@ -934,8 +932,8 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     PartialDescriptor->Type = CmResourceTypeMemory;
     PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
     PartialDescriptor->Flags = CM_RESOURCE_MEMORY_READ_WRITE;
-    PartialDescriptor->u.Memory.Start.QuadPart = framebufferData.BaseAddress;
-    PartialDescriptor->u.Memory.Length = framebufferData.BufferSize;
+    PartialDescriptor->u.Memory.Start.QuadPart = Video->BaseAddress;
+    PartialDescriptor->u.Memory.Length = (Video->Pitch * Video->Height);
 
     // Set framebuffer-specific data
     PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
@@ -954,11 +952,11 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     FramebufferData->VideoClock = 0; // FIXME: Use EDID
 
     // Horizontal and Vertical resolution in pixels
-    FramebufferData->ScreenWidth  = framebufferData.ScreenWidth;
-    FramebufferData->ScreenHeight = framebufferData.ScreenHeight;
+    FramebufferData->ScreenWidth  = Video->Width;
+    FramebufferData->ScreenHeight = Video->Height;
 
     // Number of pixel elements per video memory line
-    FramebufferData->PixelsPerScanLine = framebufferData.PixelsPerScanLine;
+    FramebufferData->PixelsPerScanLine = (Video->Pitch / 4);
 
     //
     // TODO: Investigate display rotation!
@@ -977,7 +975,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     // ASSERT(sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL) == 4);
     // With UGA this can just be hardcoded to PixelBlueGreenRedReserved8BitPerColor.
     FramebufferData->BitsPerPixel = (8 * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
-    *(EFI_PIXEL_BITMASK*)&FramebufferData->PixelInformation = EfiPixelMasks[framebufferData.PixelFormat];
+    *(EFI_PIXEL_BITMASK*)&FramebufferData->PixelInformation = EfiPixelMasks[PixelBlueGreenRedReserved8BitPerColor];
 
     FldrCreateComponentKey(BusKey,
                            ControllerClass,

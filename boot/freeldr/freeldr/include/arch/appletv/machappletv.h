@@ -18,7 +18,6 @@ VOID AppleTVConsPutChar(int Ch);
 BOOLEAN AppleTVConsKbHit(VOID);
 int AppleTVConsGetCh(VOID);
 
-VOID AppleTVVideoInit(VOID);
 VOID AppleTVVideoClearScreen(UCHAR Attr);
 VIDEODISPLAYMODE AppleTVVideoSetDisplayMode(char *DisplayMode, BOOLEAN Init);
 VOID AppleTVVideoGetDisplaySize(PULONG Width, PULONG Height, PULONG Depth);
@@ -62,15 +61,3 @@ VOID AppleTVBeep(VOID);
 extern UCHAR FrldrBootDrive;
 extern ULONG FrldrBootPartition;
 LONG DiskReportError(BOOLEAN bShowError);
-
-/* see uefildr.h */
-//TODO: this version of the struct is temporary
-typedef struct _REACTOS_INTERNAL_BGCONTEXT
-{
-    ULONG_PTR    BaseAddress;
-    ULONG        BufferSize;
-    UINT32       ScreenWidth;
-    UINT32       ScreenHeight;
-    UINT32       PixelsPerScanLine;
-    UINT32       PixelFormat;
-} REACTOS_INTERNAL_BGCONTEXT, *PREACTOS_INTERNAL_BGCONTEXT;
