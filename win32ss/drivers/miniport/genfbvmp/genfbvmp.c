@@ -370,14 +370,7 @@ GenFbVmpFindAdapter(
     if (ConfigInfo->Length < sizeof(VIDEO_PORT_CONFIG_INFO))
         return ERROR_INVALID_PARAMETER;
     
-     /*
-     * Our main purpose is to detect, if any, and support the single
-     * boot-time (POST) framebuffer display controller available on
-     * the system. Thus, don't register ourselves as PnP in this call.
-     *
-     * Instead look at specific buses and enumerate the internal ARC
-     * device tree set up by the bootloader.
-     */
+    // Find display information from LoaderBlock or BgContext
     Status = FindBootDisplay(&DisplayInfo->BaseAddress,
                              &DisplayInfo->BufferSize,
                              &DisplayInfo->VideoConfigData,
