@@ -64,7 +64,7 @@ ReserveMemory(
                     __LINE__,
                     "Failed to reserve memory in the range 0x%Ix - 0x%Ix for %s",
                     BaseAddress,
-                    Size,
+                    BaseAddress + Size,
                     Usage);
             }
         }
@@ -308,6 +308,9 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     SetMemory(FreeldrMemMap, 0xFFF000, 0x01000, LoaderSpecialMemory); // unusable memory (do we really need this?)
     
     *MemoryMapSize = PcMemFinalizeMemoryMap(FreeldrMemMap);
+    
+    // Prevent BootArgs from being overwritten (can this even happen?)
+    SetMemory(FreeldrMemMap, (ULONG_PTR)BootArgs, sizeof(MACH_BOOTARGS), LoaderFirmwareTemporary);
     
     return FreeldrMemMap;
 }
