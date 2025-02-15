@@ -164,8 +164,6 @@ UefiConvertToBiosType(EFI_MEMORY_TYPE MemoryType)
         case EfiMemoryMappedIO:
         case EfiMemoryMappedIOPortSpace:
         case EfiPalCode:
-        case EfiRuntimeServicesCode:
-        case EfiRuntimeServicesData:
             return BiosMemoryReserved;
         // Types usable after ACPI initialization
         case EfiACPIReclaimMemory:

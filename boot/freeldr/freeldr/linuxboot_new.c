@@ -32,7 +32,6 @@ PLINUX_SCREEN_INFO  ScreenInfo = NULL;
 PLINUX_E820_ENTRY   E820Table = NULL;
 
 extern BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS];
-extern REACTOS_INTERNAL_BGCONTEXT framebufferData;
 extern UINT32 BiosMapNumberOfEntries;
 
 PRSDP_DESCRIPTOR FindAcpiBios(VOID);
@@ -338,6 +337,8 @@ LoadAndBootLinux(
     ULONG LinuxKernel = 0;
     ULONG LinuxInitrd = 0;
     FILEINFORMATION FileInfo;
+    
+    PMACH_VIDEO Video = &BootArgs->Video;
         
     CHAR ArcPath[MAX_PATH];
     
@@ -493,13 +494,13 @@ LoadAndBootLinux(
     
     ScreenInfo->Capabilities        = (1 << 1) | (1 << 0); // skip quirks
     ScreenInfo->Flags               = (1 << 0); // no cursor
-    ScreenInfo->FbBase              = (UINT32) (UINT64) framebufferData.BaseAddress;
-    ScreenInfo->ExtendedFbBase      = (UINT32) ((UINT64) framebufferData.BaseAddress >> 32);
-    ScreenInfo->FbSize              = framebufferData.PixelsPerScanLine * framebufferData.ScreenHeight * 4;
-    ScreenInfo->FbWidth             = framebufferData.ScreenWidth;
-    ScreenInfo->FbHeight            = framebufferData.ScreenHeight;
+    ScreenInfo->FbBase              = (UINT32) (UINT64) Video->BaseAddress;
+    ScreenInfo->ExtendedFbBase      = (UINT32) ((UINT64) Video->BaseAddress >> 32);
+    ScreenInfo->FbSize              = Video->Pitch * Video->Height;
+    ScreenInfo->FbWidth             = Video->Width;
+    ScreenInfo->FbHeight            = Video->Height;
     ScreenInfo->FbDepth             = 32;
-    ScreenInfo->FbLineLength        = framebufferData.PixelsPerScanLine * 4;
+    ScreenInfo->FbLineLength        = Video->Pitch;
     ScreenInfo->RedSize             = 8;
     ScreenInfo->RedPosition         = 16;
     ScreenInfo->GreenSize           = 8;
