@@ -21,22 +21,9 @@
 extern UCHAR BitmapFont8x16[256 * 16];
 
 UCHAR MachDefaultTextColor = COLOR_GRAY;
-REACTOS_INTERNAL_BGCONTEXT framebufferData;
 
 /* FUNCTIONS ******************************************************************/
 
-VOID
-AppleTVVideoInit(VOID)
-{
-    RtlZeroMemory(&framebufferData, sizeof(framebufferData));
-    
-    framebufferData.BaseAddress         = (ULONG_PTR) BootArgs->Video.BaseAddress;
-    framebufferData.BufferSize          = (BootArgs->Video.Pitch * BootArgs->Video.Height);
-    framebufferData.ScreenWidth         = BootArgs->Video.Width;
-    framebufferData.ScreenHeight        = BootArgs->Video.Height;
-    framebufferData.PixelsPerScanLine   = (BootArgs->Video.Pitch / 4);
-    framebufferData.PixelFormat         = PixelBlueGreenRedReserved8BitPerColor; // UEFI UGA frame buffer
-}
 
 static ULONG
 AppleTVVideoAttrToSingleColor(UCHAR Attr)
@@ -64,12 +51,14 @@ AppleTVVideoClearScreenColor(ULONG Color, BOOLEAN FullScreen)
     ULONG Delta;
     ULONG Line, Col;
     PULONG p;
+    
+    PMACH_VIDEO Video = &BootArgs->Video;
 
-    Delta = (framebufferData.PixelsPerScanLine * 4 + 3) & ~ 0x3;
-    for (Line = 0; Line < framebufferData.ScreenHeight - (FullScreen ? 0 : 2 * TOP_BOTTOM_LINES); Line++)
+    Delta = (Video->Pitch + 3) & ~ 0x3;
+    for (Line = 0; Line < Video->Height - (FullScreen ? 0 : 2 * TOP_BOTTOM_LINES); Line++)
     {
-        p = (PULONG) ((char *) framebufferData.BaseAddress + (Line + (FullScreen ? 0 : TOP_BOTTOM_LINES)) * Delta);
-        for (Col = 0; Col < framebufferData.ScreenWidth; Col++)
+        p = (PULONG) ((char *) Video->BaseAddress + (Line + (FullScreen ? 0 : TOP_BOTTOM_LINES)) * Delta);
+        for (Col = 0; Col < Video->Width; Col++)
         {
             *p++ = Color;
         }
@@ -94,9 +83,12 @@ AppleTVVideoOutputChar(UCHAR Char, unsigned X, unsigned Y, ULONG FgColor, ULONG 
     unsigned Line;
     unsigned Col;
     ULONG Delta;
-    Delta = (framebufferData.PixelsPerScanLine * 4 + 3) & ~ 0x3;
+    
+    PMACH_VIDEO Video = &BootArgs->Video;
+    
+    Delta = (Video->Pitch + 3) & ~ 0x3;
     FontPtr = BitmapFont8x16 + Char * 16;
-    Pixel = (PULONG) ((char *) framebufferData.BaseAddress +
+    Pixel = (PULONG) ((char *) Video->BaseAddress +
             (Y * CHAR_HEIGHT + TOP_BOTTOM_LINES) *  Delta + X * CHAR_WIDTH * 4);
 
     for (Line = 0; Line < CHAR_HEIGHT; Line++)
@@ -126,26 +118,31 @@ AppleTVVideoPutChar(int Ch, UCHAR Attr, unsigned X, unsigned Y)
 VOID
 AppleTVVideoGetDisplaySize(PULONG Width, PULONG Height, PULONG Depth)
 {
-    *Width =  framebufferData.ScreenWidth / CHAR_WIDTH;
-    *Height = (framebufferData.ScreenHeight - 2 * TOP_BOTTOM_LINES) / CHAR_HEIGHT;
+    PMACH_VIDEO Video = &BootArgs->Video;
+    
+    *Width =  Video->Width / CHAR_WIDTH;
+    *Height = (Video->Height - 2 * TOP_BOTTOM_LINES) / CHAR_HEIGHT;
     *Depth =  0;
 }
 
 ULONG
 AppleTVVideoGetBufferSize(VOID)
 {
-    return ((framebufferData.ScreenHeight - 2 * TOP_BOTTOM_LINES) / CHAR_HEIGHT * (framebufferData.ScreenWidth / CHAR_WIDTH) * 2);
+    PMACH_VIDEO Video = &BootArgs->Video;
+    
+    return ((Video->Height - 2 * TOP_BOTTOM_LINES) / CHAR_HEIGHT * (Video->Width / CHAR_WIDTH) * 2);
 }
 
 VOID
 AppleTVVideoCopyOffScreenBufferToVRAM(PVOID Buffer)
 {
+    PMACH_VIDEO Video = &BootArgs->Video;
     PUCHAR OffScreenBuffer = (PUCHAR)Buffer;
 
     ULONG Col, Line;
-    for (Line = 0; Line < (framebufferData.ScreenHeight - 2 * TOP_BOTTOM_LINES) / CHAR_HEIGHT; Line++)
+    for (Line = 0; Line < (Video->Height - 2 * TOP_BOTTOM_LINES) / CHAR_HEIGHT; Line++)
     {
-        for (Col = 0; Col < framebufferData.ScreenWidth / CHAR_WIDTH; Col++)
+        for (Col = 0; Col < Video->Width / CHAR_WIDTH; Col++)
         {
             AppleTVVideoPutChar(OffScreenBuffer[0], OffScreenBuffer[1], Col, Line);
             OffScreenBuffer += 2;
@@ -156,19 +153,21 @@ AppleTVVideoCopyOffScreenBufferToVRAM(PVOID Buffer)
 VOID
 AppleTVVideoScrollUp(VOID)
 {
+    PMACH_VIDEO Video = &BootArgs->Video;
+    
     ULONG BgColor, Dummy;
     ULONG Delta;
-    Delta = (framebufferData.PixelsPerScanLine * 4 + 3) & ~ 0x3;
-    ULONG PixelCount = framebufferData.ScreenWidth * CHAR_HEIGHT *
-                       (((framebufferData.ScreenHeight - 2 * TOP_BOTTOM_LINES) / CHAR_HEIGHT) - 1);
-    PULONG Src = (PULONG)((PUCHAR)framebufferData.BaseAddress + (CHAR_HEIGHT + TOP_BOTTOM_LINES) * Delta);
-    PULONG Dst = (PULONG)((PUCHAR)framebufferData.BaseAddress + TOP_BOTTOM_LINES * Delta);
+    Delta = (Video->Pitch + 3) & ~ 0x3;
+    ULONG PixelCount = Video->Width * CHAR_HEIGHT *
+                       (((Video->Height - 2 * TOP_BOTTOM_LINES) / CHAR_HEIGHT) - 1);
+    PULONG Src = (PULONG)((PUCHAR)Video->BaseAddress + (CHAR_HEIGHT + TOP_BOTTOM_LINES) * Delta);
+    PULONG Dst = (PULONG)((PUCHAR)Video->BaseAddress + TOP_BOTTOM_LINES * Delta);
 
     AppleTVVideoAttrToColors(ATTR(COLOR_WHITE, COLOR_BLACK), &Dummy, &BgColor);
 
     while (PixelCount--)
         *Dst++ = *Src++;
 
-    for (PixelCount = 0; PixelCount < framebufferData.ScreenWidth * CHAR_HEIGHT; PixelCount++)
+    for (PixelCount = 0; PixelCount < Video->Width * CHAR_HEIGHT; PixelCount++)
         *Dst++ = BgColor;
 }

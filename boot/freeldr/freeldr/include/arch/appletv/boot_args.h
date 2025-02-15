@@ -9,6 +9,9 @@
 
 #define MACH_CMDLINE 1024
 
+#define DISPLAY_MODE_GRAPHICS 1
+#define DISPLAY_MODE_TEXT 2
+
 /* Video parameters passed to kernel. */
 typedef struct {
     UINT32 BaseAddress; /* Base video address */
@@ -17,7 +20,7 @@ typedef struct {
     UINT32 Width; /* Display width in pixels */
     UINT32 Height; /* Display height in pixels */
     UINT32 Depth; /* Display depth in bits */
-} __attribute__((aligned(4))) MACH_VIDEO, PMACH_VIDEO;
+} __attribute__((aligned(4))) MACH_VIDEO, *PMACH_VIDEO;
 
 /* Boot arguments struct passed into loader. A pointer to this struct is located in the EAX register upon kernel load.
  * See xnu-1228 pexpert/pexpert/i386/boot.h.
