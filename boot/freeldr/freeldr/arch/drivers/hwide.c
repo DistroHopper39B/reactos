@@ -753,7 +753,9 @@ IdentifyDevice(
     OUT PDEVICE_UNIT *DeviceUnit)
 {
     UCHAR SignatureLow, SignatureHigh, SignatureCount, SignatureNumber;
+    #ifndef SARCH_APPLETV
     UCHAR Command;
+    #endif
     IDENTIFY_DATA Id;
     SENSE_DATA SenseData;
     ULONG i;
@@ -792,14 +794,18 @@ IdentifyDevice(
         SignatureCount == 0x01 && SignatureNumber == 0x01)
     {
         TRACE("IdentifyDevice(): Found PATA device at %d:%d\n", Channel, DeviceNumber);
+        #ifndef SARCH_APPLETV
         Command = IDE_COMMAND_IDENTIFY;
+        #endif
     }
     else if (SignatureLow == ATAPI_MAGIC_LSB &&
              SignatureHigh == ATAPI_MAGIC_MSB)
     {
         TRACE("IdentifyDevice(): Found ATAPI device at %d:%d\n", Channel, DeviceNumber);
         Flags |= ATA_DEVICE_ATAPI | ATA_DEVICE_LBA | ATA_DEVICE_NOT_READY;
+        #ifndef SARCH_APPLETV
         Command = IDE_COMMAND_ATAPI_IDENTIFY;
+        #endif
     }
     else
     {
@@ -810,14 +816,19 @@ IdentifyDevice(
     AtaWritePort(Channel, IDX_IO2_o_Control, IDE_DC_DISABLE_INTERRUPTS);
     StallExecutionProcessor(5);
 
+    // On the Apple TV at least this command is not only unnecessary, it can increase boot time by 31 seconds. I don't know why.
+    #ifndef SARCH_APPLETV
     /* Send the identify command */
     AtaWritePort(Channel, IDX_IO1_o_Command, Command);
     StallExecutionProcessor(50);
+    
     if (!WaitForFlags(Channel, IDE_STATUS_DRQ, IDE_STATUS_DRQ, ATA_STATUS_TIMEOUT))
     {
         ERR("IdentifyDevice(): Identify command failed.\n");
         goto Failure;
     }
+    #endif
+    
 
     /* Receive parameter information from the device */
     AtaReadBuffer(Channel, &Id, IDENTIFY_DATA_SIZE);
