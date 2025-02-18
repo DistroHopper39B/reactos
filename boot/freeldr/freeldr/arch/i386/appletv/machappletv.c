@@ -54,56 +54,6 @@ CopySmbios(VOID)
     memcpy((PVOID) SMBIOS_TABLE_LOW, SmbiosTable, sizeof(SMBIOS_TABLE_HEADER));
 }
 
-
-// FIXME: Relocate somewhere else
-static
-VOID
-AppleTVFixNVIDIA(VOID)
-{
-    // Windows will not recognize the Apple TV's video card and refuse to load ANY video driver without
-    // this hack.
-    
-    PCI_TYPE1_CFG_BITS  PciCfg1;
-    ULONG               PciData;
-    UINT16              Command, Unused;
-    
-    /* Select IDE controller */
-    PciCfg1.u.bits.Enable           = 1;
-    PciCfg1.u.bits.BusNumber        = 0x01;
-    PciCfg1.u.bits.DeviceNumber     = 0x00;
-    PciCfg1.u.bits.FunctionNumber   = 0x0;
-    
-    /* Select register */
-    PciCfg1.u.bits.RegisterNumber   = 0x4;
-    PciCfg1.u.bits.Reserved         = 0;
-    
-    WRITE_PORT_ULONG(PCI_TYPE1_ADDRESS_PORT, PciCfg1.u.AsULONG);
-    PciData = READ_PORT_ULONG((PULONG)PCI_TYPE1_DATA_PORT);
-    
-    Command = (PciData) & 0xFFFF;
-    Unused  = (PciData >> 16) & 0xFFFF;
-    
-    // Now, we need to modify Command. The only bit we care about is bit 0, which is set to 0 on the
-    // Apple TV. This is the "I/O Space" bit and needs to be set to 1 to prevent Windows from ignoring
-    // it.
-    
-    if (Command != 0x0002)
-    {
-        // Likely the result in VirtualBox.
-        ERR("Unsupported video card! (expected = 0x0002, got 0x%04X\n", Command);
-        return;
-    }
-    
-    // Now we change Command to the expected value of 0x0003.
-    Command = 0x0003;
-    
-    PciData = (UINT32) (Command) | (UINT32) (Unused << 16);
-    WRITE_PORT_ULONG(PCI_TYPE1_ADDRESS_PORT, PciCfg1.u.AsULONG);
-    WRITE_PORT_ULONG((PULONG)PCI_TYPE1_DATA_PORT, PciData);
-    
-    // This should work. Crossing my fingers now.
-}
-
 VOID
 AppleTVPrepareForReactOS(VOID)
 {
@@ -172,9 +122,6 @@ MachInit(const char *CmdLine)
         // Enable screen debug
         DebugEnableScreenPort();
     }
-    
-    // FIXME: Do this somewhere else!
-    AppleTVFixNVIDIA();
     
     HalpCalibrateStallExecution();
 }
