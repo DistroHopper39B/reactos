@@ -11,7 +11,7 @@
 #pragma once
 
 #define BB_OFFSET(x, y)    ((y) * SCREEN_WIDTH + (x))
-#define FB_OFFSET(x, y)    (((PanV + (y)) * FrameBufferWidth + PanH + (x)) * BytesPerPixel)
+#define FB_OFFSET(x, y)    (((PanV + (y)) * FrameBufferPixelsPerScanLine + PanH + (x)) * BytesPerPixel)
 
 VOID
 NTAPI
