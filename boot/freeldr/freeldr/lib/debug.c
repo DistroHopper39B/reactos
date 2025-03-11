@@ -334,6 +334,12 @@ DebugDisableScreenPort(VOID)
     DebugPort &= ~SCREEN;
 }
 
+VOID
+DebugEnableScreenPort(VOID)
+{
+    DebugPort |= SCREEN;
+}
+
 static BOOLEAN
 DbgAddDebugChannel(CHAR* channel, CHAR* level, CHAR op)
 {

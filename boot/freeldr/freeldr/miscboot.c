@@ -194,7 +194,7 @@ LoadAndBootSector(
     UiUnInitialize("Booting...");
     IniCleanup();
 
-#ifndef UEFIBOOT
+#ifndef SARCH_APPLETV
     /* Boot the loaded sector code */
     ChainLoadBiosBootSectorCode(BiosDriveNumber, PartitionNumber);
 #endif

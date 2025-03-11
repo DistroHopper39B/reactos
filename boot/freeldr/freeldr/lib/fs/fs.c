@@ -69,7 +69,9 @@ PFS_MOUNT FileSystems[] =
 #endif
 #if defined(_M_IX86) || defined(_M_AMD64)
 #ifndef UEFIBOOT
+#ifndef SARCH_APPLETV
     PxeMount,
+#endif
 #endif
 #endif
 };
