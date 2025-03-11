@@ -812,6 +812,10 @@ CcRosCreateVacb (
     DPRINT("CcRosCreateVacb()\n");
 
     current = ExAllocateFromNPagedLookasideList(&VacbLookasideList);
+    if (!current)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
     current->BaseAddress = NULL;
     current->Dirty = FALSE;
     current->PageOut = FALSE;
@@ -932,22 +936,22 @@ CcRosEnsureVacbResident(
     _In_ ULONG Length
 )
 {
-    PVOID BaseAddress;
+    PROS_SHARED_CACHE_MAP SharedCacheMap = Vacb->SharedCacheMap;
 
     ASSERT((Offset + Length) <= VACB_MAPPING_GRANULARITY);
 
 #if 0
-    if ((Vacb->FileOffset.QuadPart + Offset) > Vacb->SharedCacheMap->SectionSize.QuadPart)
+    if ((Vacb->FileOffset.QuadPart + Offset) > SharedCacheMap->SectionSize.QuadPart)
     {
         DPRINT1("Vacb read beyond the file size!\n");
         return FALSE;
     }
 #endif
 
-    BaseAddress = (PVOID)((ULONG_PTR)Vacb->BaseAddress + Offset);
-
     /* Check if the pages are resident */
-    if (!MmArePagesResident(NULL, BaseAddress, Length))
+    if (!MmIsDataSectionResident(SharedCacheMap->FileObject->SectionObjectPointer,
+                                 Vacb->FileOffset.QuadPart + Offset,
+                                 Length))
     {
         if (!Wait)
         {
@@ -956,7 +960,6 @@ CcRosEnsureVacbResident(
 
         if (!NoRead)
         {
-            PROS_SHARED_CACHE_MAP SharedCacheMap = Vacb->SharedCacheMap;
             NTSTATUS Status = MmMakeDataSectionResident(SharedCacheMap->FileObject->SectionObjectPointer,
                                                         Vacb->FileOffset.QuadPart + Offset,
                                                         Length,
@@ -1142,6 +1145,8 @@ CcFlushCache (
         IoStatus->Information = 0;
     }
 
+    KeAcquireGuardedMutex(&SharedCacheMap->FlushCacheLock);
+
     /*
      * We flush the VACBs that we find here.
      * If there is no (dirty) VACB, it doesn't mean that there is no data to flush, so we call Mm to be sure.
@@ -1160,7 +1165,8 @@ CcFlushCache (
                 Status = CcRosFlushVacb(vacb, &VacbIosb);
                 if (!NT_SUCCESS(Status))
                 {
-                    goto quit;
+                    CcRosReleaseVacb(SharedCacheMap, vacb, FALSE, FALSE);
+                    break;
                 }
                 DirtyVacb = TRUE;
 
@@ -1190,7 +1196,7 @@ CcFlushCache (
             }
 
             if (!NT_SUCCESS(Status))
-                goto quit;
+                break;
 
             if (IoStatus)
                 IoStatus->Information += MmIosb.Information;
@@ -1209,6 +1215,8 @@ CcFlushCache (
         /* Round down to next VACB start now */
         FlushStart -= FlushStart % VACB_MAPPING_GRANULARITY;
     }
+
+    KeReleaseGuardedMutex(&SharedCacheMap->FlushCacheLock);
 
 quit:
     if (IoStatus)
@@ -1296,10 +1304,10 @@ CcRosInitializeFileCache (
     SharedCacheMap = FileObject->SectionObjectPointer->SharedCacheMap;
     if (SharedCacheMap == NULL)
     {
-        Allocated = TRUE;
         SharedCacheMap = ExAllocateFromNPagedLookasideList(&SharedCacheMapLookasideList);
         if (SharedCacheMap == NULL)
         {
+            KeReleaseQueuedSpinLock(LockQueueMasterLock, OldIrql);
             return STATUS_INSUFFICIENT_RESOURCES;
         }
         RtlZeroMemory(SharedCacheMap, sizeof(*SharedCacheMap));
@@ -1318,6 +1326,7 @@ CcRosInitializeFileCache (
         KeInitializeSpinLock(&SharedCacheMap->CacheMapLock);
         InitializeListHead(&SharedCacheMap->CacheMapVacbListHead);
         InitializeListHead(&SharedCacheMap->BcbList);
+        KeInitializeGuardedMutex(&SharedCacheMap->FlushCacheLock);
 
         SharedCacheMap->Flags = SHARED_CACHE_MAP_IN_CREATION;
 
@@ -1326,6 +1335,7 @@ CcRosInitializeFileCache (
                                    NULL,
                                    KernelMode);
 
+        Allocated = TRUE;
         FileObject->SectionObjectPointer->SharedCacheMap = SharedCacheMap;
 
         //CcRosTraceCacheMap(SharedCacheMap, TRUE);

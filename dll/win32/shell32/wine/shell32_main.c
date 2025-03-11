@@ -45,7 +45,6 @@
 #include <reactos/version.h>
 #include <reactos/buildno.h>
 
-#include <versionhelpers.h>
 WINE_DEFAULT_DEBUG_CHANNEL(shell);
 
 const char * const SHELL_Authors[] = { "Copyright 1993-"COPYRIGHT_YEAR" WINE team", "Copyright 1998-"COPYRIGHT_YEAR" ReactOS Team", 0 };
@@ -311,6 +310,28 @@ LPWSTR* WINAPI CommandLineToArgvW(LPCWSTR lpCmdline, int* numargs)
     return argv;
 }
 
+static HRESULT SHELL_GetDetailsOfToBuffer(IShellFolder *psf, PCUITEMID_CHILD pidl,
+                                          UINT col, LPWSTR Buf, UINT cchBuf)
+{
+    IShellFolder2 *psf2;
+    IShellDetails *psd;
+    SHELLDETAILS details;
+    HRESULT hr = IShellFolder_QueryInterface(psf, &IID_IShellFolder2, (void**)&psf2);
+    if (SUCCEEDED(hr))
+    {
+        hr = IShellFolder2_GetDetailsOf(psf2, pidl, col, &details);
+        IShellFolder2_Release(psf2);
+    }
+    else if (SUCCEEDED(hr = IShellFolder_QueryInterface(psf, &IID_IShellDetails, (void**)&psd)))
+    {
+        hr = IShellDetails_GetDetailsOf(psd, pidl, col, &details);
+        IShellDetails_Release(psd);
+    }
+    if (SUCCEEDED(hr))
+        hr = StrRetToStrNW(Buf, cchBuf, &details.str, pidl) ? S_OK : E_FAIL;
+    return hr;
+}
+
 static DWORD shgfi_get_exe_type(LPCWSTR szFullPath)
 {
     BOOL status = FALSE;
@@ -382,22 +403,16 @@ static DWORD shgfi_get_exe_type(LPCWSTR szFullPath)
  */
 BOOL SHELL_IsShortcut(LPCITEMIDLIST pidlLast)
 {
-    char szTemp[MAX_PATH];
+    WCHAR szTemp[MAX_PATH];
     HKEY keyCls;
     BOOL ret = FALSE;
 
-    if (_ILGetExtension(pidlLast, szTemp, MAX_PATH) &&
-          HCR_MapTypeToValueA(szTemp, szTemp, MAX_PATH, TRUE))
+    if (_ILGetExtension(pidlLast, szTemp, _countof(szTemp)) &&
+        SUCCEEDED(HCR_GetProgIdKeyOfExtension(szTemp, &keyCls, FALSE)))
     {
-        if (ERROR_SUCCESS == RegOpenKeyExA(HKEY_CLASSES_ROOT, szTemp, 0, KEY_QUERY_VALUE, &keyCls))
-        {
-          if (ERROR_SUCCESS == RegQueryValueExA(keyCls, "IsShortcut", NULL, NULL, NULL, NULL))
-            ret = TRUE;
-
-          RegCloseKey(keyCls);
-        }
+        ret = RegQueryValueExW(keyCls, L"IsShortcut", NULL, NULL, NULL, NULL) == ERROR_SUCCESS;
+        RegCloseKey(keyCls);
     }
-
     return ret;
 }
 
@@ -421,7 +436,7 @@ DWORD_PTR WINAPI SHGetFileInfoW(LPCWSTR path,DWORD dwFileAttributes,
     DWORD dwAttributes = 0;
     IShellFolder * psfParent = NULL;
     IExtractIconW * pei = NULL;
-    LPITEMIDLIST    pidlLast = NULL, pidl = NULL;
+    LPITEMIDLIST pidlLast = NULL, pidl = NULL, pidlFree = NULL;
     HRESULT hr = S_OK;
     BOOL IconNotYetLoaded=TRUE;
     UINT uGilFlags = 0;
@@ -453,6 +468,27 @@ DWORD_PTR WINAPI SHGetFileInfoW(LPCWSTR path,DWORD dwFileAttributes,
         else
         {
             lstrcpynW(szFullPath, path, MAX_PATH);
+        }
+
+        if ((flags & SHGFI_TYPENAME) && !PathIsRootW(szFullPath))
+        {
+            HRESULT hr2;
+            if (!(flags & SHGFI_USEFILEATTRIBUTES))
+            {
+                dwFileAttributes = GetFileAttributesW(szFullPath);
+                if (dwFileAttributes == INVALID_FILE_ATTRIBUTES)
+                    dwFileAttributes = 0;
+            }
+            if (dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                hr2 = SHELL32_AssocGetFSDirectoryDescription(psfi->szTypeName, _countof(psfi->szTypeName));
+            else
+                hr2 = SHELL32_AssocGetFileDescription(path, psfi->szTypeName, _countof(psfi->szTypeName));
+            if (SUCCEEDED(hr2))
+            {
+                flags &= ~SHGFI_TYPENAME;
+                if (!(flags & ~SHGFI_USEFILEATTRIBUTES))
+                    return ret; /* Bail out early if this was our only operation */
+            }
         }
     }
     else
@@ -490,31 +526,26 @@ DWORD_PTR WINAPI SHGetFileInfoW(LPCWSTR path,DWORD dwFileAttributes,
 
     if (flags & SHGFI_PIDL)
     {
-        pidl = ILClone((LPCITEMIDLIST)path);
+        pidl = (LPITEMIDLIST)path;
+        hr = pidl ? S_OK : E_FAIL;
     }
-    else if (!(flags & SHGFI_USEFILEATTRIBUTES))
+    else
     {
-        hr = SHILCreateFromPathW(szFullPath, &pidl, &dwAttributes);
-    }
-
-    if ((flags & SHGFI_PIDL) || !(flags & SHGFI_USEFILEATTRIBUTES))
-    {
-        /* get the parent shellfolder */
-        if (pidl)
+        if (flags & SHGFI_USEFILEATTRIBUTES)
         {
-            hr = SHBindToParent( pidl, &IID_IShellFolder, (LPVOID*)&psfParent,
-                                (LPCITEMIDLIST*)&pidlLast );
-            if (SUCCEEDED(hr))
-                pidlLast = ILClone(pidlLast);
-            else
-                hr = S_OK;
-            ILFree(pidl);
+            pidl = SHELL32_CreateSimpleIDListFromPath(szFullPath, dwFileAttributes);
+            hr = pidl ? S_OK : E_FAIL;
         }
         else
         {
-            ERR("pidl is null!\n");
-            return FALSE;
+            hr = SHILCreateFromPathW(szFullPath, &pidl, &dwAttributes);
         }
+        pidlFree = pidl;
+    }
+
+    if (SUCCEEDED(hr))
+    {
+        hr = SHBindToParent(pidl, &IID_IShellFolder, (void**)&psfParent, (LPCITEMIDLIST*)&pidlLast);
     }
 
     /* get the attributes of the child */
@@ -524,11 +555,7 @@ DWORD_PTR WINAPI SHGetFileInfoW(LPCWSTR path,DWORD dwFileAttributes,
         {
             psfi->dwAttributes = 0xffffffff;
         }
-        if (psfParent)
-        {
-            IShellFolder_GetAttributesOf(psfParent, 1, (LPCITEMIDLIST*)&pidlLast,
-                                         &(psfi->dwAttributes));
-        }
+        hr = IShellFolder_GetAttributesOf(psfParent, 1, (LPCITEMIDLIST*)&pidlLast, &psfi->dwAttributes);
     }
 
     if (flags & SHGFI_USEFILEATTRIBUTES)
@@ -542,58 +569,20 @@ DWORD_PTR WINAPI SHGetFileInfoW(LPCWSTR path,DWORD dwFileAttributes,
     /* get the displayname */
     if (SUCCEEDED(hr) && (flags & SHGFI_DISPLAYNAME))
     {
-        if (flags & SHGFI_USEFILEATTRIBUTES && !(flags & SHGFI_PIDL))
-        {
-            lstrcpyW (psfi->szDisplayName, PathFindFileNameW(szFullPath));
-        }
-        else if (psfParent)
-        {
-            STRRET str;
-            hr = IShellFolder_GetDisplayNameOf( psfParent, pidlLast,
-                                                SHGDN_INFOLDER, &str);
-            StrRetToStrNW (psfi->szDisplayName, MAX_PATH, &str, pidlLast);
-        }
+        STRRET str;
+        psfi->szDisplayName[0] = UNICODE_NULL;
+        hr = IShellFolder_GetDisplayNameOf(psfParent, pidlLast, SHGDN_INFOLDER, &str);
+        if (SUCCEEDED(hr))
+            StrRetToStrNW(psfi->szDisplayName, _countof(psfi->szDisplayName), &str, pidlLast);
     }
 
     /* get the type name */
     if (SUCCEEDED(hr) && (flags & SHGFI_TYPENAME))
     {
-        if (!(flags & SHGFI_USEFILEATTRIBUTES) || (flags & SHGFI_PIDL))
-        {
-            char ftype[80];
-
-            _ILGetFileType(pidlLast, ftype, 80);
-            MultiByteToWideChar(CP_ACP, 0, ftype, -1, psfi->szTypeName, 80 );
-        }
-        else
-        {
-            if (dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-                strcatW (psfi->szTypeName, L"Folder");
-            else 
-            {
-                WCHAR sTemp[64];
-
-                lstrcpyW(sTemp,PathFindExtensionW(szFullPath));
-                if (sTemp[0] == 0 || (sTemp[0] == '.' && sTemp[1] == 0))
-                {
-                    /* "name" or "name." => "File" */
-                    lstrcpynW (psfi->szTypeName, L"File", 64);
-                }
-                else if (!( HCR_MapTypeToValueW(sTemp, sTemp, 64, TRUE) &&
-                    HCR_MapTypeToValueW(sTemp, psfi->szTypeName, 80, FALSE )))
-                {
-                    if (sTemp[0])
-                    {
-                        lstrcpynW (psfi->szTypeName, sTemp, 64);
-                        strcatW (psfi->szTypeName, L" file");
-                    }
-                    else
-                    {
-                        lstrcpynW (psfi->szTypeName, L"File", 64);
-                    }
-                }
-            }
-        }
+        /* FIXME: Use IShellFolder2::GetDetailsEx */
+        UINT col = _ILIsDrive(pidlLast) ? 1 : 2; /* SHFSF_COL_TYPE */
+        psfi->szTypeName[0] = UNICODE_NULL;
+        hr = SHELL_GetDetailsOfToBuffer(psfParent, pidlLast, col, psfi->szTypeName, _countof(psfi->szTypeName));
     }
 
     /* ### icons ###*/
@@ -617,9 +606,6 @@ DWORD_PTR WINAPI SHGetFileInfoW(LPCWSTR path,DWORD dwFileAttributes,
 
     if (flags & SHGFI_SELECTED)
         FIXME("set icon to selected, stub\n");
-
-    if (flags & SHGFI_SHELLICONSIZE)
-        FIXME("set icon to shell size, stub\n");
 
     /* get the iconlocation */
     if (SUCCEEDED(hr) && (flags & SHGFI_ICONLOCATION ))
@@ -711,16 +697,32 @@ DWORD_PTR WINAPI SHGetFileInfoW(LPCWSTR path,DWORD dwFileAttributes,
                     else 
                     {
                         UINT ret;
-                        if (flags & SHGFI_SMALLICON)
-                            ret = PrivateExtractIconsW( sTemp,icon_idx,
-                                GetSystemMetrics( SM_CXSMICON ),
-                                GetSystemMetrics( SM_CYSMICON ),
-                                &psfi->hIcon, 0, 1, 0);
+                        INT cxIcon, cyIcon;
+
+                        /* Get icon size */
+                        if (flags & SHGFI_SHELLICONSIZE)
+                        {
+                            if (flags & SHGFI_SMALLICON)
+                                cxIcon = cyIcon = ShellSmallIconSize;
+                            else
+                                cxIcon = cyIcon = ShellLargeIconSize;
+                        }
                         else
-                            ret = PrivateExtractIconsW( sTemp, icon_idx,
-                                GetSystemMetrics( SM_CXICON),
-                                GetSystemMetrics( SM_CYICON),
-                                &psfi->hIcon, 0, 1, 0);
+                        {
+                            if (flags & SHGFI_SMALLICON)
+                            {
+                                cxIcon = GetSystemMetrics(SM_CXSMICON);
+                                cyIcon = GetSystemMetrics(SM_CYSMICON);
+                            }
+                            else
+                            {
+                                cxIcon = GetSystemMetrics(SM_CXICON);
+                                cyIcon = GetSystemMetrics(SM_CYICON);
+                            }
+                        }
+
+                        ret = PrivateExtractIconsW(sTemp, icon_idx, cxIcon, cyIcon,
+                                                   &psfi->hIcon, 0, 1, 0);
                         if (ret != 0 && ret != (UINT)-1)
                         {
                             IconNotYetLoaded=FALSE;
@@ -761,11 +763,10 @@ DWORD_PTR WINAPI SHGetFileInfoW(LPCWSTR path,DWORD dwFileAttributes,
 
     if (psfParent)
         IShellFolder_Release(psfParent);
+    SHFree(pidlFree);
 
     if (hr != S_OK)
         ret = FALSE;
-
-    SHFree(pidlLast);
 
     TRACE ("icon=%p index=0x%08x attr=0x%08x name=%s type=%s ret=0x%08lx\n",
            psfi->hIcon, psfi->iIcon, psfi->dwAttributes,
@@ -1088,16 +1089,7 @@ static INT_PTR CALLBACK AboutDlgProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM
                 WCHAR szAuthorsText[20];
 
                 // Preload the ROS bitmap
-                if (IsWindowsServer())
-                {
-                   // Load Server Bitmap
-                   hLogoBmp = (HBITMAP)LoadImage(shell32_hInstance, MAKEINTRESOURCE(IDB_REACTOS_SERVER), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
-                }
-                else
-                {
-                   // Load Workstation Bitmap
-                   hLogoBmp = (HBITMAP)LoadImage(shell32_hInstance, MAKEINTRESOURCE(IDB_REACTOS_WORKSTATION), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
-                }
+                hLogoBmp = (HBITMAP)LoadImage(shell32_hInstance, MAKEINTRESOURCE(IDB_REACTOS), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
                 hLineBmp = (HBITMAP)LoadImage(shell32_hInstance, MAKEINTRESOURCE(IDB_LINEBAR), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
 
                 if (hLogoBmp && hLineBmp)

@@ -9,6 +9,8 @@
 
 #include <win32k.h>
 #include <immdev.h>
+#include <unaligned.h>
+
 DBG_DEFAULT_CHANNEL(UserWnd);
 
 INT gNestedWindowLimit = 50;
@@ -426,7 +428,7 @@ IntGetWindow(HWND hWnd,
                 break;
 
             default:
-                Wnd = NULL;
+                EngSetLastError(ERROR_INVALID_GW_COMMAND);
                 break;
     }
 
@@ -441,7 +443,7 @@ DWORD FASTCALL IntGetWindowContextHelpId( PWND pWnd )
 
    do
    {
-      HelpId = (DWORD)(DWORD_PTR)UserGetProp(pWnd, gpsi->atomContextHelpIdProp, TRUE);
+      HelpId = HandleToUlong(UserGetProp(pWnd, gpsi->atomContextHelpIdProp, TRUE));
       if (!HelpId) break;
       pWnd = IntGetParent(pWnd);
    }
@@ -581,6 +583,7 @@ LRESULT co_UserFreeWindow(PWND Window,
    PWND Child;
    PMENU Menu;
    BOOLEAN BelongsToThreadData;
+   USER_REFERENCE_ENTRY Ref;
 
    ASSERT(Window);
 
@@ -738,7 +741,7 @@ LRESULT co_UserFreeWindow(PWND Window,
    WndSetChild(Window, NULL);
    WndSetLastActive(Window, NULL);
 
-   UserReferenceObject(Window);
+   UserRefObjectCo(Window, &Ref);
    UserMarkObjectDestroy(Window);
 
    IntDestroyScrollBars(Window);
@@ -767,7 +770,7 @@ LRESULT co_UserFreeWindow(PWND Window,
 //   ASSERT(Window != NULL);
    UserFreeWindowInfo(Window->head.pti, Window);
 
-   UserDereferenceObject(Window);
+   UserDerefObjectCo(Window);
    UserDeleteObject(UserHMGetHandle(Window), TYPE_WINDOW);
 
    return 0;
@@ -1828,7 +1831,7 @@ PWND FASTCALL IntCreateWindow(CREATESTRUCTW* Cs,
       }
       else
       { /*
-         * Note from MSDN <http://msdn.microsoft.com/en-us/library/aa913269.aspx>:
+         * Note from MSDN <https://learn.microsoft.com/en-us/previous-versions/aa913269(v=msdn.10)>:
          *
          * Dialog boxes and message boxes do not inherit layout, so you must
          * set the layout explicitly.
@@ -3842,16 +3845,18 @@ co_IntSetWindowLongPtr(HWND hWnd, DWORD Index, LONG_PTR NewValue, BOOL Ansi, ULO
          return 0;
       }
 
+      PVOID Address = (PUCHAR)(&Window[1]) + Index;
+
 #ifdef _WIN64
       if (Size == sizeof(LONG))
       {
-         OldValue = *((LONG *)((PCHAR)(Window + 1) + Index));
-         *((LONG*)((PCHAR)(Window + 1) + Index)) = (LONG)NewValue;
+         OldValue = ReadUnalignedU32(Address);
+         WriteUnalignedU32(Address, NewValue);
       }
       else
 #endif
       {
-         OldValue = *((LONG_PTR *)((PCHAR)(Window + 1) + Index));
+         OldValue = ReadUnalignedUlongPtr(Address);
          /*
          if ( Index == DWLP_DLGPROC && Wnd->state & WNDS_DIALOGWINDOW)
          {
@@ -3859,7 +3864,7 @@ co_IntSetWindowLongPtr(HWND hWnd, DWORD Index, LONG_PTR NewValue, BOOL Ansi, ULO
             if (!OldValue) return 0;
          }
          */
-         *((LONG_PTR*)((PCHAR)(Window + 1) + Index)) = NewValue;
+         WriteUnalignedUlongPtr(Address, NewValue);
       }
 
    }

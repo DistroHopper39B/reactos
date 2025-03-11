@@ -47,8 +47,52 @@ https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_co
 #define SHFSF_COL_FATTS         4 // File attributes
 #define SHFSF_COL_COMMENT       5
 
+typedef struct _REQUIREDREGITEM
+{
+    REFCLSID clsid;
+    LPCSTR pszCpl;
+    BYTE Order; // According to Geoff Chappell, required items have a fixed sort order
+} REQUIREDREGITEM;
+
+typedef struct _REGFOLDERINFO
+{
+    PIDLTYPE PidlType;
+    BYTE Count; // Count of required items
+    const REQUIREDREGITEM *Items;
+    REFCLSID clsid;
+    LPCWSTR pszParsingPath;
+    LPCWSTR pszEnumKeyName;
+} REGFOLDERINFO;
+
+typedef struct _REGFOLDERINITDATA
+{
+    IShellFolder *psfOuter;
+    const REGFOLDERINFO *pInfo;
+} REGFOLDERINITDATA, *PREGFOLDERINITDATA;
+
+HRESULT CRegFolder_CreateInstance(PREGFOLDERINITDATA pInit, LPCITEMIDLIST pidlRoot, REFIID riid, void **ppv);
+
 #define GET_SHGDN_FOR(dwFlags)         ((DWORD)dwFlags & (DWORD)0x0000FF00)
 #define GET_SHGDN_RELATION(dwFlags)    ((DWORD)dwFlags & (DWORD)0x000000FF)
+#define IS_SHGDN_FOR_PARSING(flags) ( ((flags) & (SHGDN_FORADDRESSBAR | SHGDN_FORPARSING)) == SHGDN_FORPARSING)
+#define IS_SHGDN_DESKTOPABSOLUTEPARSING(flags) ( ((flags) & (SHGDN_FORADDRESSBAR | SHGDN_FORPARSING | 0xFF)) == SHGDN_FORPARSING)
+
+static inline SFGAOF 
+SHELL_CreateFolderEnumItemAttributeQuery(SHCONTF Flags, BOOL ForRegItem)
+{
+    SFGAOF query = SFGAO_FOLDER | (ForRegItem ? SFGAO_NONENUMERATED : 0);
+    if (!(Flags & SHCONTF_INCLUDEHIDDEN))
+        query |= SFGAO_HIDDEN;
+    if (!(Flags & SHCONTF_INCLUDESUPERHIDDEN))
+        query |= SFGAO_HIDDEN | SFGAO_SYSTEM;
+    return query;
+}
+
+SHCONTF
+SHELL_GetDefaultFolderEnumSHCONTF();
+
+BOOL
+SHELL_IncludeItemInFolderEnum(IShellFolder *pSF, PCUITEMID_CHILD pidl, SFGAOF Query, SHCONTF Flags);
 
 HRESULT
 Shell_NextElement(
@@ -82,8 +126,6 @@ HRESULT SHELL32_BindToSF (LPCITEMIDLIST pidlRoot, PERSIST_FOLDER_TARGET_INFO* pp
 extern "C"
 BOOL HCR_RegOpenClassIDKey(REFIID riid, HKEY *hkey);
 
-void AddFSClassKeysToArray(UINT cidl, PCUITEMID_CHILD_ARRAY apidl, HKEY* array, UINT* cKeys);
-
 HRESULT CDefViewBckgrndMenu_CreateInstance(IShellFolder* psf, REFIID riid, void **ppv);
 
 HRESULT SH_GetApidlFromDataObject(IDataObject *pDataObject, PIDLIST_ABSOLUTE* ppidlfolder, PUITEMID_CHILD **apidlItems, UINT *pcidl);
@@ -112,9 +154,25 @@ static __inline int SHELL32_GUIDToStringW (REFGUID guid, LPWSTR str)
 void SHELL_FS_ProcessDisplayFilename(LPWSTR szPath, DWORD dwFlags);
 BOOL SHELL_FS_HideExtension(LPCWSTR pwszPath);
 
+void CloseRegKeyArray(HKEY* array, UINT cKeys);
 LSTATUS AddClassKeyToArray(const WCHAR* szClass, HKEY* array, UINT* cKeys);
+LSTATUS AddClsidKeyToArray(REFCLSID clsid, HKEY* array, UINT* cKeys);
+void AddFSClassKeysToArray(UINT cidl, PCUITEMID_CHILD_ARRAY apidl, HKEY* array, UINT* cKeys);
 
 #ifdef __cplusplus
+
+struct CRegKeyHandleArray
+{
+    HKEY hKeys[16];
+    UINT cKeys;
+
+    CRegKeyHandleArray() : cKeys(0) {}
+    ~CRegKeyHandleArray() { CloseRegKeyArray(hKeys, cKeys); }
+    operator HKEY*() { return hKeys; }
+    operator UINT*() { return &cKeys; }
+    operator UINT() { return cKeys; }
+    HKEY& operator [](SIZE_T i) { return hKeys[i]; }
+};
 
 HRESULT inline SHSetStrRet(LPSTRRET pStrRet, DWORD resId)
 {

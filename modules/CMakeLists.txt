@@ -50,18 +50,9 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/)
     endforeach(item)
 endif()
 
-## Slipstreaming drivers
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/system32/)
-    file(GLOB_RECURSE EXTRA_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/system32/ ${CMAKE_CURRENT_SOURCE_DIR}/system32/*)
-    foreach(item ${EXTRA_FILES})
-        add_cd_file(FILE ${CMAKE_CURRENT_SOURCE_DIR}/system32/${item} DESTINATION reactos/system32 NO_CAB NAME_ON_CD ${item} FOR all)
-    endforeach(item)
-endif()
 
-## Slipstreaming drivers
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/drivers/)
-    file(GLOB_RECURSE EXTRA_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/drivers/ ${CMAKE_CURRENT_SOURCE_DIR}/drivers/*)
-    foreach(item ${EXTRA_FILES})
-        add_cd_file(FILE ${CMAKE_CURRENT_SOURCE_DIR}/drivers/${item} DESTINATION reactos/system32/drivers NO_CAB NAME_ON_CD ${item} FOR all)
-    endforeach(item)
+# Add font file DroidSansFallback.ttf for LiveCD
+# See also boot/bootdata/packages/reactos.dff.in
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/optional/DroidSansFallback.ttf)
+    add_cd_file(FILE "${CMAKE_CURRENT_SOURCE_DIR}/optional/DroidSansFallback.ttf" DESTINATION reactos/Fonts FOR livecd)
 endif()

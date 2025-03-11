@@ -17,50 +17,6 @@ WINE_DEFAULT_DEBUG_CHANNEL(shell);
 /*
  * Unimplemented
  */
-EXTERN_C HRESULT
-WINAPI
-SHGetUnreadMailCountW(HKEY hKeyUser,
-                      LPCWSTR pszMailAddress,
-                      DWORD *pdwCount,
-                      FILETIME *pFileTime,
-                      LPWSTR pszShellExecuteCommand,
-                      int cchShellExecuteCommand)
-{
-    FIXME("SHGetUnreadMailCountW() stub\n");
-    return E_FAIL;
-}
-
-/*
- * Unimplemented
- */
-EXTERN_C HRESULT
-WINAPI
-SHSetUnreadMailCountW(LPCWSTR pszMailAddress,
-                      DWORD dwCount,
-                      LPCWSTR pszShellExecuteCommand)
-{
-    FIXME("SHSetUnreadMailCountW() stub\n");
-    return E_FAIL;
-}
-
-/*
- * Unimplemented
- */
-EXTERN_C HRESULT
-WINAPI
-SHEnumerateUnreadMailAccountsW(HKEY user,
-                               DWORD idx,
-                               LPWSTR mailaddress,
-                               INT mailaddresslen)
-{
-    FIXME("SHEnumerateUnreadMailAccountsW(%p %d %p %d) stub\n",
-        user, idx, mailaddress, mailaddresslen);
-    return E_NOTIMPL;
-}
-
-/*
- * Unimplemented
- */
 EXTERN_C VOID
 WINAPI
 CheckDiskSpace(VOID)
@@ -128,6 +84,15 @@ SHParseDarwinIDFromCacheW(LPCWSTR lpUnknown1, LPWSTR lpUnknown2)
     return E_FAIL;
 }
 
+static HRESULT DataObject_GetHIDACount(IDataObject *pdo)
+{
+    if (!pdo)
+        return E_INVALIDARG;
+    CDataObjectHIDA cida(pdo);
+    HRESULT hr = cida.hr();
+    return SUCCEEDED(hr) ? cida->cidl : hr;
+}
+
 /*
  * Unimplemented
  */
@@ -136,6 +101,19 @@ WINAPI
 SHMultiFileProperties(IDataObject *pDataObject, DWORD dwFlags)
 {
     FIXME("SHMultiFileProperties() stub\n");
+
+    // Temporary workaround to display a property sheet if possible
+    if (DataObject_GetHIDACount(pDataObject) == 1)
+        return SHELL32_ShowPropertiesDialog(pDataObject);
+
+    if (pDataObject)
+    {
+        HWND hWnd;
+        if (FAILED(IUnknown_GetWindow(pDataObject, &hWnd))) // Will probably not work but we have no other option
+            hWnd = NULL;
+        SHELL_ErrorBox(hWnd, HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED));
+    }  
+
     return E_FAIL;
 }
 
@@ -186,25 +164,6 @@ SHGetSetFolderCustomSettingsA(LPSHFOLDERCUSTOMSETTINGSA pfcs,
 {
     FIXME("SHGetSetFolderCustomSettingsA() stub\n");
     return E_FAIL;
-}
-
-/*************************************************************************
- *  SHOpenPropSheetW [SHELL32.80]
- *
- * @see https://learn.microsoft.com/en-us/windows/win32/api/shlobj/nf-shlobj-shopenpropsheetw
- */
-BOOL WINAPI
-SHOpenPropSheetW(
-    _In_opt_ LPCWSTR pszCaption,
-    _In_opt_ HKEY *ahKeys,
-    _In_ UINT cKeys,
-    _In_ const CLSID *pclsidDefault,
-    _In_ IDataObject *pDataObject,
-    _In_opt_ IShellBrowser *pShellBrowser,
-    _In_opt_ LPCWSTR pszStartPage)
-{
-    FIXME("SHOpenPropSheetW() stub\n");
-    return FALSE;
 }
 
 /*
@@ -263,28 +222,6 @@ RealDriveTypeFlags(INT iDrive, BOOL bUnknown)
 /*
  * Unimplemented
  */
-EXTERN_C LPWSTR
-WINAPI
-StrRStrW(LPWSTR lpSrc, LPWSTR lpLast, LPWSTR lpSearch)
-{
-    FIXME("StrRStrW() stub\n");
-    return NULL;
-}
-
-/*
- * Unimplemented
- */
-EXTERN_C LPWSTR
-WINAPI
-StrRStrA(LPSTR lpSrc, LPSTR lpLast, LPSTR lpSearch)
-{
-    FIXME("StrRStrA() stub\n");
-    return NULL;
-}
-
-/*
- * Unimplemented
- */
 EXTERN_C LONG
 WINAPI
 ShellHookProc(INT iCode, WPARAM wParam, LPARAM lParam)
@@ -292,36 +229,6 @@ ShellHookProc(INT iCode, WPARAM wParam, LPARAM lParam)
     /* Unimplemented in WinXP SP3 */
     TRACE("ShellHookProc() stub\n");
     return 0;
-}
-
-/*
- * Unimplemented
- */
-EXTERN_C VOID
-WINAPI
-ShellExec_RunDLL(HWND hwnd, HINSTANCE hInstance, LPWSTR pszCmdLine, int nCmdShow)
-{
-    FIXME("ShellExec_RunDLL() stub\n");
-}
-
-/*
- * Unimplemented
- */
-EXTERN_C VOID
-WINAPI
-ShellExec_RunDLLA(HWND hwnd, HINSTANCE hInstance, LPSTR pszCmdLine, int nCmdShow)
-{
-    FIXME("ShellExec_RunDLLA() stub\n");
-}
-
-/*
- * Unimplemented
- */
-EXTERN_C VOID
-WINAPI
-ShellExec_RunDLLW(HWND hwnd, HINSTANCE hInstance, LPWSTR pszCmdLine, int nCmdShow)
-{
-    FIXME("ShellExec_RunDLLW() stub\n");
 }
 
 /*
@@ -662,17 +569,6 @@ DDECreatePostNotify(LPVOID lpUnknown)
 /*
  * Unimplemented
  */
-EXTERN_C BOOL
-WINAPI
-SHIsBadInterfacePtr(LPVOID pv, UINT ucb)
-{
-    FIXME("SHIsBadInterfacePtr() stub\n");
-    return FALSE;
-}
-
-/*
- * Unimplemented
- */
 EXTERN_C VOID
 WINAPI
 AppCompat_RunDLLW(HWND hwnd, HINSTANCE hInstance, LPWSTR pszCmdLine, int nCmdShow)
@@ -898,35 +794,12 @@ SHSetUserPicturePathW(LPCWSTR lpPath, int csidl, LPVOID lpUnknown)
  */
 EXTERN_C BOOL
 WINAPI
-SHShouldShowWizards(LPVOID lpUnknown)
-{
-    FIXME("SHShouldShowWizards() stub\n");
-    return FALSE;
-}
-
-/*
- * Unimplemented
- */
-EXTERN_C BOOL
-WINAPI
 PathIsSlowW(
     _In_ LPCWSTR pszFile,
     _In_ DWORD dwAttr)
 {
     FIXME("PathIsSlowW() stub\n");
     return FALSE;
-}
-
-/*
- * Unimplemented
- */
-EXTERN_C DWORD
-WINAPI
-SHGetUserDisplayName(LPWSTR lpName, PULONG puSize)
-{
-    FIXME("SHGetUserDisplayName() stub\n");
-    wcscpy(lpName, L"UserName");
-    return ERROR_SUCCESS;
 }
 
 /*
@@ -946,11 +819,4 @@ DWORD WINAPI CheckStagingArea(VOID)
 {
     /* Called by native explorer */
     return 0;
-}
-
-EXTERN_C
-DWORD WINAPI SHGetComputerDisplayNameW(DWORD param1, DWORD param2, DWORD param3, DWORD param4)
-{
-    FIXME("SHGetComputerDisplayNameW() stub\n");
-    return E_FAIL;
 }

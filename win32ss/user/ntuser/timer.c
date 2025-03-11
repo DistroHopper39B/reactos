@@ -17,12 +17,16 @@ static LIST_ENTRY TimersListHead;
 static LONG TimeLast = 0;
 
 /* Windows 2000 has room for 32768 window-less timers */
-#define NUM_WINDOW_LESS_TIMERS   32768
+/* These values give timer IDs [256,32767], same as on Windows */
+#define MAX_WINDOW_LESS_TIMER_ID  (32768 - 1)
+#define NUM_WINDOW_LESS_TIMERS    (32768 - 256)
+
+#define HINTINDEX_BEGIN_VALUE   0
 
 static PFAST_MUTEX    Mutex;
 static RTL_BITMAP     WindowLessTimersBitMap;
 static PVOID          WindowLessTimersBitMapBuffer;
-static ULONG          HintIndex = 1;
+static ULONG          HintIndex = HINTINDEX_BEGIN_VALUE;
 
 ERESOURCE TimerLock;
 
@@ -76,11 +80,12 @@ RemoveTimer(PTIMER pTmr)
      RemoveEntryList(&pTmr->ptmrList);
      if ((pTmr->pWnd == NULL) && (!(pTmr->flags & TMRF_SYSTEM))) // System timers are reusable.
      {
-        UINT_PTR IDEvent;
+        ULONG ulBitmapIndex;
 
-        IDEvent = NUM_WINDOW_LESS_TIMERS - pTmr->nID;
+        ASSERT(pTmr->nID <= MAX_WINDOW_LESS_TIMER_ID);
+        ulBitmapIndex = (ULONG)(MAX_WINDOW_LESS_TIMER_ID - pTmr->nID);
         IntLockWindowlessTimerBitmap();
-        RtlClearBit(&WindowLessTimersBitMap, IDEvent);
+        RtlClearBit(&WindowLessTimersBitMap, ulBitmapIndex);
         IntUnlockWindowlessTimerBitmap();
      }
      UserDereferenceObject(pTmr);
@@ -181,7 +186,8 @@ IntSetTimer( PWND Window,
                   INT Type)
 {
   PTIMER pTmr;
-  UINT Ret = IDEvent;
+  UINT_PTR Ret = IDEvent;
+  ULONG ulBitmapIndex;
   LARGE_INTEGER DueTime;
   DueTime.QuadPart = (LONGLONG)(-97656); // 1024hz .9765625 ms set to 10.0 ms
 
@@ -219,18 +225,18 @@ IntSetTimer( PWND Window,
   {
       IntLockWindowlessTimerBitmap();
 
-      IDEvent = RtlFindClearBitsAndSet(&WindowLessTimersBitMap, 1, HintIndex);
-
-      if (IDEvent == (UINT_PTR) -1)
+      ulBitmapIndex = RtlFindClearBitsAndSet(&WindowLessTimersBitMap, 1, HintIndex);
+      HintIndex = (ulBitmapIndex + 1) % NUM_WINDOW_LESS_TIMERS;
+      if (ulBitmapIndex == ULONG_MAX)
       {
          IntUnlockWindowlessTimerBitmap();
          ERR("Unable to find a free window-less timer id\n");
          EngSetLastError(ERROR_NO_SYSTEM_RESOURCES);
-         ASSERT(FALSE);
          return 0;
       }
 
-      IDEvent = NUM_WINDOW_LESS_TIMERS - IDEvent;
+      ASSERT(ulBitmapIndex < NUM_WINDOW_LESS_TIMERS);
+      IDEvent = MAX_WINDOW_LESS_TIMER_ID - ulBitmapIndex;
       Ret = IDEvent;
 
       IntUnlockWindowlessTimerBitmap();
@@ -613,7 +619,7 @@ InitTimerImpl(VOID)
 
    RtlInitializeBitMap(&WindowLessTimersBitMap,
                        WindowLessTimersBitMapBuffer,
-                       BitmapBytes * 8);
+                       NUM_WINDOW_LESS_TIMERS);
 
    /* Yes we need this, since ExAllocatePoolWithTag isn't supposed to zero out allocated memory */
    RtlClearAllBits(&WindowLessTimersBitMap);

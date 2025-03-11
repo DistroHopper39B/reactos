@@ -1521,14 +1521,7 @@ static MUI_ENTRY nlNLBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "Setup kan de bootloader niet op de vaste schijf van uw computer",
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        9,
-        "installeren.",
+        "Setup installeert de bootloader.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2296,7 +2289,7 @@ MUI_STRING nlNLStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Bijwerken toetsenbordindeling..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   Toevoegen informatie codepagina aan register..."},
+    "   Toevoegen informatie codepagina..."},
     {STRING_DONE,
     "   Voltooid..."},
     {STRING_REBOOTCOMPUTER2,

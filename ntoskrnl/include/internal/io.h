@@ -799,12 +799,10 @@ IoInitSystem(
 );
 
 BOOLEAN
-NTAPI
 IopVerifyDiskSignature(
-    IN PDRIVE_LAYOUT_INFORMATION_EX DriveLayout,
-    IN PARC_DISK_SIGNATURE ArcDiskSignature,
-    OUT PULONG Signature
-);
+    _In_ PDRIVE_LAYOUT_INFORMATION_EX DriveLayout,
+    _In_ PARC_DISK_SIGNATURE ArcDiskSignature,
+    _Out_ PULONG Signature);
 
 BOOLEAN
 NTAPI
@@ -1455,6 +1453,7 @@ extern GENERIC_MAPPING IopFileMapping;
 extern POBJECT_TYPE _IoFileObjectType;
 extern HAL_DISPATCH _HalDispatchTable;
 extern LIST_ENTRY IopErrorLogListHead;
+extern ULONG IopAutoReboot;
 extern ULONG IopNumTriageDumpDataBlocks;
 extern PVOID IopTriageDumpDataBlocks[64];
 extern PIO_BUS_TYPE_GUID_LIST PnpBusTypeGuidList;

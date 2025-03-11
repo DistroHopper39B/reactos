@@ -94,13 +94,13 @@ list(APPEND SOURCE
 
 if(MSVC)
     # Disable warning C4146: unary minus operator applied to unsigned type, result still unsigned
-    set_source_files_properties(wine/res.c PROPERTIES COMPILE_FLAGS /wd4146)
+    set_source_files_properties(wine/res.c PROPERTIES COMPILE_OPTIONS "/wd4146")
 
     # Disable warning C4267: 'initializing': conversion from 'size_t' to 'DWORD', possible loss of data
-    set_source_files_properties(winnls/string/locale.c PROPERTIES COMPILE_FLAGS /wd4267)
+    set_source_files_properties(winnls/string/locale.c PROPERTIES COMPILE_OPTIONS "/wd4267")
 else()
     # Disable warning: 'variable' defined but not used
-    set_source_files_properties(winnls/string/locale.c PROPERTIES COMPILE_FLAGS -Wno-unused-variable)
+    set_source_files_properties(winnls/string/locale.c PROPERTIES COMPILE_OPTIONS "-Wno-unused-variable")
 endif()
 
 if(ARCH STREQUAL "i386")
@@ -130,7 +130,7 @@ set_module_type(kernel32 win32dll ENTRYPOINT DllMain 12)
 set_subsystem(kernel32 console)
 ################# END  HACK #################
 
-target_link_libraries(kernel32 kernel32_vista_static kernel32_shared wine chkstk ${PSEH_LIB})
+target_link_libraries(kernel32 psapi_static kernel32_vista_static kernel32_shared wine chkstk ${PSEH_LIB})
 add_importlibs(kernel32 ntdll)
 add_pch(kernel32 k32.h SOURCE)
 add_dependencies(kernel32 psdk errcodes asm)

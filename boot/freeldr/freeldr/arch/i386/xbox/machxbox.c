@@ -101,13 +101,10 @@ XboxGetHarddiskConfigurationData(UCHAR DriveNumber, ULONG* pSize)
 {
     PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
     PCM_DISK_GEOMETRY_DEVICE_DATA DiskGeometry;
-    //EXTENDED_GEOMETRY ExtGeometry;
     GEOMETRY Geometry;
     ULONG Size;
 
-    //
-    // Initialize returned size
-    //
+    /* Initialize returned size */
     *pSize = 0;
 
     /* Set 'Configuration Data' value */
@@ -136,13 +133,11 @@ XboxGetHarddiskConfigurationData(UCHAR DriveNumber, ULONG* pSize)
     DiskGeometry = (PVOID)(((ULONG_PTR)PartialResourceList) + sizeof(CM_PARTIAL_RESOURCE_LIST));
 
     /* Get the disk geometry */
-    //ExtGeometry.Size = sizeof(EXTENDED_GEOMETRY);
-
     if (XboxDiskGetDriveGeometry(DriveNumber, &Geometry))
     {
         DiskGeometry->BytesPerSector = Geometry.BytesPerSector;
         DiskGeometry->NumberOfCylinders = Geometry.Cylinders;
-        DiskGeometry->SectorsPerTrack = Geometry.Sectors;
+        DiskGeometry->SectorsPerTrack = Geometry.SectorsPerTrack;
         DiskGeometry->NumberOfHeads = Geometry.Heads;
     }
     else
@@ -158,9 +153,7 @@ XboxGetHarddiskConfigurationData(UCHAR DriveNumber, ULONG* pSize)
           DiskGeometry->SectorsPerTrack,
           DiskGeometry->BytesPerSector);
 
-    //
-    // Return configuration data
-    //
+    /* Return configuration data */
     *pSize = Size;
     return PartialResourceList;
 }

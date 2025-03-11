@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <strsafe.h>
 #include <versionhelpers.h>
+#include <shellutils.h>
+#include "shell32_apitest_sub.h"
 
 static WCHAR s_win_dir[MAX_PATH];
 static WCHAR s_sys_dir[MAX_PATH];
@@ -312,8 +314,7 @@ static BOOL TEST_Start(void)
 
 static void TEST_End(void)
 {
-    Sleep(500);
-    GetWindowList(&s_List2);
+    GetWindowListForClose(&s_List2);
     CloseNewWindows(&s_List1, &s_List2);
     FreeWindowList(&s_List1);
     FreeWindowList(&s_List2);
@@ -367,26 +368,40 @@ static void test_properties()
 
 static void test_sei_lpIDList()
 {
-    if (IsWindowsVistaOrGreater())
+    // Note: SEE_MASK_FLAG_NO_UI prevents the test from blocking with a MessageBox
+    WCHAR path[MAX_PATH];
+
+    /* This tests ShellExecuteEx with lpIDList for explorer C:\ */
+    GetSystemDirectoryW(path, _countof(path));
+    PathStripToRootW(path);
+    LPITEMIDLIST pidl = ILCreateFromPathW(path);
+    if (!pidl)
     {
-        skip("Vista+\n");
+        skip("Unable to initialize test\n");
         return;
     }
 
-    /* This tests ShellExecuteEx with lpIDList for explorer C:\ */
-
-    /* ITEMIDLIST for CLSID of 'My Computer' followed by PIDL for 'C:\' */
-    BYTE lpitemidlist[30] = { 0x14, 0, 0x1f, 0, 0xe0, 0x4f, 0xd0, 0x20, 0xea,
-    0x3a, 0x69, 0x10, 0xa2, 0xd8, 0x08, 0, 0x2b, 0x30, 0x30, 0x9d, // My Computer
-    0x8, 0, 0x23, 0x43, 0x3a, 0x5c, 0x5c, 0, 0, 0,}; // C:\\ + NUL-NUL ending
-
     SHELLEXECUTEINFOW ShellExecInfo = { sizeof(ShellExecInfo) };
-    ShellExecInfo.fMask = SEE_MASK_IDLIST;
-    ShellExecInfo.hwnd = NULL;
     ShellExecInfo.nShow = SW_SHOWNORMAL;
-    ShellExecInfo.lpIDList = lpitemidlist;
+    ShellExecInfo.fMask = SEE_MASK_IDLIST | SEE_MASK_FLAG_NO_UI | SEE_MASK_FLAG_DDEWAIT;
+    ShellExecInfo.lpIDList = pidl;
     BOOL ret = ShellExecuteExW(&ShellExecInfo);
     ok_int(ret, TRUE);
+    ILFree(pidl);
+
+    /* This tests ShellExecuteEx with lpIDList going through IContextMenu */
+    CCoInit ComInit;
+    pidl = SHCloneSpecialIDList(NULL, CSIDL_PROFILE, TRUE);
+    if (!pidl)
+    {
+        skip("Unable to initialize test\n");
+        return;
+    }
+    ShellExecInfo.fMask = SEE_MASK_INVOKEIDLIST | SEE_MASK_FLAG_NO_UI | SEE_MASK_FLAG_DDEWAIT;
+    ShellExecInfo.lpIDList = pidl;
+    ret = ShellExecuteExW(&ShellExecInfo);
+    ok_int(ret, TRUE);
+    ILFree(pidl);
 }
 
 static BOOL
@@ -440,6 +455,31 @@ static void TEST_AppPath(void)
     }
 }
 
+static void test_DoInvalidDir(void)
+{
+    WCHAR szSubProgram[MAX_PATH];
+    if (!FindSubProgram(szSubProgram, _countof(szSubProgram)))
+    {
+        skip("shell32_apitest_sub.exe not found\n");
+        return;
+    }
+
+    DWORD dwExitCode;
+    SHELLEXECUTEINFOW sei = { sizeof(sei), SEE_MASK_FLAG_NO_UI | SEE_MASK_NOCLOSEPROCESS };
+    sei.lpFile = szSubProgram;
+    sei.lpParameters = L"TEST";
+    sei.nShow = SW_SHOWNORMAL;
+
+    // Test invalid path on sei.lpDirectory
+    WCHAR szInvalidPath[MAX_PATH] = L"M:\\This is an invalid path\n";
+    sei.lpDirectory = szInvalidPath;
+    ok_int(ShellExecuteExW(&sei), TRUE);
+    WaitForSingleObject(sei.hProcess, 20 * 1000);
+    GetExitCodeProcess(sei.hProcess, &dwExitCode);
+    ok_long(dwExitCode, 0);
+    CloseHandle(sei.hProcess);
+}
+
 START_TEST(ShellExecuteEx)
 {
 #ifdef _WIN64
@@ -454,6 +494,7 @@ START_TEST(ShellExecuteEx)
     TEST_DoTestEntries();
     test_properties();
     test_sei_lpIDList();
+    test_DoInvalidDir();
 
     TEST_End();
 }

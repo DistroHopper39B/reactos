@@ -18,11 +18,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  *
  * Notes:
- *   - Windows XP introduced new behavior: The background of centered
- *     icons and bitmaps is painted differently. This is only done if
- *     a manifest is present.
- *     Because it has not yet been decided how to implement the two
- *     different modes in Wine, only the Windows XP mode is implemented.
  *   - Controls with SS_SIMPLE but without SS_NOPREFIX:
  *     The text should not be changed. Windows doesn't clear the
  *     client rectangle, so the new text must be larger than the old one.
@@ -533,6 +528,15 @@ static void STATIC_PaintOwnerDrawfn( HWND hwnd, HDC hdc, DWORD style )
     if (font) SelectObject( hdc, oldFont );
 }
 
+static BOOL CALLBACK STATIC_DrawTextCallback(HDC hdc, LPARAM lp, WPARAM wp, int cx, int cy)
+{
+    RECT rc;
+
+    SetRect(&rc, 0, 0, cx, cy);
+    DrawTextW(hdc, (LPCWSTR)lp, -1, &rc, (UINT)wp);
+    return TRUE;
+}
+
 static void STATIC_PaintTextfn( HWND hwnd, HDC hdc, DWORD style )
 {
     RECT rc;
@@ -626,7 +630,14 @@ static void STATIC_PaintTextfn( HWND hwnd, HDC hdc, DWORD style )
     }
     else
     {
-        DrawTextW( hdc, text, -1, &rc, format );
+        UINT flags = DST_COMPLEX;
+        if (style & WS_DISABLED)
+            flags |= DSS_DISABLED;
+        DrawStateW(hdc, hBrush, STATIC_DrawTextCallback,
+                   (LPARAM)text, (WPARAM)format,
+                   rc.left, rc.top,
+                   rc.right - rc.left, rc.bottom - rc.top,
+                   flags);
     }
 
 no_TextOut:
@@ -714,7 +725,6 @@ static void STATIC_PaintBitmapfn(HWND hwnd, HDC hdc, DWORD style )
     HBITMAP hBitmap, oldbitmap;
     HBRUSH hbrush;
 
-    /* message is still sent, even if the returned brush is not used */
     hbrush = STATIC_SendWmCtlColorStatic(hwnd, hdc);
 
     if ((hBitmap = (HBITMAP)GetWindowLongPtrW( hwnd, HICON_GWL_OFFSET ))

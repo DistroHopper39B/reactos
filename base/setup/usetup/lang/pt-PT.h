@@ -1522,14 +1522,7 @@ static MUI_ENTRY ptPTBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "O instalador n\306o pode instalar o gestor de inicializa\207\306o no disco",
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        9,
-        "r\241gido do computador.",
+        "O instalador ir\240 configurar o gestor de arranque.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2307,7 +2300,7 @@ MUI_STRING ptPTStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   A actualizar as configura\207\344es do teclado..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   A adicionar as informa\207\344es de localiza\207\306o no registo..."},
+    "   A adicionar as informa\207\344es de localiza\207\306o..."},
     {STRING_DONE,
     "   Pronto..."},
     {STRING_REBOOTCOMPUTER2,

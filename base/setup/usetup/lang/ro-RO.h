@@ -1546,14 +1546,7 @@ static MUI_ENTRY roROBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "Programul de instalare nu poate instala modulul de",
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        9,
-        "ini\376ializare a calculatorului pe discul local.",
+        "Instalare modul de ini\376ializare al calculatorului.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2329,7 +2322,7 @@ MUI_STRING roROStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Configura\376ie de tastatur\343 \356n actualizare..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   Date de paginare \356n curs de adaugare \356n registru..."},
+    "   Date de paginare \356n curs de adaugare..."},
     {STRING_DONE,
     "   Terminat!"},
     {STRING_REBOOTCOMPUTER2,

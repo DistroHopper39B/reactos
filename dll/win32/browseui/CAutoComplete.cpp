@@ -21,6 +21,7 @@
  */
 
 #include "precomp.h"
+#include <imm.h> // For IMN_OPENCANDIDATE
 #include <process.h> // _beginthreadex
 
 /*
@@ -85,7 +86,7 @@ static BOOL DoesMatch(const CStringW& strTarget, const CStringW& strText)
 }
 
 // mouse hook procedure to watch the mouse click
-// https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ms644988(v=vs.85)
+// https://learn.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ms644988(v=vs.85)
 static LRESULT CALLBACK MouseProc(INT nCode, WPARAM wParam, LPARAM lParam)
 {
     if (s_hMouseHook == NULL)
@@ -120,7 +121,7 @@ static LRESULT CALLBACK MouseProc(INT nCode, WPARAM wParam, LPARAM lParam)
 
 //////////////////////////////////////////////////////////////////////////////
 // sorting algorithm
-// http://www.ics.kagoshima-u.ac.jp/~fuchida/edu/algorithm/sort-algorithm/
+// https://web.archive.org/web/20210228194050/http://www.ics.kagoshima-u.ac.jp/~fuchida/edu/algorithm/sort-algorithm/
 
 typedef CSimpleArray<CStringW> list_t;
 
@@ -260,7 +261,7 @@ static inline BOOL IsWordBreak(WCHAR ch)
 }
 
 // This function is an application-defined callback function.
-// https://docs.microsoft.com/en-us/windows/win32/api/winuser/nc-winuser-editwordbreakprocw
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nc-winuser-editwordbreakprocw
 static INT CALLBACK
 EditWordBreakProcW(LPWSTR lpch, INT index, INT count, INT code)
 {
@@ -337,11 +338,17 @@ LRESULT CAutoComplete::EditWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
                 return TRUE; // eat
             break;
         case WM_SETFOCUS:
+            m_bEditHasFocus = TRUE;
             break;
         case WM_KILLFOCUS:
             // hide the list if lost focus
             hwndGotFocus = (HWND)wParam;
             if (hwndGotFocus != m_hwndEdit && hwndGotFocus != m_hWnd)
+                HideDropDown();
+            m_bEditHasFocus = FALSE;
+            break;
+        case WM_IME_NOTIFY:
+            if (wParam == IMN_OPENCANDIDATE)
                 HideDropDown();
             break;
         case WM_SETTEXT:
@@ -651,7 +658,7 @@ LRESULT CACSizeBox::OnPaint(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHand
 // CAutoComplete public methods
 
 CAutoComplete::CAutoComplete()
-    : m_bInSetText(FALSE), m_bInSelectItem(FALSE)
+    : m_bInSetText(FALSE), m_bInSelectItem(FALSE), m_bEditHasFocus(FALSE)
     , m_bDowner(TRUE), m_dwOptions(ACO_AUTOAPPEND | ACO_AUTOSUGGEST)
     , m_bEnabled(TRUE), m_hwndCombo(NULL), m_hFont(NULL), m_bResized(FALSE)
     , m_hwndEdit(NULL), m_fnOldEditProc(NULL), m_fnOldWordBreakProc(NULL)
@@ -1116,6 +1123,7 @@ CAutoComplete::Init(HWND hwndEdit, IUnknown *punkACL,
     if (!::SetWindowSubclass(hwndEdit, EditSubclassProc, 0, reinterpret_cast<DWORD_PTR>(this)))
         return E_FAIL;
     m_hwndEdit = hwndEdit;
+    m_bEditHasFocus = (::GetFocus() == hwndEdit);
     // add reference to m_hwndEdit
     AddRef();
     // set word break procedure
@@ -1382,6 +1390,13 @@ CStringW CAutoComplete::GetQuickEdit(LPCWSTR pszText) const
 
 VOID CAutoComplete::RepositionDropDown()
 {
+    // If Edit has no focus, don't open auto-complete
+    if (!m_bEditHasFocus)
+    {
+        TRACE("!m_bEditHasFocus\n");
+        return;
+    }
+
     // get nearest monitor from m_hwndEdit
     HMONITOR hMon = ::MonitorFromWindow(m_hwndEdit, MONITOR_DEFAULTTONEAREST);
     ATLASSERT(hMon != NULL);
@@ -1569,9 +1584,9 @@ LRESULT CAutoComplete::OnNCDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL
     m_hwndSizeBox.m_pDropDown = NULL;
 
     // destroy controls
-    m_hwndList.DestroyWindow();
-    m_hwndScrollBar.DestroyWindow();
-    m_hwndSizeBox.DestroyWindow();
+    if (m_hwndList) m_hwndList.DestroyWindow();
+    if (m_hwndScrollBar) m_hwndScrollBar.DestroyWindow();
+    if (m_hwndSizeBox) m_hwndSizeBox.DestroyWindow();
 
     // clean up
     m_hwndCombo = NULL;

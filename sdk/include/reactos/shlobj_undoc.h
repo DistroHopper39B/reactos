@@ -1,30 +1,19 @@
 /*
- * ReactOS undocumented shell interface
- *
- * Copyright 2009 Andrew Hill <ash77 at domain reactos.org>
- * Copyright 2013 Dominik Hornung
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * PROJECT:     ReactOS header
+ * LICENSE:     LGPL-2.1-or-later (https://spdx.org/licenses/LGPL-2.1-or-later)
+ * PURPOSE:     Undocumented shell interface
+ * COPYRIGHT:   Copyright 2009 Andrew Hill <ash77 at domain reactos.org>
+ *              Copyright 2013 Dominik Hornung
+ *              Copyright 2025 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>
  */
 
-#ifndef __SHLOBJ_UNDOC__H
-#define __SHLOBJ_UNDOC__H
+#pragma once
+
+#include <shlwapi_undoc.h> // For ASSOCQUERY
 
 #ifdef __cplusplus
 extern "C" {
-#endif /* defined(__cplusplus) */
+#endif
 
 typedef struct tagSLOTITEMDATA
 {
@@ -82,6 +71,12 @@ struct persistState
 #if (_WIN32_IE >= _WIN32_IE_IE60)
 #define PANE_PRIVACY    7
 #endif
+
+/*****************************************************************************
+ * CGID_DefView OLECMD IDs
+ */
+#define DVCMDID_SET_DEFAULTFOLDER_SETTINGS 0
+#define DVCMDID_RESET_DEFAULTFOLDER_SETTINGS 1
 
 /*****************************************************************************
  * IInitializeObject interface
@@ -144,7 +139,15 @@ DECLARE_INTERFACE_(IBanneredBar, IUnknown)//, "596A9A94-013E-11d1-8D34-00A0C90F2
  */
 struct DEFFOLDERSETTINGS
 {
-	long					offset0;
+    enum { SIZE_NT4 = 8, SIZE_IE4 = 36, SIZE_XP = 40 };
+    enum { VER_98 = 0, VER_2000 = 3, VER_XP = 4 }; // Win98SE with IE5 writes 0, not 3 as the version
+    UINT Statusbar : 1; // "StatusBarOther" is the new location for this
+    UINT Toolbar : 1; // Not used when Explorer uses ReBar
+    FOLDERSETTINGS FolderSettings;
+    SHELLVIEWID vid;
+    UINT Version;
+    UINT Counter; // Incremented every time default folder settings are applied. Invalidates a cache?
+    UINT ViewPriority; // VIEW_PRIORITY_*
 };
 
 #undef  INTERFACE
@@ -152,12 +155,12 @@ struct DEFFOLDERSETTINGS
 DECLARE_INTERFACE_(IGlobalFolderSettings, IUnknown)
 {
     /*** IUnknown ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void **ppv) PURE;
-	STDMETHOD_(ULONG,AddRef)(THIS) PURE;
-	STDMETHOD_(ULONG,Release)(THIS) PURE;
+    STDMETHOD(QueryInterface)(THIS_ REFIID riid, void **ppv) PURE;
+    STDMETHOD_(ULONG,AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG,Release)(THIS) PURE;
     /*** IGlobalFolderSettings ***/
-	STDMETHOD(Get)(THIS_ struct DEFFOLDERSETTINGS *buffer, int theSize) PURE;
-	STDMETHOD(Set)(THIS_ const struct DEFFOLDERSETTINGS *buffer, int theSize, unsigned int param14) PURE;
+    STDMETHOD(Get)(THIS_ struct DEFFOLDERSETTINGS *pFDS, UINT cb) PURE;
+    STDMETHOD(Set)(THIS_ const struct DEFFOLDERSETTINGS *pFDS, UINT cb, UINT unknown) PURE;
 };
 #undef INTERFACE
 
@@ -492,7 +495,7 @@ DECLARE_INTERFACE_(IBandNavigate, IUnknown)
 	STDMETHOD_(ULONG,AddRef)(THIS) PURE;
 	STDMETHOD_(ULONG,Release)(THIS) PURE;
 	 /*** IBandNavigate ***/
-	STDMETHOD(Select)(THIS_ long paramC) PURE;
+	STDMETHOD(Select)(THIS_ LPCITEMIDLIST pidl) PURE;
 };
 #undef INTERFACE
 
@@ -514,11 +517,11 @@ DECLARE_INTERFACE_(INamespaceProxy, IUnknown)
 	STDMETHOD_(ULONG,AddRef)(THIS) PURE;
 	STDMETHOD_(ULONG,Release)(THIS) PURE;
 	 /*** INamespaceProxy ***/
-	STDMETHOD(GetNavigateTarget)(THIS_ long paramC, long param10, long param14) PURE;
-	STDMETHOD(Invoke)(THIS_ long paramC) PURE;
-	STDMETHOD(OnSelectionChanged)(THIS_ long paramC) PURE;
-	STDMETHOD(RefreshFlags)(THIS_ long paramC, long param10, long param14) PURE;
-	STDMETHOD(CacheItem)(THIS_ long paramC) PURE;
+	STDMETHOD(GetNavigateTarget)(THIS_ _In_ PCIDLIST_ABSOLUTE pidl, _Out_ PIDLIST_ABSOLUTE *ppidlTarget, _Out_ ULONG *pulAttrib) PURE;
+	STDMETHOD(Invoke)(THIS_ _In_ PCIDLIST_ABSOLUTE pidl) PURE;
+	STDMETHOD(OnSelectionChanged)(THIS_ _In_ PCIDLIST_ABSOLUTE pidl) PURE;
+	STDMETHOD(RefreshFlags)(THIS_ _Out_ DWORD *pdwStyle, _Out_ DWORD *pdwExStyle, _Out_ DWORD *dwEnum) PURE;
+	STDMETHOD(CacheItem)(THIS_ _In_ PCIDLIST_ABSOLUTE pidl) PURE;
 };
 #undef INTERFACE
 
@@ -803,12 +806,145 @@ DECLARE_INTERFACE_(ITrayPriv, IUnknown)
 #define ITrayPriv_AppendMenu(T,a) (T)->lpVtbl->AppendMenu(T,a)
 #endif
 
+/*****************************************************************************
+ * IAssociationElement interface
+ *
+ * @see IAssociationElementOld
+ * @see https://www.geoffchappell.com/studies/windows/shell/shlwapi/interfaces/iassociationelement.htm
+ */
+#define INTERFACE IAssociationElement
+DECLARE_INTERFACE_(IAssociationElement, IUnknown) // {D8F6AD5B-B44F-4BCC-88FD-EB3473DB7502}
+{
+    /*** IUnknown ***/
+    STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
+    STDMETHOD_(ULONG,AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG,Release)(THIS) PURE;
+    /*** IAssociationElement ***/
+    STDMETHOD(QueryString)(THIS_ ASSOCQUERY query, PCWSTR key, PWSTR *ppszValue) PURE;
+    STDMETHOD(QueryDword)(THIS_ ASSOCQUERY query, PCWSTR key, DWORD *pdwValue) PURE;
+    STDMETHOD(QueryGuid)(THIS_ ASSOCQUERY query, PCWSTR key, GUID *pguid) PURE;
+    STDMETHOD(QueryExists)(THIS_ ASSOCQUERY query, PCWSTR key) PURE;
+    STDMETHOD(QueryDirect)(THIS_ ASSOCQUERY query, PCWSTR key, FLAGGED_BYTE_BLOB **ppBlob) PURE;
+    STDMETHOD(QueryObject)(THIS_ ASSOCQUERY query, PCWSTR key, REFIID riid, PVOID *ppvObj) PURE;
+};
+#undef INTERFACE
+
+#ifdef COBJMACROS
+#define IAssociationElement_QueryInterface(T,a,b) (T)->lpVtbl->QueryInterface(T,a,b)
+#define IAssociationElement_AddRef(T) (T)->lpVtbl->AddRef(T)
+#define IAssociationElement_Release(T) (T)->lpVtbl->Release(T)
+#define IAssociationElement_QueryString(T,a,b,c) (T)->lpVtbl->QueryString(T,a,b,c)
+#define IAssociationElement_QueryDword(T,a,b,c) (T)->lpVtbl->QueryDword(T,a,b,c)
+#define IAssociationElement_QueryGuid(T,a,b,c) (T)->lpVtbl->QueryGuid(T,a,b,c)
+#define IAssociationElement_QueryExists(T,a,b) (T)->lpVtbl->QueryExists(T,a,b)
+#define IAssociationElement_QueryDirect(T,a,b,c) (T)->lpVtbl->QueryDirect(T,a,b,c)
+#define IAssociationElement_QueryObject(T,a,b,c,d) (T)->lpVtbl->QueryObject(T,a,b,c,d)
+#endif
+
+/*****************************************************************************
+ * IEnumAssociationElements interface
+ *
+ * @see https://www.geoffchappell.com/studies/windows/shell/shell32/interfaces/ienumassociationelements.htm
+ */
+#define INTERFACE IEnumAssociationElements
+DECLARE_INTERFACE_(IEnumAssociationElements, IUnknown) // {A6B0FB57-7523-4439-9425-EBE99823B828}
+{
+    /*** IUnknown ***/
+    STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
+    STDMETHOD_(ULONG,AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG,Release)(THIS) PURE;
+    /*** IEnumAssociationElements ***/
+    STDMETHOD(Next)(THIS_ ULONG celt, IAssociationElement *pElement, ULONG *pceltFetched) PURE;
+    STDMETHOD(Skip)(THIS_ ULONG celt) PURE;
+    STDMETHOD(Reset)(THIS) PURE;
+    STDMETHOD(Clone)(THIS_ IEnumAssociationElements **ppNew) PURE;
+};
+#undef INTERFACE
+
+#ifdef COBJMACROS
+#define IEnumAssociationElements_QueryInterface(T,a,b) (T)->lpVtbl->QueryInterface(T,a,b)
+#define IEnumAssociationElements_AddRef(T) (T)->lpVtbl->AddRef(T)
+#define IEnumAssociationElements_Release(T) (T)->lpVtbl->Release(T)
+#define IEnumAssociationElements_Next(T,a,b,c) (T)->lpVtbl->Next(T,a,b,c)
+#define IEnumAssociationElements_Skip(T,a) (T)->lpVtbl->Skip(T,a)
+#define IEnumAssociationElements_Reset(T) (T)->lpVtbl->Reset(T)
+#define IEnumAssociationElements_Clone(T,a) (T)->lpVtbl->Clone(T,a)
+#endif
+
+/*****************************************************************************
+ * IAssociationArrayOld interface
+ *
+ * @see IAssociationArray
+ * @see https://www.geoffchappell.com/studies/windows/shell/shell32/interfaces/iassociationarray.htm
+ */
+#define INTERFACE IAssociationArrayOld
+DECLARE_INTERFACE_(IAssociationArrayOld, IUnknown) // {3B877E3C-67DE-4F9A-B29B-17D0A1521C6A}
+{
+    /*** IUnknown ***/
+    STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
+    STDMETHOD_(ULONG,AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG,Release)(THIS) PURE;
+    /*** IAssociationArrayOld ***/
+    STDMETHOD(EnumElements)(THIS_ ULONG flags, IEnumAssociationElements **ppElement) PURE;
+    STDMETHOD(QueryString)(THIS_ ULONG flags, ASSOCQUERY query, PCWSTR key, PWSTR *ppszValue) PURE;
+    STDMETHOD(QueryDword)(THIS_ ULONG flags, ASSOCQUERY query, PCWSTR key, DWORD *pdwValue) PURE;
+    STDMETHOD(QueryExists)(THIS_ ULONG flags, ASSOCQUERY query, PCWSTR key) PURE;
+    STDMETHOD(QueryDirect)(THIS_ ULONG flags, ASSOCQUERY query, PCWSTR key, FLAGGED_BYTE_BLOB **ppBlob) PURE;
+    STDMETHOD(QueryObject)(THIS_ ULONG flags, ASSOCQUERY query, PCWSTR key, REFIID riid, PVOID *ppvObj) PURE;
+};
+#undef INTERFACE
+
+#ifdef COBJMACROS
+#define IAssociationArrayOld_QueryInterface(T,a,b) (T)->lpVtbl->QueryInterface(T,a,b)
+#define IAssociationArrayOld_AddRef(T) (T)->lpVtbl->AddRef(T)
+#define IAssociationArrayOld_Release(T) (T)->lpVtbl->Release(T)
+#define IAssociationArrayOld_EnumElements(T,a,b) (T)->lpVtbl->EnumElements(T,a,b)
+#define IAssociationArrayOld_QueryString(T,a,b,c,d) (T)->lpVtbl->QueryString(T,a,b,c,d)
+#define IAssociationArrayOld_QueryDword(T,a,b,c,d) (T)->lpVtbl->QueryDword(T,a,b,c,d)
+#define IAssociationArrayOld_QueryExists(T,a,b,c) (T)->lpVtbl->QueryExists(T,a,b,c)
+#define IAssociationArrayOld_QueryDirect(T,a,b,c,d) (T)->lpVtbl->QueryDirect(T,a,b,c,d)
+#define IAssociationArrayOld_QueryObject(T,a,b,c,d,e) (T)->lpVtbl->QueryObject(T,a,b,c,d,e)
+#endif
+
+/*****************************************************************************
+ * IAssociationArray interface
+ *
+ * @see IAssociationArrayOld
+ * @see https://www.geoffchappell.com/studies/windows/shell/shell32/interfaces/iassociationarray.htm
+ */
+#define INTERFACE IAssociationArray
+DECLARE_INTERFACE_(IAssociationArray, IUnknown) // {19ADBAFD-1C5F-4FC7-94EE-846702DFB58B}
+{
+    /*** IUnknown ***/
+    STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
+    STDMETHOD_(ULONG,AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG,Release)(THIS) PURE;
+    /*** IAssociationArray ***/
+    STDMETHOD(QueryString)(THIS_ ASSOCQUERY query, PCWSTR key, PWSTR *ppszValue) PURE;
+    STDMETHOD(QueryDword)(THIS_ ASSOCQUERY query, PCWSTR key, DWORD *pdwValue) PURE;
+    STDMETHOD(QueryGuid)(THIS_ ASSOCQUERY query, PCWSTR key, GUID *pguid) PURE;
+    STDMETHOD(QueryExists)(THIS_ ASSOCQUERY query, PCWSTR key) PURE;
+    STDMETHOD(QueryDirect)(THIS_ ASSOCQUERY query, PCWSTR key, FLAGGED_BYTE_BLOB **ppBlob) PURE;
+    STDMETHOD(QueryObject)(THIS_ ASSOCQUERY query, PCWSTR key, REFIID riid, PVOID *ppvObj) PURE;
+};
+#undef INTERFACE
+
+#ifdef COBJMACROS
+#define IAssociationArray_QueryInterface(T,a,b) (T)->lpVtbl->QueryInterface(T,a,b)
+#define IAssociationArray_AddRef(T) (T)->lpVtbl->AddRef(T)
+#define IAssociationArray_Release(T) (T)->lpVtbl->Release(T)
+#define IAssociationArray_QueryString(T,a,b,c) (T)->lpVtbl->QueryString(T,a,b,c)
+#define IAssociationArray_QueryDword(T,a,b,c) (T)->lpVtbl->QueryDword(T,a,b,c)
+#define IAssociationArray_QueryGuid(T,a,b,c) (T)->lpVtbl->QueryGuid(T,a,b,c)
+#define IAssociationArray_QueryExists(T,a,b) (T)->lpVtbl->QueryExists(T,a,b)
+#define IAssociationArray_QueryDirect(T,a,b,c) (T)->lpVtbl->QueryDirect(T,a,b,c)
+#define IAssociationArray_QueryObject(T,a,b,c,d) (T)->lpVtbl->QueryObject(T,a,b,c,d)
+#endif
+
 HANDLE WINAPI SHCreateDesktop(IShellDesktopTray*);
 BOOL WINAPI SHDesktopMessageLoop(HANDLE);
 HRESULT WINAPI SHCreateFileDataObject(PCIDLIST_ABSOLUTE pidlFolder, UINT cidl, PCUITEMID_CHILD_ARRAY apidl, IDataObject* pDataInner, IDataObject** ppDataObj);
 
 #ifdef __cplusplus
 } /* extern "C" */
-#endif /* defined(__cplusplus) */
-
-#endif // __SHLOBJ_UNDOC__H
+#endif

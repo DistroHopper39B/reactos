@@ -380,15 +380,13 @@ HRESULT STDMETHODCALLTYPE CBaseBarSite::SetDeskBarSite(IUnknown *punkSite)
 
     if (punkSite == NULL)
     {
-
-        TRACE("Destroying site \n");
+        TRACE("Destroying site\n");
         /* Cleanup our bands */
-        while(SUCCEEDED(EnumBands(-1, &dwBandID)) && dwBandID)
+        for (UINT i = EnumBands(-1, NULL); i;)
         {
-            hResult = EnumBands(0, &dwBandID);
-            if(FAILED_UNEXPECTEDLY(hResult))
-                continue;
-            RemoveBand(dwBandID);
+            hResult = EnumBands(--i, &dwBandID);
+            if (!FAILED_UNEXPECTEDLY(hResult))
+                RemoveBand(dwBandID);
         }
         fDeskBarSite = NULL;
     }
@@ -535,13 +533,11 @@ HRESULT STDMETHODCALLTYPE CBaseBarSite::EnumBands(UINT uBand, DWORD *pdwBandID)
 {
     REBARBANDINFO bandInfo;
 
+    if (uBand == -1ul)
+        return (HRESULT)SendMessage(RB_GETBANDCOUNT, 0, 0);
     if (pdwBandID == NULL)
         return E_INVALIDARG;
-    if (uBand == 0xffffffff)
-    {
-        *pdwBandID = (DWORD)SendMessage(RB_GETBANDCOUNT, 0, 0);
-        return S_OK;
-    }
+
     if (!SUCCEEDED(GetInternalBandInfo(uBand, &bandInfo)))
         return E_INVALIDARG;
     *pdwBandID = bandInfo.wID;
@@ -565,7 +561,7 @@ HRESULT STDMETHODCALLTYPE CBaseBarSite::RemoveBand(DWORD dwBandID)
     HRESULT                         hr;
     CBarInfo                        *pInfo;
     CComPtr<IObjectWithSite>        pSite;
-    CComPtr<IDeskBand>              pDockWnd;
+    CComPtr<IDockingWindow>         pDockWnd;
     DWORD                           index;
 
     // Retrieve the right index of the coolbar knowing the id
@@ -580,19 +576,14 @@ HRESULT STDMETHODCALLTYPE CBaseBarSite::RemoveBand(DWORD dwBandID)
     if (!pInfo)
         return E_INVALIDARG;
 
-    hr = pInfo->fTheBar->QueryInterface(IID_PPV_ARG(IDeskBand, &pDockWnd));
-    if (FAILED_UNEXPECTEDLY(hr))
-    {
-        return E_NOINTERFACE;
-    }
-    hr = pInfo->fTheBar->QueryInterface(IID_PPV_ARG(IObjectWithSite, &pSite));
-    if (FAILED_UNEXPECTEDLY(hr))
-    {
-        return E_NOINTERFACE;
-    }
     /* Windows sends a CloseDW before setting site to NULL */
-    pDockWnd->CloseDW(0);
-    pSite->SetSite(NULL);
+    hr = pInfo->fTheBar->QueryInterface(IID_PPV_ARG(IDockingWindow, &pDockWnd));
+    if (SUCCEEDED(hr))
+        pDockWnd->CloseDW(0);
+
+    hr = pInfo->fTheBar->QueryInterface(IID_PPV_ARG(IObjectWithSite, &pSite));
+    if (SUCCEEDED(hr))
+        pSite->SetSite(NULL);
 
     // Delete the band from rebar
     if (!SendMessage(RB_DELETEBAND, index, 0))
@@ -714,7 +705,8 @@ LRESULT CBaseBarSite::OnCustomDraw(LPNMCUSTOMDRAW pnmcd)
                 REBARBANDINFO info;
                 WCHAR wszTitle[MAX_PATH];
                 DWORD index;
-                RECT rt;
+                UINT pad = GetSystemMetrics(SM_CXEDGE), leftpad = max(pad * 2, 4);
+                UINT btnw = 20, btnh = 18, btnarea = 1 + btnw + 1;
                 HFONT newFont, oldFont;
 
                 index = SendMessage(RB_IDTOINDEX, fCurrentActiveBar->fBandID , 0);
@@ -722,20 +714,22 @@ LRESULT CBaseBarSite::OnCustomDraw(LPNMCUSTOMDRAW pnmcd)
                 ZeroMemory(wszTitle, sizeof(wszTitle));
                 DrawEdge(pnmcd->hdc, &pnmcd->rc, EDGE_ETCHED, BF_BOTTOM);
                 // We also resize our close button
-                ::SetWindowPos(toolbarWnd, HWND_TOP, pnmcd->rc.right - 22, 0, 20, 18, SWP_SHOWWINDOW);
+                ::SetWindowPos(toolbarWnd, HWND_TOP, pnmcd->rc.right - btnarea, 0, btnw, btnh, SWP_SHOWWINDOW);
                 // Draw the text
                 info.cch = MAX_PATH;
                 info.lpText = wszTitle;
-                rt = pnmcd->rc;
-                rt.right -= 24;
-                rt.left += 2;
+                RECT rt = pnmcd->rc;
+                rt.right -= btnarea;
+                rt.left += leftpad;
                 rt.bottom -= 1;
                 if (FAILED_UNEXPECTEDLY(GetInternalBandInfo(index, &info, RBBIM_TEXT)))
                     return CDRF_SKIPDEFAULT;
                 newFont = GetTitleFont();
                 if (newFont)
                     oldFont = (HFONT)SelectObject(pnmcd->hdc, newFont);
+                COLORREF orgclrtxt = SetTextColor(pnmcd->hdc, GetSysColor(COLOR_BTNTEXT));
                 DrawText(pnmcd->hdc, info.lpText, -1, &rt, DT_SINGLELINE | DT_LEFT | DT_VCENTER);
+                SetTextColor(pnmcd->hdc, orgclrtxt);
                 SelectObject(pnmcd->hdc, oldFont);
                 DeleteObject(newFont);
                 return CDRF_SKIPDEFAULT;
@@ -770,15 +764,11 @@ HRESULT CBaseBarSite::FindBandByGUID(REFGUID pGuid, DWORD *pdwBandID)
 {
     DWORD                       numBands;
     DWORD                       i;
-    HRESULT                     hr;
     REBARBANDINFO               bandInfo;
     CBarInfo                    *realInfo;
 
-    hr = EnumBands(-1, &numBands);
-    if (FAILED_UNEXPECTEDLY(hr))
-        return E_FAIL;
-
-    for(i = 0; i < numBands; i++)
+    numBands = EnumBands(-1, NULL);
+    for (i = 0; i < numBands; i++)
     {
         if (FAILED_UNEXPECTEDLY(GetInternalBandInfo(i, &bandInfo)))
             return E_FAIL;

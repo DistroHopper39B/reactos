@@ -1866,7 +1866,7 @@ INT Shell_ParseSpecialFolder(_In_ LPCWSTR pszStart, _Out_ LPWSTR *ppch, _Out_ IN
     {
         *ppch = (LPWSTR)(pchBackslash + 1);
         *pcch = (pchBackslash - pszStart) + 1;
-        StrCpyNW(szPath, pszStart, max(*pcch, _countof(szPath)));
+        StrCpyNW(szPath, pszStart, min(*pcch, _countof(szPath)));
         pszPath = szPath;
     }
     else
@@ -3214,11 +3214,8 @@ HRESULT WINAPI SHGetFolderLocation(
 
 #ifdef __REACTOS__
         case CSIDL_CONNECTIONS:
-        {
-            EXTERN_C const CLSID CLSID_ConnectionFolder;
-            hr = SHGetFolderLocationHelper(hwndOwner, CSIDL_CONTROLS, &CLSID_ConnectionFolder, ppidl);
+            hr = SHGetFolderLocationHelper(hwndOwner, CSIDL_CONTROLS, &CLSID_NetworkConnections, ppidl);
             break;
-        }
 #endif
 
         default:

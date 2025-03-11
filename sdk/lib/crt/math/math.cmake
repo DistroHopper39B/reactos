@@ -2,9 +2,11 @@
 include_directories(libm_sse2)
 
 list(APPEND LIBCNTPR_MATH_SOURCE
+    math/_chgsignf.c
     math/_invoke_matherr.c
     math/abs.c
     math/div.c
+    math/exp2f.c
     math/labs.c
     math/sincos.c
 )
@@ -40,6 +42,7 @@ if(ARCH STREQUAL "i386")
         math/i386/floor_asm.s
         math/i386/ftol_asm.s
         math/i386/ftol2_asm.s
+        math/i386/ftoul2_legacy_asm.s
         math/i386/log_asm.s
         math/i386/log10_asm.s
         math/i386/pow_asm.s
@@ -53,6 +56,9 @@ if(ARCH STREQUAL "i386")
         math/i386/exp_asm.s
         math/i386/fmod_asm.s
         math/i386/fmodf_asm.s
+    )
+    list(APPEND CRT_MATH_SOURCE
+        math/_hypotf.c
     )
 elseif(ARCH STREQUAL "amd64")
     list(APPEND LIBCNTPR_MATH_SOURCE
@@ -203,7 +209,6 @@ endif()
 
 if(NOT ARCH STREQUAL "i386")
     list(APPEND CRT_MATH_SOURCE
-        math/_chgsignf.c
         math/_copysignf.c
         math/log10f.c
         math/stubs.c
@@ -216,6 +221,7 @@ if(NOT ARCH STREQUAL "amd64")
         math/asin.c
         math/cosh.c
         math/cosf.c
+        math/exp2.c
         math/hypot.c
         math/modf.c
         math/s_modf.c

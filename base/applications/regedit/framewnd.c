@@ -2,20 +2,7 @@
  * Regedit frame window
  *
  * Copyright (C) 2002 Robert Dickenson <robd@reactos.org>
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * LICENSE: LGPL-2.1-or-later (https://spdx.org/licenses/LGPL-2.1-or-later)
  */
 
 #include "regedit.h"
@@ -24,20 +11,10 @@
 #include <cderr.h>
 #include <objsel.h>
 
-/********************************************************************************
- * Global and Local Variables:
- */
-
 #define FAVORITES_MENU_POSITION 3
-
 static WCHAR s_szFavoritesRegKey[] = L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit\\Favorites";
-
 static BOOL bInMenuLoop = FALSE;        /* Tells us if we are in the menu loop */
-
 extern WCHAR Suggestions[256];
-/*******************************************************************************
- * Local module support methods
- */
 
 static UINT ErrorBox(HWND hWnd, UINT Error)
 {
@@ -69,8 +46,6 @@ static void resize_frame_client(HWND hWnd)
     GetClientRect(hWnd, &rect);
     resize_frame_rect(hWnd, &rect);
 }
-
-/********************************************************************************/
 
 static void OnInitMenu(HWND hWnd)
 {
@@ -1146,12 +1121,8 @@ FreeObjectPicker(IN IDsObjectPicker *pDsObjectPicker)
     pDsObjectPicker->lpVtbl->Release(pDsObjectPicker);
 }
 
-/*******************************************************************************
- *
- *  FUNCTION: _CmdWndProc(HWND, unsigned, WORD, LONG)
- *
- *  PURPOSE:  Processes WM_COMMAND messages for the main frame window.
- *
+/**
+ * PURPOSE: Processes WM_COMMAND messages for the main frame window.
  */
 static BOOL _CmdWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -1197,7 +1168,7 @@ static BOOL _CmdWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                                                         ARRAY_SIZE(szComputerName));
                 if (hRet == S_OK)
                 {
-                    /* FIXME - connect to the registry */
+                    // FIXME - connect to the registry
                 }
 
                 FreeObjectPicker(ObjectPicker);
@@ -1367,27 +1338,17 @@ static BOOL _CmdWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case ID_EDIT_PERMISSIONS:
         RegKeyEditPermissions(hWnd, hKeyRoot, NULL, keyPath);
         break;
-    case ID_REGISTRY_PRINTERSETUP:
-        /*PRINTDLG pd;*/
-        /*PrintDlg(&pd);*/
-        /*PAGESETUPDLG psd;*/
-        /*PageSetupDlg(&psd);*/
-        break;
-    case ID_REGISTRY_OPENLOCAL:
-        break;
-
     case ID_VIEW_REFRESH:
         RefreshTreeView(g_pChildWnd->hTreeWnd);
         keyPath = GetItemPath(g_pChildWnd->hTreeWnd, 0, &hKeyRoot);
         RefreshListView(g_pChildWnd->hListWnd, hKeyRoot, keyPath, TRUE);
         break;
-        /*case ID_OPTIONS_TOOLBAR:*/
-        /*	toggle_child(hWnd, LOWORD(wParam), hToolBar);*/
-        /*    break;*/
+        //case ID_OPTIONS_TOOLBAR:
+        //    toggle_child(hWnd, LOWORD(wParam), hToolBar);
+        //    break;
     case ID_EDIT_NEW_KEY:
         CreateNewKey(g_pChildWnd->hTreeWnd, TreeView_GetSelection(g_pChildWnd->hTreeWnd));
         break;
-
     case ID_TREE_EXPANDBRANCH:
         TreeView_Expand(g_pChildWnd->hTreeWnd, TreeView_GetSelection(g_pChildWnd->hTreeWnd), TVE_EXPAND);
         break;
@@ -1401,9 +1362,7 @@ static BOOL _CmdWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case ID_TREE_DELETE:
         keyPath = GetItemPath(g_pChildWnd->hTreeWnd, TreeView_GetSelection(g_pChildWnd->hTreeWnd), &hKeyRoot);
         if (keyPath == 0 || *keyPath == 0)
-        {
             MessageBeep(MB_ICONHAND);
-        }
         else if (DeleteKey(hWnd, hKeyRoot, keyPath))
             DeleteNode(g_pChildWnd->hTreeWnd, 0);
         break;
@@ -1423,12 +1382,10 @@ static BOOL _CmdWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SetFocus(hwndItem);
         }
         break;
-
     case ID_ADDRESS_FOCUS:
         SendMessageW(g_pChildWnd->hAddressBarWnd, EM_SETSEL, 0, -1);
         SetFocus(g_pChildWnd->hAddressBarWnd);
         break;
-
     default:
         if ((LOWORD(wParam) >= ID_FAVORITES_MIN) && (LOWORD(wParam) <= ID_FAVORITES_MAX))
         {
@@ -1474,17 +1431,12 @@ static BOOL _CmdWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return result;
 }
 
-/********************************************************************************
+/**
+ * PURPOSE: Processes messages for the main frame window
  *
- *  FUNCTION: FrameWndProc(HWND, unsigned, WORD, LONG)
- *
- *  PURPOSE:  Processes messages for the main frame window.
- *
- *  WM_COMMAND  - process the application menu
- *  WM_DESTROY  - post a quit message and return
- *
+ * WM_COMMAND - process the application menu
+ * WM_DESTROY - post a quit message and return
  */
-
 LRESULT CALLBACK FrameWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     RECT rc;
@@ -1508,8 +1460,6 @@ LRESULT CALLBACK FrameWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
         break;
     case WM_SIZE:
         resize_frame_client(hWnd);
-        break;
-    case WM_TIMER:
         break;
     case WM_INITMENU:
         OnInitMenu(hWnd);

@@ -1520,14 +1520,7 @@ static MUI_ENTRY esESBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "El instalador no pudo instalar el sector de arranque en el disco",
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        9,
-        "duro del equipo.",
+        "En este paso, el instalador crear\240 el sector de arranque.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2283,7 +2276,7 @@ MUI_STRING esESStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Actualizando configuraci\242n de distribuci\242n de teclado..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   A\244adiendo informaci\242n al registro..."},
+    "   A\244adiendo informaci\242n..."},
     {STRING_DONE,
     "   Terminado..."},
     {STRING_REBOOTCOMPUTER2,

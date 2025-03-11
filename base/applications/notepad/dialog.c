@@ -49,6 +49,7 @@ VOID ShowLastError(VOID)
     {
         LPTSTR lpMsgBuf = NULL;
         TCHAR szTitle[MAX_STRING_LEN];
+        TCHAR szFallback[42], *pszMessage = szFallback;
 
         LoadString(Globals.hInstance, STRING_ERROR, szTitle, _countof(szTitle));
 
@@ -60,7 +61,12 @@ VOID ShowLastError(VOID)
                       0,
                       NULL);
 
-        MessageBox(Globals.hMainWnd, lpMsgBuf, szTitle, MB_OK | MB_ICONERROR);
+        if (lpMsgBuf)
+            pszMessage = lpMsgBuf;
+        else
+            wsprintfW(szFallback, L"%d", error);
+
+        MessageBox(Globals.hMainWnd, pszMessage, szTitle, MB_OK | MB_ICONERROR);
         LocalFree(lpMsgBuf);
     }
 }
@@ -343,6 +349,7 @@ VOID DoOpenFile(LPCTSTR szFileName)
         return;
 
     WaitCursor(TRUE);
+    SetWindowText(Globals.hEdit, NULL);
 
     hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                        OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -820,7 +827,7 @@ VOID DIALOG_SearchNext(BOOL bDown)
     else
         Globals.find.Flags &= ~FR_DOWN;
 
-    if (Globals.find.lpstrFindWhat != NULL)
+    if (Globals.find.lpstrFindWhat != NULL && *Globals.find.lpstrFindWhat)
         NOTEPAD_FindNext(&Globals.find, FALSE, TRUE);
     else
         DIALOG_Search();

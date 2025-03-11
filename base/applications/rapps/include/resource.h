@@ -1,4 +1,5 @@
 #pragma once
+#define LVCHECKSTYLES LVS_REPORT | LVS_NOCOLUMNHEADER | LVS_SINGLESEL | LVS_SORTASCENDING
 
 /* Icons */
 #define IDI_MAIN                 10
@@ -40,11 +41,11 @@
 #define IDC_STATUSBAR            1000
 #define IDC_DOWNLOAD_PROGRESS    1001
 #define IDC_DOWNLOAD_STATUS      1002
-#define IDC_SAVE_WINDOW_POS      1003
-#define IDC_UPDATE_AVLIST        1004
+#define IDC_GENERALLIST          1003
+
 #define IDC_DOWNLOAD_DIR_EDIT    1005
 #define IDC_DEL_AFTER_INSTALL    1006
-#define IDC_LOG_ENABLED          1007
+
 #define IDC_CHOOSE               1008
 #define IDC_DEFAULT_SETTINGS     1009
 #define IDC_INSTALL_TEXT         1010
@@ -67,7 +68,6 @@
 /* Menus */
 #define IDR_MAINMENU             500
 #define IDR_LINKMENU             501
-#define IDR_APPLICATIONMENU      502
 
 /* Menu items */
 #define ID_EXIT                  550
@@ -88,40 +88,50 @@
 /* Messages */
 #define ID_ACTIVATE_APPWIZ       600
 
-/* Strings */
+/* Banners */
 #define IDS_APPTITLE             100
-#define IDS_SEARCH_TEXT          101
-#define IDS_APPS_COUNT           102
-#define IDS_WELCOME_TITLE        103
-#define IDS_WELCOME_TEXT         104
-#define IDS_WELCOME_URL          105
-#define IDS_INSTALLED            106
-#define IDS_AVAILABLEFORINST     107
-#define IDS_UPDATES              108
-#define IDS_APPLICATIONS         109
-#define IDS_CHOOSE_FOLDER_TEXT   110
-#define IDS_CHOOSE_FOLDER_ERROR  111
-#define IDS_URL_INVALID          112
-#define IDS_APP_REG_REMOVE       113
-#define IDS_INFORMATION          114
-#define IDS_UNABLE_TO_REMOVE     115
-#define IDS_UNABLE_TO_DOWNLOAD   116
-#define IDS_UNABLE_TO_DOWNLOAD2  117
-#define IDS_UNABLE_TO_QUERY_CERT 118
-#define IDS_INTEG_CHECK_TITLE    119
-#define IDS_INTEG_CHECK_FAIL     120
-#define IDS_INTERRUPTED_DOWNLOAD 121
-#define IDS_UNABLE_TO_WRITE      122
-#define IDS_INSTALL_SELECTED     123
-#define IDS_UNABLE_TO_INSTALL    124
-#define IDS_SELECTEDFORINST      125
-#define IDS_MISMATCH_CERT_INFO   126
-#define IDS_UNABLE_PATH          127
-#define IDS_APP_AUTHORS          128
-#define IDS_APP_DISPLAY_DETAILS  129
-#define IDS_APP_DISPLAY_LIST     130
-#define IDS_APP_DISPLAY_TILE     131
-#define IDS_NO_SEARCH_RESULTS    132
+#define IDS_APP_AUTHORS          101
+#define IDS_WELCOME_TITLE        102
+#define IDS_WELCOME_TEXT         103
+#define IDS_WELCOME_URL          104
+#define IDS_APPWIZ_TITLE         105
+#define IDS_APPWIZ_TEXT1         106
+#define IDS_APPWIZ_TEXT2         107
+
+/* Strings */
+#define IDS_SEARCH_TEXT          110
+#define IDS_APPS_COUNT           111
+#define IDS_APPS_SELECT_COUNT    112
+#define IDS_INSTALLED            113
+#define IDS_AVAILABLEFORINST     114
+#define IDS_UPDATES              115
+#define IDS_APPLICATIONS         116
+#define IDS_CHOOSE_FOLDER_TEXT   117
+#define IDS_CHOOSE_FOLDER_ERROR  118
+#define IDS_URL_INVALID          119
+#define IDS_APP_REG_REMOVE       120
+#define IDS_INFORMATION          121
+#define IDS_UNABLE_TO_REMOVE     122
+#define IDS_UNABLE_TO_DOWNLOAD   123
+#define IDS_UNABLE_TO_DOWNLOAD2  124
+#define IDS_UNABLE_TO_QUERY_CERT 125
+#define IDS_INTEG_CHECK_TITLE    126
+#define IDS_INTEG_CHECK_FAIL     127
+#define IDS_INTERRUPTED_DOWNLOAD 128
+#define IDS_UNABLE_TO_WRITE      129
+#define IDS_INSTALL_SELECTED     130
+#define IDS_UNABLE_TO_INSTALL    131
+#define IDS_SELECTEDFORINST      132
+#define IDS_MISMATCH_CERT_INFO   133
+#define IDS_UNABLE_PATH          134
+#define IDS_APP_DISPLAY_DETAILS  135
+#define IDS_APP_DISPLAY_LIST     136
+#define IDS_APP_DISPLAY_TILE     137
+#define IDS_NO_SEARCH_RESULTS    138
+#define IDS_CFG_SAVE_WINDOW_POS  139
+#define IDS_CFG_UPDATE_AVLIST    140
+#define IDS_CFG_LOG_ENABLED      141
+#define IDS_CFG_SMALL_ICONS      142
 
 /* Tooltips */
 #define IDS_TOOLTIP_INSTALL      200
@@ -230,6 +240,7 @@
 
 /* Generated installer */
 #define IDS_INSTGEN_CONFIRMUNINST               1000
+#define IDS_INSTGEN_CONFIRMINSTRUNAPP           1001
 
 /* Accelerators */
 #define HOTKEYS                  715

@@ -58,6 +58,7 @@ typedef struct _TRAYNOTIFYDATAW
  * ProgMan messages
  */
 #define WM_PROGMAN_OPENSHELLSETTINGS (WM_USER + 22) /* wParam specifies the dialog (and tab page) */
+#define WM_PROGMAN_SAVESTATE         (WM_USER + 77)
 
 /****************************************************************************
  *  IDList Functions
@@ -91,6 +92,23 @@ HRESULT WINAPI SHILCreateFromPathW (
     LPCWSTR path,
     LPITEMIDLIST * ppidl,
     DWORD *attributes);
+
+HRESULT WINAPI SHInvokeCommand(
+    HWND hWnd,
+    IShellFolder* lpFolder,
+    LPCITEMIDLIST lpApidl,
+    LPCSTR lpVerb);
+HRESULT WINAPI SHInvokeCommandOnContextMenu(
+    _In_opt_ HWND hWnd,
+    _In_opt_ IUnknown* pUnk,
+    _In_ IContextMenu* pCM,
+    _In_ UINT fCMIC,
+    _In_opt_ LPCSTR pszVerb);
+BOOL WINAPI IContextMenu_Invoke(
+    _In_ IContextMenu *pContextMenu,
+    _In_ HWND hwnd,
+    _In_ LPCSTR lpVerb,
+    _In_ UINT uFlags);
 
 /*
     string functions
@@ -186,12 +204,19 @@ int  WINAPI SHOutOfMemoryMessageBox(
     LPCSTR lpCaption,
     UINT uType);
 
+HRESULT WINAPI SHShouldShowWizards(_In_ IUnknown *pUnknown);
+
 DWORD WINAPI SHNetConnectionDialog(
     HWND hwndOwner,
     LPCWSTR lpstrRemoteName,
     DWORD dwType);
 
 BOOL WINAPI SHIsTempDisplayMode(VOID);
+
+HRESULT WINAPI
+SHGetUserDisplayName(
+    _Out_writes_to_(*puSize, *puSize) PWSTR pName,
+    _Inout_ PULONG puSize);
 
 /****************************************************************************
  * Cabinet Window Messages
@@ -536,6 +561,19 @@ BOOL WINAPI PathIsTemporaryW(_In_ LPCWSTR Str);
 #define ERRORONDEST         0x10000
 
 /****************************************************************************
+ * Shell settings
+ */
+
+typedef struct _REGSHELLSTATE
+{
+    DWORD dwSize;
+    SHELLSTATE ss;
+} REGSHELLSTATE, *PREGSHELLSTATE;
+#define REGSHELLSTATE_SIZE 0x24
+#define REGSHELLSTATE_VERSION 0xD
+C_ASSERT(sizeof(REGSHELLSTATE) == REGSHELLSTATE_SIZE);
+
+/****************************************************************************
  * Shell Namespace Routines
  */
 
@@ -674,6 +712,27 @@ RealShellExecuteExW(
     _Out_opt_ PHANDLE lphProcess,
     _In_ DWORD dwFlags);
 
+VOID WINAPI
+ShellExec_RunDLL(
+    _In_opt_ HWND hwnd,
+    _In_opt_ HINSTANCE hInstance,
+    _In_ PCSTR pszCmdLine,
+    _In_ INT nCmdShow);
+
+VOID WINAPI
+ShellExec_RunDLLA(
+    _In_opt_ HWND hwnd,
+    _In_opt_ HINSTANCE hInstance,
+    _In_ PCSTR pszCmdLine,
+    _In_ INT nCmdShow);
+
+VOID WINAPI
+ShellExec_RunDLLW(
+    _In_opt_ HWND hwnd,
+    _In_opt_ HINSTANCE hInstance,
+    _In_ PCWSTR pszCmdLine,
+    _In_ INT nCmdShow);
+
 /* RegisterShellHook types */
 #define RSH_DEREGISTER        0
 #define RSH_REGISTER          1
@@ -734,6 +793,18 @@ BOOL WINAPI GUIDFromStringA(
 BOOL WINAPI GUIDFromStringW(
     _In_   PCWSTR psz,
     _Out_  LPGUID pguid);
+
+PSTR WINAPI
+StrRStrA(
+    _In_ PCSTR pszSrc,
+    _In_opt_ PCSTR pszLast,
+    _In_ PCSTR pszSearch);
+
+PWSTR WINAPI
+StrRStrW(
+    _In_ PCWSTR pszSrc,
+    _In_opt_ PCWSTR pszLast,
+    _In_ PCWSTR pszSearch);
 
 LPSTR WINAPI SheRemoveQuotesA(LPSTR psz);
 LPWSTR WINAPI SheRemoveQuotesW(LPWSTR psz);
@@ -857,7 +928,6 @@ BOOL WINAPI SHSettingsChanged(LPCVOID unused, LPCWSTR pszKey);
 #define TABDMC_LOADINPROC 2
 
 void WINAPI ShellDDEInit(BOOL bInit);
-DWORD WINAPI WinList_Init(void);
 
 IStream* WINAPI SHGetViewStream(LPCITEMIDLIST, DWORD, LPCTSTR, LPCTSTR, LPCTSTR);
 
@@ -883,12 +953,28 @@ LONG WINAPI SHRegQueryValueExW(
     #define SHRegQueryValueEx SHRegQueryValueExA
 #endif
 
+BOOL WINAPI
+SHIsBadInterfacePtr(
+    _In_ LPCVOID pv,
+    _In_ UINT_PTR ucb);
+
 HRESULT WINAPI
 CopyStreamUI(
     _In_ IStream *pSrc,
     _Out_ IStream *pDst,
     _Inout_opt_ IProgressDialog *pProgress,
     _In_opt_ DWORDLONG dwlSize);
+
+// Flags for SHGetComputerDisplayNameW
+#define SHGCDN_NOCACHE 0x1
+#define SHGCDN_NOSERVERNAME 0x10000
+
+HRESULT WINAPI
+SHGetComputerDisplayNameW(
+    _In_opt_ LPWSTR pszServerName,
+    _In_ DWORD dwFlags,
+    _Out_writes_z_(cchNameMax) LPWSTR pszName,
+    _In_ DWORD cchNameMax);
 
 /*****************************************************************************
  * INVALID_FILETITLE_CHARACTERS

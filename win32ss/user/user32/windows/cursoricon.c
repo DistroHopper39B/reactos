@@ -2015,6 +2015,12 @@ User32CallCopyImageFromKernel(PVOID Arguments, ULONG ArgumentLength)
 
 /************* PUBLIC FUNCTIONS *******************/
 
+#define COPYIMAGE_VALID_FLAGS ( \
+    LR_SHARED | LR_COPYFROMRESOURCE | LR_CREATEDIBSECTION | LR_LOADMAP3DCOLORS | 0x800 | \
+    LR_VGACOLOR | LR_LOADREALSIZE | LR_DEFAULTSIZE | LR_LOADTRANSPARENT | LR_LOADFROMFILE | \
+    LR_COPYDELETEORG | LR_COPYRETURNORG | LR_COLOR | LR_MONOCHROME \
+)
+
 HANDLE WINAPI CopyImage(
   _In_  HANDLE hImage,
   _In_  UINT uType,
@@ -2025,13 +2031,62 @@ HANDLE WINAPI CopyImage(
 {
     TRACE("hImage=%p, uType=%u, cxDesired=%d, cyDesired=%d, fuFlags=%x\n",
         hImage, uType, cxDesired, cyDesired, fuFlags);
+
+    if (fuFlags & ~COPYIMAGE_VALID_FLAGS)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return NULL;
+    }
+
     switch(uType)
     {
         case IMAGE_BITMAP:
+            if (!hImage)
+            {
+                SetLastError(ERROR_INVALID_HANDLE);
+                break;
+            }
             return BITMAP_CopyImage(hImage, cxDesired, cyDesired, fuFlags);
         case IMAGE_CURSOR:
         case IMAGE_ICON:
-            return CURSORICON_CopyImage(hImage, uType == IMAGE_ICON, cxDesired, cyDesired, fuFlags);
+        {
+            HANDLE handle;
+            if (!hImage)
+            {
+                SetLastError(ERROR_INVALID_CURSOR_HANDLE);
+                break;
+            }
+            handle = CURSORICON_CopyImage(hImage, uType == IMAGE_ICON, cxDesired, cyDesired, fuFlags);
+            if (!handle && (fuFlags & LR_COPYFROMRESOURCE))
+            {
+                /* Test if the hImage is the same size as what we want by getting
+                 * its BITMAP and comparing its dimensions to the desired size. */
+                BITMAP bm;
+
+                ICONINFO iconinfo = { 0 };
+                if (!GetIconInfo(hImage, &iconinfo))
+                {
+                    ERR("GetIconInfo Failed. hImage %p\n", hImage);
+                    return NULL;
+                }
+                if (!GetObject(iconinfo.hbmColor, sizeof(bm), &bm))
+                {
+                    ERR("GetObject Failed. iconinfo %p\n", iconinfo);
+                    return NULL;
+                }
+
+                DeleteObject(iconinfo.hbmMask);
+                DeleteObject(iconinfo.hbmColor);
+
+                /* If the images are the same size remove LF_COPYFROMRESOURCE and try again */
+                if (cxDesired == bm.bmWidth && cyDesired == bm.bmHeight)
+                {
+                    handle = CURSORICON_CopyImage(hImage, uType == IMAGE_ICON, cxDesired,
+                                                  cyDesired, (fuFlags & ~LR_COPYFROMRESOURCE));
+                }
+            }
+            return handle;
+        }
         default:
             SetLastError(ERROR_INVALID_PARAMETER);
             break;

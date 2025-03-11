@@ -26,6 +26,34 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(shell);
 
+SHCONTF SHELL_GetDefaultFolderEnumSHCONTF()
+{
+    SHCONTF Flags = SHCONTF_FOLDERS | SHCONTF_NONFOLDERS;
+    SHELLSTATE ss;
+    SHGetSetSettings(&ss, SSF_SHOWALLOBJECTS | SSF_SHOWSUPERHIDDEN, FALSE);
+    if (ss.fShowAllObjects)
+        Flags |= SHCONTF_INCLUDEHIDDEN;
+    if (ss.fShowSuperHidden)
+        Flags |= SHCONTF_INCLUDESUPERHIDDEN;
+     return Flags;
+}
+
+BOOL SHELL_IncludeItemInFolderEnum(IShellFolder *pSF, PCUITEMID_CHILD pidl, SFGAOF Query, SHCONTF Flags)
+{
+    if (SUCCEEDED(pSF->GetAttributesOf(1, &pidl, &Query)))
+    {
+        if (Query & SFGAO_NONENUMERATED)
+            return FALSE;
+        if ((Query & SFGAO_HIDDEN) && !(Flags & SHCONTF_INCLUDEHIDDEN))
+            return FALSE;
+        if ((Query & (SFGAO_HIDDEN | SFGAO_SYSTEM)) == (SFGAO_HIDDEN | SFGAO_SYSTEM) && !(Flags & SHCONTF_INCLUDESUPERHIDDEN))
+            return FALSE;
+        if ((Flags & (SHCONTF_FOLDERS | SHCONTF_NONFOLDERS)) != (SHCONTF_FOLDERS | SHCONTF_NONFOLDERS))
+            return (Flags & SHCONTF_FOLDERS) ? (Query & SFGAO_FOLDER) : !(Query & SFGAO_FOLDER);
+    }
+    return TRUE;
+}
+
 HRESULT
 Shell_NextElement(
     _Inout_ LPWSTR *ppch,
@@ -267,11 +295,17 @@ HRESULT SHELL32_CompareDetails(IShellFolder2* isf, LPARAM lParam, LPCITEMIDLIST 
     if (FAILED(hres))
         return MAKE_COMPARE_HRESULT(1);
 
-    int ret = wcsicmp(wszItem1, wszItem2);
+    int ret = _wcsicmp(wszItem1, wszItem2);
     if (ret == 0)
         return SHELL32_CompareChildren(isf, lParam, pidl1, pidl2);
 
     return MAKE_COMPARE_HRESULT(ret);
+}
+
+void CloseRegKeyArray(HKEY* array, UINT cKeys)
+{
+    for (UINT i = 0; i < cKeys; ++i)
+        RegCloseKey(array[i]);
 }
 
 LSTATUS AddClassKeyToArray(const WCHAR* szClass, HKEY* array, UINT* cKeys)
@@ -287,6 +321,13 @@ LSTATUS AddClassKeyToArray(const WCHAR* szClass, HKEY* array, UINT* cKeys)
         *cKeys += 1;
     }
     return result;
+}
+
+LSTATUS AddClsidKeyToArray(REFCLSID clsid, HKEY* array, UINT* cKeys)
+{
+    WCHAR path[6 + 38 + 1] = L"CLSID\\";
+    StringFromGUID2(clsid, path + 6, 38 + 1);
+    return AddClassKeyToArray(path, array, cKeys);
 }
 
 void AddFSClassKeysToArray(UINT cidl, PCUITEMID_CHILD_ARRAY apidl, HKEY* array, UINT* cKeys)
@@ -460,36 +501,6 @@ SHOpenFolderAndSelectItems(PCIDLIST_ABSOLUTE pidlFolder,
         return E_FAIL;
 }
 
-static
-DWORD WINAPI
-_ShowPropertiesDialogThread(LPVOID lpParameter)
-{
-    CComPtr<IDataObject> pDataObject;
-    pDataObject.Attach((IDataObject*)lpParameter);
-
-    CDataObjectHIDA cida(pDataObject);
-
-    if (FAILED_UNEXPECTEDLY(cida.hr()))
-        return cida.hr();
-
-    if (cida->cidl > 1)
-    {
-        ERR("SHMultiFileProperties is not yet implemented\n");
-        return E_FAIL;
-    }
-
-    CComHeapPtr<ITEMIDLIST> completePidl(ILCombine(HIDA_GetPIDLFolder(cida), HIDA_GetPIDLItem(cida, 0)));
-    CComHeapPtr<WCHAR> wszName;
-    if (FAILED_UNEXPECTEDLY(SHGetNameFromIDList(completePidl, SIGDN_PARENTRELATIVEPARSING, &wszName)))
-        return 0;
-
-    BOOL bSuccess = SH_ShowPropertiesDialog(wszName, pDataObject);
-    if (!bSuccess)
-        ERR("SH_ShowPropertiesDialog failed\n");
-
-    return 0;
-}
-
 /*
  * for internal use
  */
@@ -499,16 +510,15 @@ SHELL32_ShowPropertiesDialog(IDataObject *pdtobj)
     if (!pdtobj)
         return E_INVALIDARG;
 
-    pdtobj->AddRef();
-    if (!SHCreateThread(_ShowPropertiesDialogThread, pdtobj, CTF_INSIST | CTF_COINIT, NULL))
+    CDataObjectHIDA cida(pdtobj);
+    if (FAILED_UNEXPECTEDLY(cida.hr()))
+        return cida.hr();
+    if (cida->cidl > 1)
     {
-        pdtobj->Release();
-        return HResultFromWin32(GetLastError());
+        ERR("SHMultiFileProperties is not yet implemented\n");
+        return E_FAIL;
     }
-    else
-    {
-        return S_OK;
-    }
+    return SHELL32_ShowFilesystemItemPropertiesDialogAsync(pdtobj);
 }
 
 HRESULT

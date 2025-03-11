@@ -1735,13 +1735,6 @@ HKLM,"SYSTEM\CurrentControlSet\Services\NMIDebug","ImagePath",0x00020000,"system
 HKLM,"SYSTEM\CurrentControlSet\Services\NMIDebug","Start",0x00010001,0x00000000
 HKLM,"SYSTEM\CurrentControlSet\Services\NMIDebug","Type",0x00010001,0x00000001
 
-; NDIS User I/O driver (FIXME: Should be installed via INF and started on demand)
-HKLM,"SYSTEM\CurrentControlSet\Services\Ndisuio","ErrorControl",0x00010001,0x00000001
-HKLM,"SYSTEM\CurrentControlSet\Services\Ndisuio","Group",0x00000000,"NDIS"
-HKLM,"SYSTEM\CurrentControlSet\Services\Ndisuio","ImagePath",0x00020000,"system32\drivers\ndisuio.sys"
-HKLM,"SYSTEM\CurrentControlSet\Services\Ndisuio","Start",0x00010001,0x00000001
-HKLM,"SYSTEM\CurrentControlSet\Services\Ndisuio","Type",0x00010001,0x00000001
-
 ; Packet driver
 HKLM,"SYSTEM\CurrentControlSet\Services\Packet","ErrorControl",0x00010001,0x00000001
 HKLM,"SYSTEM\CurrentControlSet\Services\Packet","Group",0x00000000,"PNP_TDI"
@@ -2226,6 +2219,13 @@ HKLM,"SYSTEM\Setup","SystemSetupInProgress",0x00010001,0x00000001
 ; Winsrv configuration
 HKLM,"SYSTEM\CurrentControlSet\Control\PriorityControl",,0x00000012
 HKLM,"SYSTEM\CurrentControlSet\Control\PriorityControl","Win32PrioritySeparation",0x00010001,0x2
+
+; FontLink settings
+HKLM,"SYSTEM\CurrentControlSet\Control\FontAssoc\Associated Charset","ANSI(00)",0x00000000,"NO"
+HKLM,"SYSTEM\CurrentControlSet\Control\FontAssoc\Associated Charset","OEM(FF)",0x00000000,"NO"
+HKLM,"SYSTEM\CurrentControlSet\Control\FontAssoc\Associated Charset","SYMBOL(02)",0x00000000,"NO"
+HKLM,"SYSTEM\CurrentControlSet\Control\FontAssoc\Associated DefaultFonts","AssocSystemFont",0x00000000,"DroidSansFallback.ttf"
+HKLM,"SYSTEM\CurrentControlSet\Control\FontAssoc\Associated DefaultFonts","FontPackage",0x00000000,"Droid Sans Fallback"
 
 [AddReg.NTarm]
 ; RAM Disk class driver

@@ -20,6 +20,7 @@ list(APPEND SOURCE
     GUIDFromString.cpp
     Int64ToString.cpp
     IShellFolderViewCB.cpp
+    ItemIDList.cpp
     OpenAs_RunDLL.cpp
     PathIsEqualOrSubFolder.cpp
     PathIsTemporary.cpp
@@ -30,17 +31,26 @@ list(APPEND SOURCE
     SHCreateDataObject.cpp
     SHCreateFileDataObject.cpp
     SHCreateFileExtractIconW.cpp
+    SHGetComputerDisplayNameW.cpp
+    SHGetUnreadMailCountW.cpp
+    SHIsBadInterfacePtr.cpp
     SHParseDisplayName.cpp
     SHRestricted.cpp
-    SHSimpleIDListFromPath.cpp
+    SHShouldShowWizards.cpp
+    SHEnumerateUnreadMailAccountsW.cpp
     She.cpp
+    ShellExec_RunDLL.cpp
     ShellExecCmdLine.cpp
     ShellExecuteEx.cpp
     ShellExecuteW.cpp
     ShellHook.cpp
+    ShellInfo.cpp
     ShellState.cpp
     SHGetAttributesFromDataObject.cpp
+    SHGetUserDisplayName.cpp
     SHLimitInputEdit.cpp
+    SHSetUnreadMailCountW.cpp
+    StrRStr.cpp
     menu.cpp
     shelltest.cpp)
 

@@ -15,7 +15,7 @@
 
 static CCHAR DebugString[256];
 static CCHAR DefaultOs[256];
-BOOTMGRINFO BootMgrInfo = {0};
+BOOTMGRINFO BootMgrInfo = {NULL, NULL, -1, 0};
 
 /* FUNCTIONS ******************************************************************/
 
@@ -25,12 +25,6 @@ CmdLineParse(
 {
     PCHAR End, Setting;
     ULONG_PTR Length, Offset = 0;
-
-    /* Set defaults */
-    BootMgrInfo.DebugString = NULL;
-    BootMgrInfo.DefaultOs = NULL;
-    BootMgrInfo.TimeOut = -1;
-    // BootMgrInfo.FrLdrSection = 0;
 
     /*
      * Get the debug string, in the following format:
@@ -126,18 +120,41 @@ LoadSettings(
         CmdLineParse(CmdLine);
         return;
     }
-    else if (IsListEmpty(&IniFileSectionListHead))
+    else if (IsListEmpty(IniGetFileSectionListHead()))
     {
         // ERR("LoadSettings() called but no freeldr.ini\n");
         return;
     }
 
-    /* Open the [FreeLoader] section and load the settings */
-    if ((BootMgrInfo.FrLdrSection == 0) &&
-        !IniOpenSection("FreeLoader", &BootMgrInfo.FrLdrSection))
+    BOOLEAN FoundLoaderSection = FALSE;
+    PCSTR LoaderSections[] = {
+        "FreeLoader",
+        "Boot Loader",
+        "FlexBoot",
+        "MultiBoot",
+    };
+
+    /* Search for the first section in LoaderSections and load the settings, 
+     * prioritizing the order in the file.
+     * If a section is already loaded, skip further checks. */
+    if (!BootMgrInfo.FrLdrSection)
     {
-        UiMessageBoxCritical("Section [FreeLoader] not found in freeldr.ini");
-        return;
+        for (ULONG i = 0; i < sizeof(LoaderSections) / sizeof(LoaderSections[0]); i++)
+        {
+            PCSTR Section = LoaderSections[i];
+
+            if (IniOpenSection(Section, &BootMgrInfo.FrLdrSection))
+            {
+                FoundLoaderSection = TRUE;
+                break;
+            }
+        }
+
+        if (!FoundLoaderSection)
+        {
+            UiMessageBoxCritical("Bootloader Section not found in freeldr.ini");
+            return;
+        }
     }
 
     /* Get the debug string. Always override it with the one from freeldr.ini */
@@ -169,6 +186,11 @@ LoadSettings(
             BootMgrInfo.DefaultOs = DefaultOs;
         }
     }
+}
+
+PBOOTMGRINFO GetBootMgrInfo(VOID)
+{
+    return &BootMgrInfo;
 }
 
 /* EOF */

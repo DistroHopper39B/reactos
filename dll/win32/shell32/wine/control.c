@@ -732,9 +732,10 @@ static	void	Control_DoWindow(CPanel* panel, HWND hWnd, HINSTANCE hInst)
 #else
 static	void	Control_DoWindow(CPanel* panel, HWND hWnd, HINSTANCE hInst)
 {
+    /* NOTE: If Explorer shell is not available, use ReactOS's alternative file browser instead */
     ShellExecuteW(NULL,
                   L"open",
-                  L"explorer.exe",
+                  GetShellWindow() ? L"explorer.exe" : L"filebrowser.exe",
                   L"::{20D04FE0-3AEA-1069-A2D8-08002B30309D}\\::{21EC2020-3AEA-1069-A2DD-08002B30309D}",
                   NULL,
                   SW_SHOWDEFAULT);
@@ -1103,7 +1104,7 @@ static	void	Control_DoLaunch(CPanel* panel, HWND hWnd, LPCWSTR wszCmd)
             }
         }
 
-        if (sp >= applet->count && wszDialogBoxName[0] == L'\0')
+        if (sp >= applet->count && (wszDialogBoxName[0] == L'\0' || wszDialogBoxName[0] == L'@'))
         {
             sp = 0;
         }

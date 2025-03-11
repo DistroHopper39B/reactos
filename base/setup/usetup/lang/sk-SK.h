@@ -1515,14 +1515,7 @@ static MUI_ENTRY skSKBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "In\347tal\240tor nem\223\247e nain\347talova\234 zav\240dza\237 syst\202mu na pevn\354 disk V\240\347ho", //bootloader = zav dza\237 syst‚mu
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        9,
-        "po\237\241ta\237a.",
+        "In\347tal\240tor je pripraven\354 nain\347talova\234 zav\240dza\237 opera\237n\202ho syst\202mu.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2283,7 +2276,7 @@ MUI_STRING skSKStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Aktualizujem nastavenia rozlo\247enia kl\240vesnice..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   Prid\240vam do registrov inform\240cie o k\242dovej str\240nke..."},
+    "   Prid\240inform\240cie o k\242dovej str\240nke..."},
     {STRING_DONE,
     "   Hotovo..."},
     {STRING_REBOOTCOMPUTER2,

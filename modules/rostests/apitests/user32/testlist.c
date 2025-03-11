@@ -6,6 +6,7 @@
 extern void func_AttachThreadInput(void);
 extern void func_CharFuncs(void);
 extern void func_CloseWindow(void);
+extern void func_CopyImage(void);
 extern void func_CreateDialog(void);
 extern void func_CreateIconFromResourceEx(void);
 extern void func_CreateWindowEx(void);
@@ -41,6 +42,7 @@ extern void func_RealGetWindowClass(void);
 extern void func_RedrawWindow(void);
 extern void func_RegisterHotKey(void);
 extern void func_RegisterClassEx(void);
+extern void func_ScrollBarRedraw(void);
 extern void func_ScrollBarWndExtra(void);
 extern void func_ScrollDC(void);
 extern void func_ScrollWindowEx(void);
@@ -52,6 +54,7 @@ extern void func_SetParent(void);
 extern void func_SetProp(void);
 extern void func_SetScrollInfo(void);
 extern void func_SetScrollRange(void);
+extern void func_SetWindowPlacement(void);
 extern void func_ShowWindow(void);
 extern void func_SwitchToThisWindow(void);
 extern void func_SystemParametersInfo(void);
@@ -66,6 +69,7 @@ const struct test winetest_testlist[] =
     { "AttachThreadInput", func_AttachThreadInput },
     { "CharFuncs", func_CharFuncs },
     { "CloseWindow", func_CloseWindow },
+    { "CopyImage", func_CopyImage },
     { "CreateDialog", func_CreateDialog },
     { "CreateIconFromResourceEx", func_CreateIconFromResourceEx },
     { "CreateWindowEx", func_CreateWindowEx },
@@ -101,6 +105,7 @@ const struct test winetest_testlist[] =
     { "RedrawWindow", func_RedrawWindow },
     { "RegisterHotKey", func_RegisterHotKey },
     { "RegisterClassEx", func_RegisterClassEx },
+    { "ScrollBarRedraw", func_ScrollBarRedraw },
     { "ScrollBarWndExtra", func_ScrollBarWndExtra },
     { "ScrollDC", func_ScrollDC },
     { "ScrollWindowEx", func_ScrollWindowEx },
@@ -112,6 +117,7 @@ const struct test winetest_testlist[] =
     { "SetProp", func_SetProp },
     { "SetScrollInfo", func_SetScrollInfo },
     { "SetScrollRange", func_SetScrollRange },
+    { "SetWindowPlacement", func_SetWindowPlacement },
     { "ShowWindow", func_ShowWindow },
     { "SwitchToThisWindow", func_SwitchToThisWindow },
     { "SystemMenu", func_SystemMenu },

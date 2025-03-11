@@ -5,6 +5,7 @@ list(APPEND SOURCE
     ../include/msgtrace.c
     CharFuncs.c
     CloseWindow.c
+    CopyImage.c
     CreateDialog.c
     CreateIconFromResourceEx.c
     CreateWindowEx.c
@@ -40,6 +41,7 @@ list(APPEND SOURCE
     RedrawWindow.c
     RegisterClassEx.c
     RegisterHotKey.c
+    ScrollBarRedraw.c
     ScrollBarWndExtra.c
     ScrollDC.c
     ScrollWindowEx.c
@@ -51,6 +53,7 @@ list(APPEND SOURCE
     SetProp.c
     SetScrollInfo.c
     SetScrollRange.c
+    SetWindowPlacement.c
     ShowWindow.c
     SwitchToThisWindow.c
     SystemMenu.c

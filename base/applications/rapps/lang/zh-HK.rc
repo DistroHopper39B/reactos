@@ -26,7 +26,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "重新整理(&R)\tF5", ID_REFRESH
         MENUITEM SEPARATOR
-        MENUITEM "更新資料庫(&A)\tCtrl+F5", ID_RESETDB
+        MENUITEM "更新資料庫(&B)\tCtrl+F5", ID_RESETDB
     END
     POPUP "説明"
     BEGIN
@@ -37,26 +37,10 @@ END
 
 IDR_LINKMENU MENU
 BEGIN
-    POPUP "popup"
+    POPUP ""
     BEGIN
         MENUITEM "在瀏覽器中開啟連結(&O)", ID_OPEN_LINK
         MENUITEM "複製連結到剪貼簿(&C)", ID_COPY_LINK
-    END
-END
-
-IDR_APPLICATIONMENU MENU
-BEGIN
-    POPUP "popup"
-    BEGIN
-        MENUITEM "安裝(&I)\tCtrl+Enter", ID_INSTALL
-        MENUITEM "解除安裝(&U)\tCtrl+Del", ID_UNINSTALL
-        MENUITEM "修改(&M)", ID_MODIFY
-        MENUITEM SEPARATOR
-        MENUITEM "從登錄檔刪除(&E)", ID_REGREMOVE
-        MENUITEM SEPARATOR
-        MENUITEM "重新整理(&R)\tF5", ID_REFRESH
-        MENUITEM SEPARATOR
-        MENUITEM "更新資料庫(&A)\tCtrl+F5", ID_RESETDB
     END
 END
 
@@ -66,26 +50,24 @@ CAPTION "設定"
 FONT 9, "新細明體"
 BEGIN
     GROUPBOX "一般", -1, 4, 2, 240, 61
-    AUTOCHECKBOX "儲存視窗位置(&S)", IDC_SAVE_WINDOW_POS, 15, 12, 219, 12
-    AUTOCHECKBOX "啟動時更新可獲得的程式列表(&U)", IDC_UPDATE_AVLIST, 15, 29, 222, 12
-    AUTOCHECKBOX "將程式的安裝和解除安裝記錄到記錄檔(&L)", IDC_LOG_ENABLED, 15, 46, 219, 12
+    CONTROL "", IDC_GENERALLIST, "SysListView32", WS_TABSTOP | LVCHECKSTYLES, 15, 12, 219, 46, WS_EX_STATICEDGE
     GROUPBOX "正在下載", -1, 4, 65, 240, 51
     LTEXT "下載資料夾：", -1, 16, 75, 100, 9
     EDITTEXT IDC_DOWNLOAD_DIR_EDIT, 15, 86, 166, 12, WS_CHILD | WS_VISIBLE | WS_GROUP | ES_AUTOHSCROLL
     PUSHBUTTON "選擇(&C)", IDC_CHOOSE, 187, 85, 50, 14
     AUTOCHECKBOX "在程式完成安裝後刪除安裝程式(&D)", IDC_DEL_AFTER_INSTALL, 16, 100, 218, 12
     GROUPBOX "指定軟件列表來源", -1, 4, 118, 240, 46
-    CONTROL "使用預設來源", IDC_SOURCE_DEFAULT, "Button", BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 15, 132, 74, 10
-    CONTROL "使用指定來源", IDC_USE_SOURCE, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 15, 147, 74, 10
+    AUTORADIOBUTTON "使用預設來源", IDC_SOURCE_DEFAULT, 15, 132, 74, 10, WS_GROUP | WS_TABSTOP
+    AUTORADIOBUTTON "使用指定來源", IDC_USE_SOURCE, 15, 147, 74, 10
     EDITTEXT IDC_SOURCE_URL, 97, 147, 140, 12, ES_AUTOHSCROLL | WS_DISABLED
     GROUPBOX "代理伺服器", -1, 4, 166, 240, 76
-    CONTROL "使用系統代理設定", IDC_PROXY_DEFAULT, "Button", BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 15, 180, 210, 10
-    CONTROL "直接（無代理）", IDC_NO_PROXY, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 15, 195, 210, 10
-    CONTROL "代理伺服器", IDC_USE_PROXY, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 15, 210, 71, 10
+    AUTORADIOBUTTON "使用系統代理設定", IDC_PROXY_DEFAULT, 15, 180, 210, 10, WS_GROUP | WS_TABSTOP
+    AUTORADIOBUTTON "直接（無代理）", IDC_NO_PROXY, 15, 195, 210, 10
+    AUTORADIOBUTTON "代理伺服器", IDC_USE_PROXY, 15, 210, 71, 10
     EDITTEXT IDC_PROXY_SERVER, 97, 210, 140, 12, ES_AUTOHSCROLL | WS_DISABLED
     LTEXT "不使用代理的情況", -1, 26, 226, 64, 10
     EDITTEXT IDC_NO_PROXY_FOR, 97, 225, 140, 12, ES_AUTOHSCROLL | WS_DISABLED
-    PUSHBUTTON "預設", IDC_DEFAULT_SETTINGS, 8, 245, 60, 14
+    PUSHBUTTON "預設", IDC_DEFAULT_SETTINGS, 8, 245, 60, 14, WS_GROUP | WS_TABSTOP
     DEFPUSHBUTTON "確定", IDOK, 116, 245, 60, 14
     PUSHBUTTON "取消", IDCANCEL, 181, 245, 60, 14
 END
@@ -107,7 +89,7 @@ STYLE DS_SHELLFONT | DS_CENTER | WS_POPUPWINDOW | WS_CAPTION | WS_VISIBLE
 CAPTION "正在下載 %ls…"
 FONT 9, "新細明體"
 BEGIN
-    CONTROL "Progress1", IDC_DOWNLOAD_PROGRESS, "msctls_progress32", WS_BORDER | PBS_SMOOTH, 10, 10, 200, 12
+    CONTROL "", IDC_DOWNLOAD_PROGRESS, "msctls_progress32", WS_BORDER | PBS_SMOOTH, 10, 10, 200, 12
     EDITTEXT IDC_DOWNLOAD_STATUS, 10, 28, 200, 22, ES_CENTER | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_DISABLED | NOT WS_BORDER
     PUSHBUTTON "取消", IDCANCEL, 85, 53, 50, 15, WS_GROUP | WS_TABSTOP
 END
@@ -189,11 +171,20 @@ STRINGTABLE
 BEGIN
     IDS_APPTITLE "ReactOS 程式管理員"
     IDS_APP_AUTHORS "Copyright 2009 Dmitry Chapyshev"
-    IDS_SEARCH_TEXT "搜尋..."
-    IDS_APPS_COUNT "程式數量：%d； 已選：%d"
-    IDS_WELCOME_TITLE "歡迎來到 ReactOS 程式管理員！\n\n"
+    IDS_WELCOME_TITLE "歡迎來到 ReactOS 程式管理員！"
     IDS_WELCOME_TEXT "從左側欄目選擇一個類別，然後選擇要安裝或解除安裝的程式。\nReactOS 網站︰"
     IDS_WELCOME_URL "https://reactos.org"
+
+    IDS_APPWIZ_TITLE "Add/Remove Programs"
+    IDS_APPWIZ_TEXT1 "Choose ""Applications"" or ""Updates"" to view the list of applications or updates installed on your system."
+    IDS_APPWIZ_TEXT2 "To remove a program or to modify its installed components, select it from the list and click on ""Uninstall"" or ""Modify""."
+END
+
+STRINGTABLE
+BEGIN
+    IDS_SEARCH_TEXT "搜尋..."
+    IDS_APPS_COUNT "程式數量：%d"
+    IDS_APPS_SELECT_COUNT "； 已選：%d"
     IDS_INSTALLED "已安裝"
     IDS_AVAILABLEFORINST "可安裝"
     IDS_UPDATES "更新"
@@ -220,6 +211,10 @@ BEGIN
     IDS_APP_DISPLAY_LIST "列表"
     IDS_APP_DISPLAY_TILE "並排"
     IDS_NO_SEARCH_RESULTS "沒有搜尋結果"
+    IDS_CFG_SAVE_WINDOW_POS "儲存視窗位置"
+    IDS_CFG_UPDATE_AVLIST "啟動時更新可獲得的程式列表"
+    IDS_CFG_LOG_ENABLED "將程式的安裝和解除安裝記錄到記錄檔"
+    IDS_CFG_SMALL_ICONS "小圖示"
 END
 
 STRINGTABLE
@@ -273,4 +268,5 @@ END
 STRINGTABLE
 BEGIN
     IDS_INSTGEN_CONFIRMUNINST "Are you sure you want to uninstall %s?"
+    IDS_INSTGEN_CONFIRMINSTRUNAPP "Installation complete, run %s now?"
 END

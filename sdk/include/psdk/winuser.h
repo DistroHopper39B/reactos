@@ -714,6 +714,9 @@ extern "C" {
 #define IDI_EXCLAMATION 32515
 #define IDI_ASTERISK 32516
 #define IDI_WINLOGO 32517
+#if(WINVER >= 0x0600)
+#define IDI_SHIELD  32518
+#endif /* WINVER >= 0x0600 */
 #endif
 #define IDI_WARNING IDI_EXCLAMATION
 #define IDI_ERROR IDI_HAND
@@ -4923,6 +4926,15 @@ BOOL WINAPI GetTitleBarInfo(_In_ HWND, _Inout_ PTITLEBARINFO);
 BOOL WINAPI GetWindowInfo(_In_ HWND, _Inout_ PWINDOWINFO);
 BOOL WINAPI GetMonitorInfoA(_In_ HMONITOR, _Inout_ LPMONITORINFO);
 BOOL WINAPI GetMonitorInfoW(_In_ HMONITOR, _Inout_ LPMONITORINFO);
+
+#if (_WIN32_WINNT >= _WIN32_WINNT_VISTA)
+#define USER_DEFAULT_SCREEN_DPI 96
+#endif /* _WIN32_WINNT >= _WIN32_WINNT_VISTA */
+
+#if (_WIN32_WINNT >= 0x0605) /* Windows 10 pre-Threshold */
+UINT WINAPI GetDpiForSystem(VOID);
+UINT WINAPI GetDpiForWindow(_In_ HWND hwnd);
+#endif /* _WIN32_WINNT >= 0x0605 */
 
 UINT
 WINAPI
