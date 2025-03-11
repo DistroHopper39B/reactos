@@ -2,6 +2,7 @@
 spec2def(shell32_apitest.exe shell32_apitest.spec)
 
 list(APPEND SOURCE
+    closewnd.cpp
     AddCommas.cpp
     CFSFolder.cpp
     CheckEscapes.cpp
@@ -16,12 +17,14 @@ list(APPEND SOURCE
     ExtractIconEx.cpp
     FindExecutable.cpp
     GetDisplayNameOf.cpp
+    GUIDFromString.cpp
     Int64ToString.cpp
     IShellFolderViewCB.cpp
     OpenAs_RunDLL.cpp
     PathIsEqualOrSubFolder.cpp
     PathIsTemporary.cpp
     PathResolve.cpp
+    RealShellExecuteEx.cpp
     SHAppBarMessage.cpp
     SHChangeNotify.cpp
     SHCreateDataObject.cpp
@@ -29,6 +32,7 @@ list(APPEND SOURCE
     SHCreateFileExtractIconW.cpp
     SHParseDisplayName.cpp
     SHRestricted.cpp
+    SHSimpleIDListFromPath.cpp
     She.cpp
     ShellExecCmdLine.cpp
     ShellExecuteEx.cpp

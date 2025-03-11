@@ -245,6 +245,7 @@
 
 #define IDS_OPENFILELOCATION     341
 #define IDS_SENDTO_MENU          343
+#define IDS_COPYASPATHMENU       30328
 
 #define IDS_MOVEERRORTITLE       344
 #define IDS_COPYERRORTITLE       345
@@ -316,6 +317,7 @@
 #define IDS_ADVANCED_EXPAND_NET_CONNECTIONS         30473
 #define IDS_ADVANCED_DISPLAY_RUN                    30474
 #define IDS_ADVANCED_DISPLAY_ADMINTOOLS             30476
+#define IDS_ADVANCED_SMALL_START_MENU               30477
 
 #define IDS_NEWEXT_ADVANCED_LEFT                    30515
 #define IDS_NEWEXT_ADVANCED_RIGHT                   30516
@@ -908,3 +910,4 @@
 #define IDR_SENDTOMENU          158
 #define IDR_COPYTOMENU          159
 #define IDR_MOVETOMENU          160
+#define IDR_COPYASPATHMENU      161

@@ -1565,7 +1565,7 @@ NtQueryOpenSubKeys(IN POBJECT_ATTRIBUTES TargetKey,
 
     /* Call the internal API */
     SubKeys = CmpEnumerateOpenSubKeys(KeyBody->KeyControlBlock,
-                                      FALSE, FALSE);
+                                      TRUE, FALSE, FALSE);
 
     /* Unlock the registry */
     CmpUnlockRegistry();
@@ -1953,6 +1953,7 @@ NtUnloadKey2(IN POBJECT_ATTRIBUTES TargetKey,
         _SEH2_END;
     }
 
+Quit:
     /* If CmUnloadKey() failed we need to unlock registry ourselves */
     if (!NT_SUCCESS(Status))
     {
@@ -1969,7 +1970,6 @@ NtUnloadKey2(IN POBJECT_ATTRIBUTES TargetKey,
         CmpUnlockRegistry();
     }
 
-Quit:
     /* Dereference the key */
     ObDereferenceObject(KeyBody);
 

@@ -283,7 +283,8 @@ ShellMessageBoxWrapW(
   _In_ UINT fuStyle,
   ...);
 
-/* dwWhich flags for PathFileExistsDefExtW and PathFindOnPathExW */
+/* dwWhich flags for PathFileExistsDefExtW, PathFindOnPathExW,
+ * and PathFileExistsDefExtAndAttributesW */
 #define WHICH_PIF       (1 << 0)
 #define WHICH_COM       (1 << 1)
 #define WHICH_EXE       (1 << 2)
@@ -309,6 +310,13 @@ ShellMessageBoxWrapW(
 #define PATH_CHAR_CLASS_ANY         0xffffffff
 
 BOOL WINAPI PathFileExistsDefExtW(LPWSTR lpszPath, DWORD dwWhich);
+
+BOOL WINAPI
+PathFileExistsDefExtAndAttributesW(
+    _Inout_ LPWSTR pszPath,
+    _In_ DWORD dwWhich,
+    _Out_opt_ LPDWORD pdwFileAttributes);
+
 BOOL WINAPI PathFindOnPathExW(LPWSTR lpszFile, LPCWSTR *lppszOtherDirs, DWORD dwWhich);
 VOID WINAPI FixSlashesAndColonW(LPWSTR);
 BOOL WINAPI PathIsValidCharA(char c, DWORD dwClass);
@@ -321,6 +329,43 @@ IContextMenu_Invoke(
     _In_ HWND hwnd,
     _In_ LPCSTR lpVerb,
     _In_ UINT uFlags);
+
+DWORD WINAPI SHGetObjectCompatFlags(IUnknown *pUnk, const CLSID *clsid);
+
+/*
+ * HACK! These functions are conflicting with <shobjidl.h> inline functions...
+ * We provide a macro option SHLWAPI_ISHELLFOLDER_HELPERS for using these functions.
+ */
+#ifdef SHLWAPI_ISHELLFOLDER_HELPERS
+HRESULT WINAPI
+IShellFolder_GetDisplayNameOf(
+    _In_ IShellFolder *psf,
+    _In_ LPCITEMIDLIST pidl,
+    _In_ SHGDNF uFlags,
+    _Out_ LPSTRRET lpName,
+    _In_ DWORD dwRetryFlags);
+
+/* Flags for IShellFolder_GetDisplayNameOf */
+#define SFGDNO_RETRYWITHFORPARSING  0x00000001
+#define SFGDNO_RETRYALWAYS          0x80000000
+
+HRESULT WINAPI
+IShellFolder_ParseDisplayName(
+    _In_ IShellFolder *psf,
+    _In_ HWND hwndOwner,
+    _In_ LPBC pbcReserved,
+    _In_ LPOLESTR lpszDisplayName,
+    _Out_ ULONG *pchEaten,
+    _Out_ PIDLIST_RELATIVE *ppidl,
+    _Out_ ULONG *pdwAttributes);
+
+EXTERN_C HRESULT WINAPI
+IShellFolder_CompareIDs(
+    _In_ IShellFolder *psf,
+    _In_ LPARAM lParam,
+    _In_ PCUIDLIST_RELATIVE pidl1,
+    _In_ PCUIDLIST_RELATIVE pidl2);
+#endif /* SHLWAPI_ISHELLFOLDER_HELPERS */
 
 #ifdef __cplusplus
 } /* extern "C" */
