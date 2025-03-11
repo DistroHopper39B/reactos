@@ -148,34 +148,6 @@ RtlFreeLargeString(
     }
 }
 
-DWORD
-FASTCALL
-RtlGetExpWinVer(HMODULE hModule)
-{
-    DWORD dwMajorVersion = 3;  // Set default to Windows 3.10.
-    DWORD dwMinorVersion = 10;
-    PIMAGE_NT_HEADERS pinth;
-
-    if (hModule && !LOWORD((ULONG_PTR)hModule))
-    {
-        pinth = RtlImageNtHeader(hModule);
-        if (pinth)
-        {
-            dwMajorVersion = pinth->OptionalHeader.MajorSubsystemVersion;
-
-            if (dwMajorVersion == 1)
-            {
-                dwMajorVersion = 3;
-            }
-            else
-            {
-                dwMinorVersion = pinth->OptionalHeader.MinorSubsystemVersion;
-            }
-        }
-    }
-    return MAKELONG(MAKEWORD(dwMinorVersion, dwMajorVersion), 0);
-}
-
 HWND WINAPI
 User32CreateWindowEx(DWORD dwExStyle,
                      LPCSTR lpClassName,
@@ -1169,9 +1141,19 @@ GetWindow(HWND hWnd,
                     FoundWnd = DesktopPtrToUser(FoundWnd->spwndNext);
                 break;
 
-            default:
-                Wnd = NULL;
+            case GW_ENABLEDPOPUP:
+            {
+                PWND pwndPopup = (PWND)NtUserCallHwnd(hWnd, HWND_ROUTINE_DWP_GETENABLEDPOPUP);
+                if (pwndPopup)
+                    FoundWnd = DesktopPtrToUser(pwndPopup);
                 break;
+            }
+
+            default:
+            {
+                UserSetLastError(ERROR_INVALID_GW_COMMAND);
+                break;
+            }
         }
 
         if (FoundWnd != NULL)
@@ -1549,9 +1531,8 @@ IsWindow(HWND hWnd)
     PWND Wnd = ValidateHwndNoErr(hWnd);
     if (Wnd != NULL)
     {
-        if (Wnd->state & WNDS_DESTROYED ||
-            Wnd->state2 & WNDS2_INDESTROY)
-           return FALSE;
+        if (Wnd->state & WNDS_DESTROYED)
+            return FALSE;
         return TRUE;
     }
 

@@ -1490,20 +1490,20 @@ static MUI_ENTRY trTRBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "Kur, bilgisayar\215n\215z\215n sabit diskine \224ny\201kleyiciyi kuramad\215.",
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        12,
-        "L\201tfen A: s\201r\201c\201s\201ne bi\207imlendirilmi\237 bir disket tak\215n\215z",
+        "Kur, \224ny\201kleyiciyi kuruyor.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
     {
         6,
         13,
+        "L\201tfen A: s\201r\201c\201s\201ne bi\207imlendirilmi\237 bir disket tak\215n\215z",
+        TEXT_STYLE_NORMAL,
+        TEXT_ID_STATIC
+    },
+    {
+        6,
+        14,
         "ve ENTER'e bas\215n\215z.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
@@ -2246,7 +2246,7 @@ MUI_STRING trTRStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Klavye d\201zeni ayarlar\215 g\201ncelle\237tiriliyor..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   Kay\215t defterine kod sayfas\215 bilgisi ekleniyor..."},
+    "   Kod sayfas\215 bilgisi ekleniyor..."},
     {STRING_DONE,
     "   Bitti..."},
     {STRING_REBOOTCOMPUTER2,

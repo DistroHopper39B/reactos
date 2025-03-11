@@ -8,6 +8,7 @@
 
 #include "gui.h"
 #include "unattended.h"
+#include "configparser.h"
 #include <setupapi.h>
 #include <conutils.h>
 
@@ -40,6 +41,22 @@ InitRappsConsole()
         }
     }
     ConInitStdStreams(); // Initialize the Console Standard Streams
+}
+
+static CAppInfo *
+SearchForAppWithDisplayName(CAppDB &db, AppsCategories Type, LPCWSTR Name)
+{
+    CAtlList<CAppInfo *> List;
+    db.GetApps(List, Type);
+    for (POSITION it = List.GetHeadPosition(); it;)
+    {
+        CAppInfo *Info = List.GetNext(it);
+        if (SearchPatternMatch(Info->szDisplayName, Name))
+        {
+            return Info;
+        }
+    }
+    return NULL;
 }
 
 static BOOL
@@ -102,6 +119,95 @@ HandleSetupCommand(CAppDB *db, LPWSTR szCommand, int argcLeft, LPWSTR *argvLeft)
     SetupCloseInfFile(InfHandle);
 
     return DownloadListOfApplications(Applications, TRUE);
+}
+
+static BOOL
+HandleUninstallCommand(CAppDB &db, UINT argcLeft, LPWSTR *argvLeft)
+{
+    UINT argi = 0, silent = FALSE, byregkeyname = FALSE;
+    for (; argcLeft; ++argi, --argcLeft)
+    {
+        if (!StrCmpIW(argvLeft[argi], L"/S"))
+            ++silent;
+        else if (!StrCmpIW(argvLeft[argi], L"/K"))
+            ++byregkeyname;
+        else
+            break;
+    }
+    if (argcLeft != 1)
+        return FALSE;
+
+    CStringW buf;
+    LPCWSTR name = argvLeft[argi];
+    BOOL retval = FALSE;
+    CAppInfo *pInfo = NULL, *pDelete = NULL;
+
+    if (!byregkeyname)
+    {
+        for (UINT i = ENUM_INSTALLED_MIN; !pInfo && i <= ENUM_INSTALLED_MAX; ++i)
+        {
+            pInfo = SearchForAppWithDisplayName(db, AppsCategories(i), name);
+        }
+
+        if (!pInfo)
+        {
+            CAvailableApplicationInfo *p = db.FindAvailableByPackageName(name);
+            if (p)
+            {
+                CConfigParser *cp = p->GetConfigParser();
+                if (cp && cp->GetString(DB_REGNAME, buf) && !buf.IsEmpty())
+                {
+                    name = buf.GetString();
+                    byregkeyname = TRUE;
+                }
+            }
+        }
+    }
+
+    if (byregkeyname)
+    {
+        // Force a specific key type if requested (<M|U>[32|64]<\\KeyName>)
+        if (name[0])
+        {
+            REGSAM wow = 0;
+            UINT i = 1;
+            if (name[i] == '3' && name[i + 1])
+                wow = KEY_WOW64_32KEY, i += 2;
+            else if (name[i] == '6' && name[i + 1])
+                wow = KEY_WOW64_64KEY, i += 2;
+
+            if (name[i++] == '\\')
+            {
+                pInfo = CAppDB::CreateInstalledAppInstance(name + i, name[0] == 'U', wow);
+            }
+        }
+
+        if (!pInfo)
+        {
+            pInfo = CAppDB::CreateInstalledAppByRegistryKey(name);
+        }
+        pDelete = pInfo;
+    }
+
+    if (pInfo)
+    {
+        retval = pInfo->UninstallApplication((silent ? UCF_SILENT : UCF_NONE) | UCF_SAMEPROCESS);
+    }
+    delete pDelete;
+    return retval;
+}
+
+static BOOL
+HandleGenerateInstallerCommand(CAppDB &db, UINT argcLeft, LPWSTR *argvLeft)
+{
+    if (argcLeft != 2)
+        return FALSE;
+
+    CAvailableApplicationInfo *pAI = db.FindAvailableByPackageName(argvLeft[0]);
+    if (!pAI)
+        return FALSE;
+
+    return ExtractAndRunGeneratedInstaller(*pAI, argvLeft[1]);
 }
 
 static BOOL
@@ -222,47 +328,58 @@ ParseCmdAndExecute(LPWSTR lpCmdLine, BOOL bIsFirstLaunch, int nCmdShow)
 {
     INT argc;
     LPWSTR *argv = CommandLineToArgvW(lpCmdLine, &argc);
-    BOOL bAppwizMode = FALSE;
-
     if (!argv)
-    {
         return FALSE;
-    }
 
     CStringW Directory;
     GetStorageDirectory(Directory);
     CAppDB db(Directory);
 
-    if (argc > 1 && MatchCmdOption(argv[1], CMD_KEY_APPWIZ))
+    BOOL bAppwizMode = (argc > 1 && MatchCmdOption(argv[1], CMD_KEY_APPWIZ));
+    if (!bAppwizMode)
     {
-        bAppwizMode = TRUE;
+        CUpdateDatabaseMutex lock;
+        if (SettingsInfo.bUpdateAtStart || bIsFirstLaunch)
+            db.RemoveCached();
+
+        db.UpdateAvailable();
     }
 
-    if (SettingsInfo.bUpdateAtStart || bIsFirstLaunch)
-    {
-        db.RemoveCached();
-    }
-    db.UpdateAvailable();
     db.UpdateInstalled();
 
     if (argc == 1 || bAppwizMode) // RAPPS is launched without options or APPWIZ mode is requested
     {
         // Check whether the RAPPS MainWindow is already launched in another process
-        HANDLE hMutex;
+        CStringW szWindowText(MAKEINTRESOURCEW(bAppwizMode ? IDS_APPWIZ_TITLE : IDS_APPTITLE));
+        LPCWSTR pszMutex = bAppwizMode ? L"RAPPWIZ" : MAINWINDOWMUTEX;
 
-        hMutex = CreateMutexW(NULL, FALSE, szWindowClass);
+        HANDLE hMutex = CreateMutexW(NULL, FALSE, pszMutex);
         if ((!hMutex) || (GetLastError() == ERROR_ALREADY_EXISTS))
         {
             /* If already started, find its window */
-            HWND hWindow = FindWindowW(szWindowClass, NULL);
+            HWND hWindow;
+            for (int wait = 2500, inter = 250; wait > 0; wait -= inter)
+            {
+                if ((hWindow = FindWindowW(szWindowClass, szWindowText)) != NULL)
+                    break;
+                Sleep(inter);
+            }
 
-            /* Activate window */
-            ShowWindow(hWindow, SW_SHOWNORMAL);
-            SetForegroundWindow(hWindow);
-            if (bAppwizMode)
-                PostMessage(hWindow, WM_COMMAND, ID_ACTIVATE_APPWIZ, 0);
-            return FALSE;
+            if (hWindow)
+            {
+                /* Activate the window in the other instance */
+                ShowWindow(hWindow, SW_SHOWNA);
+                SwitchToThisWindow(hWindow, TRUE);
+                if (bAppwizMode)
+                    PostMessage(hWindow, WM_COMMAND, ID_ACTIVATE_APPWIZ, 0);
+
+                if (hMutex)
+                    CloseHandle(hMutex);
+
+                return FALSE;
+            }
         }
+        szWindowText.Empty();
 
         CMainWindow wnd(&db, bAppwizMode);
         MainWindowLoop(&wnd, nCmdShow);
@@ -280,6 +397,14 @@ ParseCmdAndExecute(LPWSTR lpCmdLine, BOOL bIsFirstLaunch, int nCmdShow)
     else if (MatchCmdOption(argv[1], CMD_KEY_SETUP))
     {
         return HandleSetupCommand(&db, argv[1], argc - 2, argv + 2);
+    }
+    else if (MatchCmdOption(argv[1], CMD_KEY_UNINSTALL))
+    {
+        return HandleUninstallCommand(db, argc - 2, argv + 2);
+    }
+    else if (MatchCmdOption(argv[1], CMD_KEY_GENINST))
+    {
+        return HandleGenerateInstallerCommand(db, argc - 2, argv + 2);
     }
 
     InitRappsConsole();

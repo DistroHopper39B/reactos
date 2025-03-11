@@ -150,7 +150,7 @@ RegisterConWndClass(IN HINSTANCE hInstance)
                                  GetSystemMetrics(SM_CXSMICON),
                                  GetSystemMetrics(SM_CYSMICON),
                                  LR_SHARED);
-    ghDefaultCursor = LoadCursorW(NULL, MAKEINTRESOURCEW(IDC_ARROW));
+    ghDefaultCursor = LoadCursorW(NULL, IDC_ARROW);
 
     WndClass.cbSize = sizeof(WNDCLASSEXW);
     WndClass.lpszClassName = GUI_CONWND_CLASS;
@@ -642,6 +642,7 @@ OnNcCreate(HWND hWnd, LPCREATESTRUCTW Create)
 
     GuiData->hWindow = hWnd;
     GuiData->hSysMenu = GetSystemMenu(hWnd, FALSE);
+    GuiData->IsWindowActive = FALSE;
 
     /* Initialize the fonts */
     if (!InitFonts(GuiData,
@@ -724,6 +725,8 @@ OnActivate(PGUI_CONSOLE_DATA GuiData, WPARAM wParam)
     WORD ActivationState = LOWORD(wParam);
 
     DPRINT("WM_ACTIVATE - ActivationState = %d\n", ActivationState);
+
+    GuiData->IsWindowActive = (ActivationState != WA_INACTIVE);
 
     if ( ActivationState == WA_ACTIVE ||
          ActivationState == WA_CLICKACTIVE )
@@ -1324,8 +1327,11 @@ OnTimer(PGUI_CONSOLE_DATA GuiData)
     if (GetType(Buff) == TEXTMODE_BUFFER)
     {
         /* Repaint the caret */
-        InvalidateCell(GuiData, Buff->CursorPosition.X, Buff->CursorPosition.Y);
-        Buff->CursorBlinkOn = !Buff->CursorBlinkOn;
+        if (GuiData->IsWindowActive || Buff->CursorBlinkOn)
+        {
+            InvalidateCell(GuiData, Buff->CursorPosition.X, Buff->CursorPosition.Y);
+            Buff->CursorBlinkOn = !Buff->CursorBlinkOn;
+        }
 
         if ((GuiData->OldCursor.x != Buff->CursorPosition.X) ||
             (GuiData->OldCursor.y != Buff->CursorPosition.Y))
@@ -2632,8 +2638,8 @@ ConWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         /*
          * Undocumented message sent by Windows' console.dll for applying console info.
-         * See http://www.catch22.net/sites/default/source/files/setconsoleinfo.c
-         * and http://www.scn.rain.com/~neighorn/PDF/MSBugPaper.pdf
+         * See https://web.archive.org/web/20160307053337/https://www.catch22.net/sites/default/source/files/setconsoleinfo.c
+         * and https://dl.packetstormsecurity.net/papers/win/MSBugPaper.pdf
          * for more information.
          */
         case WM_SETCONSOLEINFO:

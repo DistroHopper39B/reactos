@@ -67,6 +67,7 @@ int gbImportLib = 0;
 int gbNotPrivateNoWarn = 0;
 int gbTracing = 0;
 int giArch = ARCH_X86;
+int gbDbgExports = 0;
 char *pszArchString = "i386";
 char *pszArchString2;
 char *pszSourceFileName = NULL;
@@ -85,6 +86,7 @@ enum
     FL_NORELAY = 16,
     FL_RET64 = 32,
     FL_REGISTER = 64,
+    FL_IMPSYM = 128,
 };
 
 enum
@@ -612,6 +614,11 @@ PrintName(FILE *fileDest, EXPORT *pexp, PSTRING pstr, int fDeco)
             fprintf(fileDest, "%.*s@%d", nNameLength, pcName, pexp->nStackBytes);
         }
     }
+    else if (fDeco && (pexp->nCallingConvention == CC_CDECL) && gbMSComp)
+    {
+        /* Print with cdecl decoration */
+        fprintf(fileDest, "_%.*s", nNameLength, pcName);
+    }
     else
     {
         /* Print the undecorated function name */
@@ -685,7 +692,7 @@ OutputLine_def_GCC(FILE *fileDest, EXPORT *pexp)
         DbgPrint("Got redirect '%.*s'\n", pexp->strTarget.len, pexp->strTarget.buf);
 
         /* print the target name, don't decorate if it is external */
-        fprintf(fileDest, "=");
+        fprintf(fileDest, pexp->uFlags & FL_IMPSYM ? "==" : "=");
         PrintName(fileDest, pexp, &pexp->strTarget, !fIsExternal);
     }
     else if (((pexp->uFlags & FL_STUB) || (pexp->nCallingConvention == CC_STUB)) &&
@@ -747,6 +754,17 @@ OutputLine_def(FILE *fileDest, EXPORT *pexp)
         return 1;
     }
 
+    /* Handle import symbols */
+    if (pexp->uFlags & FL_IMPSYM)
+    {
+        /* Skip these, if we are not creating an import lib, or if this is MS */
+        if (!gbImportLib || gbMSComp)
+        {
+            DbgPrint("OutputLine_def: skipping import symbol '%.*s'...\n", pexp->strName.len, pexp->strName.buf);
+            return 1;
+        }
+    }
+
     /* For MS linker, forwarded externs are managed via #pragma comment(linker,"/export:_data=org.data,DATA") */
     if (gbMSComp && !gbImportLib && (pexp->nCallingConvention == CC_EXTERN) &&
         (pexp->strTarget.buf != NULL) && !!ScanToken(pexp->strTarget.buf, '.'))
@@ -764,8 +782,8 @@ OutputLine_def(FILE *fileDest, EXPORT *pexp)
     else
         OutputLine_def_GCC(fileDest, pexp);
 
-    /* On GCC builds we force ordinals */
-    if ((pexp->uFlags & FL_ORDINAL) || (!gbMSComp && !gbImportLib))
+    /* If it is not an import lib, we force ordinals */
+    if ((pexp->uFlags & FL_ORDINAL) || !gbImportLib)
     {
         fprintf(fileDest, " @%d", pexp->nOrdinal);
     }
@@ -786,6 +804,54 @@ OutputLine_def(FILE *fileDest, EXPORT *pexp)
     }
 
     fprintf(fileDest, "\n");
+
+    return 1;
+}
+
+void
+PrintNameOrImpName(FILE *fileDest, EXPORT *pexp, PSTRING pstr, int fDeco, int fImp)
+{
+    if (fImp)
+    {
+        fprintf(fileDest, "__imp_");
+    }
+
+    PrintName(fileDest, pexp, pstr, fDeco);
+}
+
+void
+OutputAlias(FILE *fileDest, EXPORT *pexp, int fImp)
+{
+    if ((giArch == ARCH_ARM) || (giArch == ARCH_ARM64))
+    {
+        fprintf(fileDest, "    IMPORT ");
+        PrintNameOrImpName(fileDest, pexp, &pexp->strName, 1, fImp);
+        fprintf(fileDest, ", WEAK ");
+        PrintNameOrImpName(fileDest, pexp, &pexp->strTarget, 1, fImp);
+        fprintf(fileDest, "\n");
+    }
+    else
+    {
+        fprintf(fileDest, "    EXTERN ");
+        PrintNameOrImpName(fileDest, pexp, &pexp->strTarget, 1, fImp);
+        fprintf(fileDest, ":PROC\n    ALIAS <");
+        PrintNameOrImpName(fileDest, pexp, &pexp->strName, 1, fImp);
+        fprintf(fileDest, "> = <");
+        PrintNameOrImpName(fileDest, pexp, &pexp->strTarget, 1, fImp);
+        fprintf(fileDest, ">\n");
+    }
+}
+
+int
+OutputLine_implib_asm(FILE *fileDest, EXPORT *pexp)
+{
+    if ((pexp->uFlags & FL_IMPSYM) == 0)
+    {
+        return 1;
+    }
+
+    OutputAlias(fileDest, pexp, 0);
+    OutputAlias(fileDest, pexp, 1);
 
     return 1;
 }
@@ -1007,9 +1073,24 @@ ParseFile(char* pcStart, FILE *fileDest, unsigned *cExports)
                 /* Look if we are included */
                 do
                 {
+                    int negated = 0, match = 0;
+
                     pc++;
+
+                    /* Check for negated case */
+                    if (*pc == '!')
+                    {
+                        negated = 1;
+                        pc++;
+                    }
+
                     if (CompareToken(pc, pszArchString) ||
                         CompareToken(pc, pszArchString2))
+                    {
+                        match = 1;
+                    }
+
+                    if (match != negated)
                     {
                         included = 1;
                     }
@@ -1082,6 +1163,13 @@ ParseFile(char* pcStart, FILE *fileDest, unsigned *cExports)
 
                 } while (*pc == ',');
             }
+            else if (CompareToken(pc, "-dbg"))
+            {
+                if (!gbDbgExports)
+                {
+                    included = 0;
+                }
+            }
             else if (CompareToken(pc, "-private"))
             {
                 exp.uFlags |= FL_PRIVATE;
@@ -1089,6 +1177,10 @@ ParseFile(char* pcStart, FILE *fileDest, unsigned *cExports)
             else if (CompareToken(pc, "-noname"))
             {
                 exp.uFlags |= FL_ORDINAL | FL_NONAME;
+            }
+            else if (CompareToken(pc, "-impsym"))
+            {
+                exp.uFlags |= FL_IMPSYM;
             }
             else if (CompareToken(pc, "-ordinal"))
             {
@@ -1298,6 +1390,12 @@ ParseFile(char* pcStart, FILE *fileDest, unsigned *cExports)
             Fatal(pszSourceFileName, nLine, pcLine, pc, 0, "Ordinal export without ordinal");
         }
 
+        /* Check for import symbol without target */
+        if ((exp.uFlags & FL_IMPSYM) && (exp.strTarget.buf == NULL))
+        {
+            Fatal(pszSourceFileName, nLine, pcLine, pc, 1, "Import symbol without target");
+        }
+
         /*
          * Check for special handling of OLE exports, only when MSVC
          * is not used, since otherwise this is handled by MS LINK.EXE.
@@ -1346,6 +1444,7 @@ ApplyOrdinals(EXPORT* pexports, unsigned cExports)
 {
     unsigned short i, j;
     char* used;
+    unsigned short firstOrdinal = 0xFFFF, firstIndex = 0;
 
     /* Allocate a table to mark used ordinals */
     used = malloc(65536);
@@ -1367,11 +1466,28 @@ ApplyOrdinals(EXPORT* pexports, unsigned cExports)
                 return -1;
             }
             used[pexports[i].nOrdinal] = 1;
+            if (pexports[i].nOrdinal < firstOrdinal)
+            {
+                firstOrdinal = pexports[i].nOrdinal;
+                firstIndex = i;
+            }
         }
     }
 
+    /* Check if we found an ordinal and it's larger than it's index */
+    if ((firstOrdinal != 0xFFFF) && (firstOrdinal > firstIndex))
+    {
+        /* We did. Calculate an appropriate starting ordinal. */
+        firstOrdinal -= firstIndex;
+    }
+    else
+    {
+        /* We didn't, so start with 1 */
+        firstOrdinal = 1;
+    }
+
     /* Pass 2: apply available ordinals */
-    for (i = 0, j = 1; i < cExports; i++)
+    for (i = 0, j = firstOrdinal; i < cExports; i++)
     {
         if ((pexports[i].uFlags & FL_ORDINAL) == 0 && pexports[i].bVersionIncluded)
         {
@@ -1395,7 +1511,9 @@ void usage(void)
            "  -l=<file>               generate an asm lib stub\n"
            "  -d=<file>               generate a def file\n"
            "  -s=<file>               generate a stub file\n"
+           "  -i=<file>               generate an import alias file\n"
            "  --ms                    MSVC compatibility\n"
+           "  --dbg                   Enable debug exports\n"
            "  -n=<name>               name of the dll\n"
            "  --version=<version>     Sets the version to create exports for\n"
            "  --implib                generate a def file for an import library\n"
@@ -1408,6 +1526,7 @@ int main(int argc, char *argv[])
 {
     size_t nFileSize;
     char *pszSource, *pszDefFileName = NULL, *pszStubFileName = NULL, *pszLibStubName = NULL;
+    char *pszImpLibAliasFileName = NULL;
     const char* pszVersionOption = "--version=0x";
     char achDllName[40];
     FILE *file;
@@ -1441,6 +1560,10 @@ int main(int argc, char *argv[])
         {
             pszStubFileName = argv[i] + 3;
         }
+        else if (argv[i][1] == 'i' && argv[i][2] == '=')
+        {
+            pszImpLibAliasFileName = argv[i] + 3;
+        }
         else if (argv[i][1] == 'n' && argv[i][2] == '=')
         {
             pszDllName = argv[i] + 3;
@@ -1456,6 +1579,10 @@ int main(int argc, char *argv[])
         else if (strcasecmp(argv[i], "--ms") == 0)
         {
             gbMSComp = 1;
+        }
+        else if (strcasecmp(argv[i], "--dbg") == 0)
+        {
+            gbDbgExports = 1;
         }
         else if (strcasecmp(argv[i], "--no-private-warnings") == 0)
         {
@@ -1559,13 +1686,10 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    if (!gbMSComp)
+    if (ApplyOrdinals(pexports, cExports) < 0)
     {
-        if (ApplyOrdinals(pexports, cExports) < 0)
-        {
-            fprintf(stderr, "error: could not apply ordinals!\n");
-            return -1;
-        }
+        fprintf(stderr, "error: could not apply ordinals!\n");
+        return -1;
     }
 
     if (pszDefFileName)
@@ -1574,7 +1698,7 @@ int main(int argc, char *argv[])
         file = fopen(pszDefFileName, "w");
         if (!file)
         {
-            fprintf(stderr, "error: could not open output file %s\n", argv[i + 1]);
+            fprintf(stderr, "error: could not open output file %s\n", pszDefFileName);
             return -5;
         }
 
@@ -1595,7 +1719,7 @@ int main(int argc, char *argv[])
         file = fopen(pszStubFileName, "w");
         if (!file)
         {
-            fprintf(stderr, "error: could not open output file %s\n", argv[i + 1]);
+            fprintf(stderr, "error: could not open output file %s\n", pszStubFileName);
             return -5;
         }
 
@@ -1616,7 +1740,7 @@ int main(int argc, char *argv[])
         file = fopen(pszLibStubName, "w");
         if (!file)
         {
-            fprintf(stderr, "error: could not open output file %s\n", argv[i + 1]);
+            fprintf(stderr, "error: could not open output file %s\n", pszLibStubName);
             return -5;
         }
 
@@ -1626,6 +1750,28 @@ int main(int argc, char *argv[])
         {
             if (pexports[i].bVersionIncluded)
                 OutputLine_asmstub(file, &pexports[i]);
+        }
+
+        fprintf(file, "\n    END\n");
+        fclose(file);
+    }
+
+    if (pszImpLibAliasFileName)
+    {
+        /* Open output file */
+        file = fopen(pszImpLibAliasFileName, "w");
+        if (!file)
+        {
+            fprintf(stderr, "error: could not open output file %s\n", pszImpLibAliasFileName);
+            return -5;
+        }
+
+        OutputHeader_asmstub(file, pszDllName);
+
+        for (i = 0; i < cExports; i++)
+        {
+            if (pexports[i].bVersionIncluded)
+                OutputLine_implib_asm(file, &pexports[i]);
         }
 
         fprintf(file, "\n    END\n");

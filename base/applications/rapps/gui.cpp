@@ -81,8 +81,10 @@ CSideTreeView::~CSideTreeView()
 // **** CSideTreeView ****
 
 // **** CMainWindow ****
+HWND CMainWindow::m_hLastFocus = NULL;
+bool CMainWindow::m_PendingInstalledViewRefresh = false;
 
-CMainWindow::CMainWindow(CAppDB *db, BOOL bAppwiz) : m_ClientPanel(NULL), m_Db(db), bAppwizMode(bAppwiz), SelectedEnumType(ENUM_ALL_INSTALLED)
+CMainWindow::CMainWindow(CAppDB *db, BOOL bAppwiz) : m_ClientPanel(NULL), m_Db(db), m_bAppwizMode(bAppwiz), SelectedEnumType(ENUM_ALL_INSTALLED)
 {
 }
 
@@ -99,6 +101,10 @@ CMainWindow::InitCategoriesList()
     hRootItemInstalled = m_TreeView->AddCategory(TVI_ROOT, IDS_INSTALLED, IDI_CATEGORY);
     m_TreeView->AddCategory(hRootItemInstalled, IDS_APPLICATIONS, IDI_APPS);
     m_TreeView->AddCategory(hRootItemInstalled, IDS_UPDATES, IDI_APPUPD);
+
+    // Do not show any other categories in APPWIZ-mode.
+    if (m_bAppwizMode)
+        goto Finish;
 
     m_TreeView->AddCategory(TVI_ROOT, IDS_SELECTEDFORINST, IDI_SELECTEDFORINST);
 
@@ -120,10 +126,12 @@ CMainWindow::InitCategoriesList()
     m_TreeView->AddCategory(hRootItemAvailable, IDS_CAT_THEMES, IDI_CAT_THEMES);
     m_TreeView->AddCategory(hRootItemAvailable, IDS_CAT_OTHER, IDI_CAT_OTHER);
 
+Finish:
     m_TreeView->SetImageList();
     m_TreeView->Expand(hRootItemInstalled, TVE_EXPAND);
-    m_TreeView->Expand(hRootItemAvailable, TVE_EXPAND);
-    m_TreeView->SelectItem(bAppwizMode ? hRootItemInstalled : hRootItemAvailable);
+    if (!m_bAppwizMode)
+        m_TreeView->Expand(hRootItemAvailable, TVE_EXPAND);
+    m_TreeView->SelectItem(m_bAppwizMode ? hRootItemInstalled : hRootItemAvailable);
 }
 
 BOOL
@@ -270,14 +278,12 @@ CMainWindow::RemoveSelectedAppFromRegistry()
     if (!szMsgText.LoadStringW(IDS_APP_REG_REMOVE) || !szMsgTitle.LoadStringW(IDS_INFORMATION))
         return FALSE;
 
-    if (MessageBoxW(szMsgText, szMsgTitle, MB_YESNO | MB_ICONQUESTION) == IDYES)
-    {
-        CAppInfo *InstalledApp = (CAppInfo *)m_ApplicationView->GetFocusedItemData();
-        if (!InstalledApp)
-            return FALSE;
+    CAppInfo *InstalledApp = (CAppInfo *)m_ApplicationView->GetFocusedItemData();
+    if (!InstalledApp)
+        return FALSE;
 
-        return m_Db->RemoveInstalledAppFromRegistry(InstalledApp);
-    }
+    if (MessageBoxW(szMsgText, szMsgTitle, MB_YESNO | MB_ICONQUESTION) == IDYES)
+        return m_Db->RemoveInstalledAppFromRegistry(InstalledApp) == ERROR_SUCCESS;
 
     return FALSE;
 }
@@ -292,7 +298,18 @@ CMainWindow::UninstallSelectedApp(BOOL bModify)
     if (!InstalledApp)
         return FALSE;
 
-    return InstalledApp->UninstallApplication(bModify);
+    return InstalledApp->UninstallApplication(bModify ? UCF_MODIFY : UCF_NONE);
+}
+
+VOID
+CMainWindow::CheckAvailable()
+{
+    if (m_Db->GetAvailableCount() == 0)
+    {
+        CUpdateDatabaseMutex lock;
+        m_Db->RemoveCached();
+        m_Db->UpdateAvailable();
+    }
 }
 
 BOOL
@@ -304,13 +321,13 @@ CMainWindow::ProcessWindowMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPa
         case WM_CREATE:
             if (!InitControls())
                 ::PostMessageW(hwnd, WM_CLOSE, 0, 0);
+            ::PostMessageW(hwnd, DM_REPOSITION, 0, 0);
             break;
 
         case WM_DESTROY:
         {
-            ShowWindow(SW_HIDE);
+            hMainWnd = NULL;
             SaveSettings(hwnd, &SettingsInfo);
-
             FreeLogs();
 
             delete m_ClientPanel;
@@ -318,6 +335,41 @@ CMainWindow::ProcessWindowMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPa
             PostQuitMessage(0);
             return 0;
         }
+
+        case WM_CLOSE:
+            ShowWindow(SW_HIDE);
+            return g_Busy;
+
+        case WM_NOTIFY_OPERATIONCOMPLETED:
+            if (!g_Busy && !IsWindowVisible())
+                SendMessage(WM_CLOSE, 0, 0);
+            break;
+
+        case WM_NOTIFY_INSTALLERFINISHED:
+            m_PendingInstalledViewRefresh = true; // Something just installed, our uninstall list is probably outdated
+            m_ApplicationView->RefreshAvailableItem((PCWSTR)lParam);
+            break;
+
+        case DM_REPOSITION:
+            EmulateDialogReposition(hwnd); // We are not a real dialog, we need help from a real one
+            break;
+
+        case WM_ACTIVATE:
+            if (LOWORD(wParam) == WA_INACTIVE)
+                m_hLastFocus = ::GetFocus();
+            break;
+
+        case WM_SETFOCUS:
+            if (m_hLastFocus)
+                ::SetFocus(m_hLastFocus);
+            break;
+
+        case WM_NEXTDLGCTL:
+            if (!LOWORD(lParam))
+                HandleTabOrder(wParam ? -1 : 1);
+            else if (wParam)
+                ::SetFocus((HWND)wParam);
+            break;
 
         case WM_COMMAND:
             OnCommand(wParam, lParam);
@@ -329,6 +381,22 @@ CMainWindow::ProcessWindowMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
             switch (data->code)
             {
+                case TVN_ITEMEXPANDING:
+                {
+                    if (data->hwndFrom == m_TreeView->m_hWnd)
+                    {
+                        // APPWIZ-mode: forbid item collapse.
+                        // FIXME: Prevent collapse (COMCTL32 is buggy)
+                        // https://bugs.winehq.org/show_bug.cgi?id=53727
+                        if (m_bAppwizMode && (((LPNMTREEVIEW)lParam)->action & TVE_TOGGLE) == TVE_COLLAPSE)
+                        {
+                            theResult = TRUE;
+                            return TRUE; // Handled
+                        }
+                    }
+                    break;
+                }
+
                 case TVN_SELCHANGED:
                 {
                     if (data->hwndFrom == m_TreeView->m_hWnd)
@@ -348,71 +416,71 @@ CMainWindow::ProcessWindowMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPa
                                 break;
 
                             case IDS_AVAILABLEFORINST:
-                                UpdateApplicationsList(ENUM_ALL_AVAILABLE);
+                                UpdateApplicationsList(ENUM_ALL_AVAILABLE, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_AUDIO:
-                                UpdateApplicationsList(ENUM_CAT_AUDIO);
+                                UpdateApplicationsList(ENUM_CAT_AUDIO, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_DEVEL:
-                                UpdateApplicationsList(ENUM_CAT_DEVEL);
+                                UpdateApplicationsList(ENUM_CAT_DEVEL, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_DRIVERS:
-                                UpdateApplicationsList(ENUM_CAT_DRIVERS);
+                                UpdateApplicationsList(ENUM_CAT_DRIVERS, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_EDU:
-                                UpdateApplicationsList(ENUM_CAT_EDU);
+                                UpdateApplicationsList(ENUM_CAT_EDU, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_ENGINEER:
-                                UpdateApplicationsList(ENUM_CAT_ENGINEER);
+                                UpdateApplicationsList(ENUM_CAT_ENGINEER, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_FINANCE:
-                                UpdateApplicationsList(ENUM_CAT_FINANCE);
+                                UpdateApplicationsList(ENUM_CAT_FINANCE, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_GAMES:
-                                UpdateApplicationsList(ENUM_CAT_GAMES);
+                                UpdateApplicationsList(ENUM_CAT_GAMES, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_GRAPHICS:
-                                UpdateApplicationsList(ENUM_CAT_GRAPHICS);
+                                UpdateApplicationsList(ENUM_CAT_GRAPHICS, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_INTERNET:
-                                UpdateApplicationsList(ENUM_CAT_INTERNET);
+                                UpdateApplicationsList(ENUM_CAT_INTERNET, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_LIBS:
-                                UpdateApplicationsList(ENUM_CAT_LIBS);
+                                UpdateApplicationsList(ENUM_CAT_LIBS, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_OFFICE:
-                                UpdateApplicationsList(ENUM_CAT_OFFICE);
+                                UpdateApplicationsList(ENUM_CAT_OFFICE, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_OTHER:
-                                UpdateApplicationsList(ENUM_CAT_OTHER);
+                                UpdateApplicationsList(ENUM_CAT_OTHER, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_SCIENCE:
-                                UpdateApplicationsList(ENUM_CAT_SCIENCE);
+                                UpdateApplicationsList(ENUM_CAT_SCIENCE, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_TOOLS:
-                                UpdateApplicationsList(ENUM_CAT_TOOLS);
+                                UpdateApplicationsList(ENUM_CAT_TOOLS, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_VIDEO:
-                                UpdateApplicationsList(ENUM_CAT_VIDEO);
+                                UpdateApplicationsList(ENUM_CAT_VIDEO, FALSE, TRUE);
                                 break;
 
                             case IDS_CAT_THEMES:
-                                UpdateApplicationsList(ENUM_CAT_THEMES);
+                                UpdateApplicationsList(ENUM_CAT_THEMES, FALSE, TRUE);
                                 break;
 
                             case IDS_SELECTEDFORINST:
@@ -450,6 +518,14 @@ CMainWindow::ProcessWindowMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPa
             m_TreeView->SendMessageW(WM_SYSCOLORCHANGE, wParam, lParam);
         }
         break;
+
+        case WM_SETTINGCHANGE:
+            if (wParam == SPI_SETNONCLIENTMETRICS || wParam == SPI_SETICONMETRICS)
+            {
+                DestroyIcon(g_hDefaultPackageIcon);
+                g_hDefaultPackageIcon = NULL; // Trigger imagelist recreation on next load
+            }
+            break;
 
         case WM_TIMER:
             if (wParam == SEARCH_TIMER_ID)
@@ -536,13 +612,16 @@ CMainWindow::OnCommand(WPARAM wParam, LPARAM lParam)
                 break;
 
             case ID_REFRESH:
-                UpdateApplicationsList(SelectedEnumType);
+                UpdateApplicationsList(SelectedEnumType, bReload);
                 break;
 
             case ID_RESETDB:
+            {
+                CUpdateDatabaseMutex lock;
                 m_Db->RemoveCached();
                 UpdateApplicationsList(SelectedEnumType, bReload);
                 break;
+            }
 
             case ID_HELP:
                 MessageBoxW(L"Help not implemented yet", NULL, MB_OK);
@@ -570,8 +649,16 @@ CMainWindow::UpdateStatusBarText()
     if (m_StatusBar)
     {
         CStringW szBuffer;
+        szBuffer.Format(IDS_APPS_COUNT, m_ApplicationView->GetItemCount());
 
-        szBuffer.Format(IDS_APPS_COUNT, m_ApplicationView->GetItemCount(), m_Selected.GetCount());
+        // Append the number of selected apps if not in APPWIZ-mode.
+        if (!m_bAppwizMode)
+        {
+            CStringW szBuffer2;
+            szBuffer2.Format(IDS_APPS_SELECT_COUNT, m_Selected.GetCount());
+            szBuffer += szBuffer2;
+        }
+
         m_StatusBar->SetText(szBuffer);
     }
 }
@@ -590,15 +677,44 @@ CMainWindow::AddApplicationsToView(CAtlList<CAppInfo *> &List)
             m_ApplicationView->AddApplication(Info, bSelected);
         }
     }
+    m_ApplicationView->AddApplication(NULL, FALSE); // Tell the list we are done
 }
 
 VOID
-CMainWindow::UpdateApplicationsList(AppsCategories EnumType, BOOL bReload)
+CMainWindow::UpdateApplicationsList(AppsCategories EnumType, BOOL bReload, BOOL bCheckAvailable)
 {
+    // Only installed applications should be enumerated in APPWIZ-mode.
+    if (m_bAppwizMode && !IsInstalledEnum(EnumType))
+    {
+        ATLASSERT(FALSE && "Should not be called in APPWIZ-mode");
+        return;
+    }
+
     bUpdating = TRUE;
 
+    if (HCURSOR hCursor = LoadCursor(NULL, IDC_APPSTARTING))
+    {
+        // The database (.ini files) is parsed on the UI thread, let the user know we are busy
+        SetCursor(hCursor);
+        PostMessage(WM_SETCURSOR, (WPARAM)m_hWnd, MAKELONG(HTCLIENT, WM_MOUSEMOVE));
+    }
+
+    if (bCheckAvailable)
+        CheckAvailable();
+
+    if (m_PendingInstalledViewRefresh && IsInstalledEnum(EnumType) && !IsInstalledEnum(SelectedEnumType))
+    {
+        m_PendingInstalledViewRefresh = FALSE;
+        bReload = TRUE; // Reload because we are switching from Available to Installed after something installed
+    }
+
+    BOOL TryRestoreSelection = SelectedEnumType == EnumType;
     if (SelectedEnumType != EnumType)
         SelectedEnumType = EnumType;
+
+    CApplicationView::RESTORELISTSELECTION RestoreSelection;
+    if (TryRestoreSelection)
+        m_ApplicationView->GetRestoreListSelectionData(RestoreSelection);
 
     if (bReload)
         m_Selected.RemoveAll();
@@ -618,6 +734,9 @@ CMainWindow::UpdateApplicationsList(AppsCategories EnumType, BOOL bReload)
     }
     else if (IsAvailableEnum(EnumType))
     {
+        // We shouldn't get there in APPWIZ-mode.
+        ATLASSERT(!m_bAppwizMode);
+
         if (bReload)
             m_Db->UpdateAvailable();
 
@@ -640,6 +759,9 @@ CMainWindow::UpdateApplicationsList(AppsCategories EnumType, BOOL bReload)
     {
         ATLASSERT(0 && "This should be unreachable!");
     }
+
+    if (TryRestoreSelection)
+        m_ApplicationView->RestoreListSelection(RestoreSelection);
     m_ApplicationView->SetRedraw(TRUE);
     m_ApplicationView->RedrawWindow(0, 0, RDW_INVALIDATE | RDW_ALLCHILDREN); // force the child window to repaint
     UpdateStatusBarText();
@@ -674,8 +796,7 @@ CMainWindow::GetWndClassInfo()
 HWND
 CMainWindow::Create()
 {
-    CStringW szWindowName;
-    szWindowName.LoadStringW(IDS_APPTITLE);
+    const CStringW szWindowName(MAKEINTRESOURCEW(m_bAppwizMode ? IDS_APPWIZ_TITLE : IDS_APPTITLE));
 
     RECT r = {
         (SettingsInfo.bSaveWndPos ? SettingsInfo.Left : CW_USEDEFAULT),
@@ -721,16 +842,7 @@ CMainWindow::ItemCheckStateChanged(BOOL bChecked, LPVOID CallbackParam)
 BOOL
 CMainWindow::InstallApplication(CAppInfo *Info)
 {
-    if (Info)
-    {
-        if (DownloadApplication(Info))
-        {
-            UpdateApplicationsList(SelectedEnumType);
-            return TRUE;
-        }
-    }
-
-    return FALSE;
+    return Info && DownloadApplication(Info);
 }
 
 BOOL

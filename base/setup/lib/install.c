@@ -13,7 +13,7 @@
 #include "filesup.h"
 #include "infsupp.h"
 
-#include "setuplib.h" // HAXX for USETUP_DATA!!
+#include "setuplib.h" // HACK for USETUP_DATA
 
 #include "install.h"
 
@@ -61,7 +61,7 @@ LookupDirectoryById(
  * but here we try to remove this constraint.
  *
  * TXTSETUP.SIF entries syntax explained at:
- * http://www.msfn.org/board/topic/125480-txtsetupsif-syntax/
+ * https://msfn.org/board/topic/125480-txtsetupsif-syntax/
  */
 static NTSTATUS
 GetSourceFileAndTargetLocation(
@@ -538,8 +538,16 @@ PrepareCopyInfFile(
         }
 
         /* Add specific files depending of computer type */
-        if (!ProcessComputerFiles(InfFile, pSetupData->ComputerList, &AdditionalSectionName))
+        {
+        PGENERIC_LIST_ENTRY Entry;
+        Entry = GetCurrentListEntry(pSetupData->ComputerList);
+        ASSERT(Entry);
+        pSetupData->ComputerType = ((PGENENTRY)GetListEntryData(Entry))->Id;
+        ASSERT(pSetupData->ComputerType);
+
+        if (!ProcessComputerFiles(InfFile, pSetupData->ComputerType, &AdditionalSectionName))
             return FALSE;
+        }
 
         if (AdditionalSectionName &&
             !AddSectionToCopyQueue(pSetupData, InfFile,
@@ -673,6 +681,7 @@ PrepareCopyInfFile(
 // #define USE_CABINET_INF
 
 BOOLEAN // ERROR_NUMBER
+NTAPI
 PrepareFileCopy(
     IN OUT PUSETUP_DATA pSetupData,
     IN PFILE_COPY_STATUS_ROUTINE StatusRoutine OPTIONAL)
@@ -815,6 +824,7 @@ PrepareFileCopy(
 }
 
 BOOLEAN
+NTAPI
 DoFileCopy(
     IN OUT PUSETUP_DATA pSetupData,
     IN PSP_FILE_CALLBACK_W MsgHandler,

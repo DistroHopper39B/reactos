@@ -24,7 +24,7 @@
 @ stdcall BackupRead(ptr ptr long ptr long long ptr)
 @ stdcall BackupSeek(ptr long long ptr ptr ptr)
 @ stdcall BackupWrite(ptr ptr long ptr long long ptr)
-@ stdcall BaseCheckAppcompatCache(long long long ptr)
+@ stdcall BaseCheckAppcompatCache(wstr ptr wstr ptr)
 @ stdcall BaseCheckRunApp(long ptr long long long long long long long long)
 @ stdcall BaseCleanupAppcompatCacheSupport(ptr)
 @ stdcall BaseDumpAppcompatCache()
@@ -483,7 +483,10 @@
 @ stdcall -version=0x600+ GetFinalPathNameByHandleA(ptr str long long)
 @ stdcall -version=0x600+ GetFinalPathNameByHandleW(ptr wstr long long)
 @ stdcall GetFirmwareEnvironmentVariableA(str str ptr long)
+@ stdcall -version=0x602+ GetFirmwareEnvironmentVariableExA(str str ptr long long)
+@ stdcall -version=0x602+ GetFirmwareEnvironmentVariableExW(wstr wstr ptr long long)
 @ stdcall GetFirmwareEnvironmentVariableW(wstr wstr ptr long)
+@ stdcall -version=0x602+ GetFirmwareType(ptr)
 @ stdcall GetFullPathNameA(str long ptr ptr)
 @ stub -version=0x600+ GetFullPathNameTransactedA
 @ stub -version=0x600+ GetFullPathNameTransactedW
@@ -711,7 +714,7 @@
 @ stdcall -version=0x600+ InitOnceBeginInitialize(ptr long ptr ptr)
 @ stdcall -version=0x600+ InitOnceComplete(ptr long ptr)
 @ stdcall -version=0x600+ InitOnceExecuteOnce(ptr ptr ptr ptr)
-@ stdcall -version=0x600+ InitOnceInitialize(ptr) NTDLL.RtlRunOnceInitialize
+@ stdcall -version=0x600+ InitOnceInitialize(ptr) ntdll.RtlRunOnceInitialize
 @ stdcall -version=0x600+ InitializeConditionVariable(ptr) ntdll.RtlInitializeConditionVariable
 @ stdcall InitializeCriticalSection(ptr)
 @ stdcall InitializeCriticalSectionAndSpinCount(ptr long)
@@ -757,6 +760,33 @@
 @ stdcall IsValidLocale(long long)
 @ stdcall -version=0x501-0x502 IsValidUILanguage(long)
 @ stdcall IsWow64Process(ptr ptr)
+@ stdcall -version=0x601+ K32EmptyWorkingSet(long) EmptyWorkingSet
+@ stdcall -version=0x601+ K32EnumDeviceDrivers(ptr long ptr) EnumDeviceDrivers
+@ stdcall -version=0x601+ K32EnumPageFilesA(ptr ptr) EnumPageFilesA
+@ stdcall -version=0x601+ K32EnumPageFilesW(ptr ptr) EnumPageFilesW
+@ stdcall -version=0x601+ K32EnumProcessModules(long ptr long ptr) EnumProcessModules
+@ stdcall -stub -version=0x601+ K32EnumProcessModulesEx(long ptr long ptr long); EnumProcessModulesEx
+@ stdcall -version=0x601+ K32EnumProcesses(ptr long ptr) EnumProcesses
+@ stdcall -version=0x601+ K32GetDeviceDriverBaseNameA(ptr ptr long) GetDeviceDriverBaseNameA
+@ stdcall -version=0x601+ K32GetDeviceDriverBaseNameW(ptr ptr long) GetDeviceDriverBaseNameW
+@ stdcall -version=0x601+ K32GetDeviceDriverFileNameA(ptr ptr long) GetDeviceDriverFileNameA
+@ stdcall -version=0x601+ K32GetDeviceDriverFileNameW(ptr ptr long) GetDeviceDriverFileNameW
+@ stdcall -version=0x601+ K32GetMappedFileNameA(long ptr ptr long) GetMappedFileNameA
+@ stdcall -version=0x601+ K32GetMappedFileNameW(long ptr ptr long) GetMappedFileNameW
+@ stdcall -version=0x601+ K32GetModuleBaseNameA(long long ptr long) GetModuleBaseNameA
+@ stdcall -version=0x601+ K32GetModuleBaseNameW(long long ptr long) GetModuleBaseNameW
+@ stdcall -version=0x601+ K32GetModuleFileNameExA(long long ptr long) GetModuleFileNameExA
+@ stdcall -version=0x601+ K32GetModuleFileNameExW(long long ptr long) GetModuleFileNameExW
+@ stdcall -version=0x601+ K32GetModuleInformation(long long ptr long) GetModuleInformation
+@ stdcall -version=0x601+ K32GetPerformanceInfo(ptr long) GetPerformanceInfo
+@ stdcall -version=0x601+ K32GetProcessImageFileNameA(long ptr long) GetProcessImageFileNameA
+@ stdcall -version=0x601+ K32GetProcessImageFileNameW(long ptr long) GetProcessImageFileNameW
+@ stdcall -version=0x601+ K32GetProcessMemoryInfo(long ptr long) GetProcessMemoryInfo
+@ stdcall -version=0x601+ K32GetWsChanges(long ptr long) GetWsChanges
+@ stdcall -stub -version=0x601+ K32GetWsChangesEx(long ptr ptr); GetWsChangesEx
+@ stdcall -version=0x601+ K32InitializeProcessForWsWatch(long) InitializeProcessForWsWatch
+@ stdcall -version=0x601+ K32QueryWorkingSet(long ptr long) QueryWorkingSet
+@ stdcall -version=0x601+ K32QueryWorkingSetEx(long ptr long) QueryWorkingSetEx
 @ stdcall -version=0x600+ LCIDToLocaleName(long wstr long long)
 @ stdcall LCMapStringA(long long str long ptr long)
 @ stdcall -version=0x600+ LCMapStringEx(long long wstr long ptr long ptr ptr long)
@@ -951,7 +981,7 @@
 @ stdcall -arch=x86_64 RtlRestoreContext(ptr ptr) ntdll.RtlRestoreContext
 @ stdcall RtlUnwind(ptr ptr ptr ptr) ntdll.RtlUnwind
 @ stdcall -arch=x86_64 RtlUnwindEx(ptr ptr ptr ptr ptr ptr) ntdll.RtlUnwindEx
-@ stdcall -arch=x86_64 RtlVirtualUnwind(ptr ptr ptr long) ntdll.RtlVirtualUnwind
+@ stdcall -arch=x86_64 RtlVirtualUnwind(long int64 int64 ptr ptr ptr ptr ptr) ntdll.RtlVirtualUnwind
 @ stdcall RtlZeroMemory(ptr long) ntdll.RtlZeroMemory
 @ stdcall ScrollConsoleScreenBufferA(long ptr ptr ptr ptr)
 @ stdcall ScrollConsoleScreenBufferW(long ptr ptr ptr ptr)
@@ -1037,6 +1067,8 @@
 @ stdcall SetFileTime(long ptr ptr ptr)
 @ stdcall SetFileValidData(long double)
 @ stdcall SetFirmwareEnvironmentVariableA(str str ptr long)
+@ stdcall -version=0x602+ SetFirmwareEnvironmentVariableExA(str str ptr long long)
+@ stdcall -version=0x602+ SetFirmwareEnvironmentVariableExW(str str ptr long long)
 @ stdcall SetFirmwareEnvironmentVariableW(wstr wstr ptr long)
 @ stdcall -i386 SetHandleContext(long long)
 @ stdcall SetHandleCount(long)

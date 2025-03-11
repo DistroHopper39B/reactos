@@ -33,8 +33,8 @@
 //
 // I'm wondering whether this can be computed using MmHighestUserAddress
 // or whether there is already some #define somewhere else...
-// See http://www.drdobbs.com/windows/faster-dll-load-load/184416918
-// and http://www.drdobbs.com/rebasing-win32-dlls/184416272
+// See https://www.drdobbs.com/windows/faster-dll-load-load/184416918
+// and https://www.drdobbs.com/rebasing-win32-dlls/184416272
 // for a tentative explanation.
 //
 #define KD_HIGHEST_USER_BREAKPOINT_ADDRESS  (PVOID)0x60000000  // MmHighestUserAddress
@@ -72,14 +72,6 @@ BOOLEAN
     IN BOOLEAN SecondChance
 );
 
-typedef
-BOOLEAN
-(NTAPI *PKDEBUG_SWITCH_ROUTINE)(
-    IN PEXCEPTION_RECORD ExceptionRecord,
-    IN PCONTEXT Context,
-    IN BOOLEAN SecondChance
-);
-
 //
 // Initialization Routines
 //
@@ -110,13 +102,10 @@ KdIsThisAKdTrap(
 //
 // Multi-Processor Switch Support
 //
-BOOLEAN
+KCONTINUE_STATUS
 NTAPI
-KdpSwitchProcessor(
-    IN PEXCEPTION_RECORD ExceptionRecord,
-    IN OUT PCONTEXT ContextRecord,
-    IN BOOLEAN SecondChanceException
-);
+KdReportProcessorChange(
+    VOID);
 
 //
 // Time Slip Support
@@ -386,8 +375,7 @@ KdpZeroMemory(
 VOID
 NTAPI
 KdpSysGetVersion(
-    IN PDBGKD_GET_VERSION64 Version
-);
+    _Out_ PDBGKD_GET_VERSION64 Version);
 
 //
 // Context
@@ -412,16 +400,14 @@ KdpSetContextState(
 NTSTATUS
 NTAPI
 KdpSysReadMsr(
-    IN ULONG Msr,
-    OUT PLARGE_INTEGER MsrValue
-);
+    _In_ ULONG Msr,
+    _Out_ PULONGLONG MsrValue);
 
 NTSTATUS
 NTAPI
 KdpSysWriteMsr(
-    IN ULONG Msr,
-    IN PLARGE_INTEGER MsrValue
-);
+    _In_ ULONG Msr,
+    _In_ PULONGLONG MsrValue);
 
 //
 // Bus
@@ -429,26 +415,24 @@ KdpSysWriteMsr(
 NTSTATUS
 NTAPI
 KdpSysReadBusData(
-    IN ULONG BusDataType,
-    IN ULONG BusNumber,
-    IN ULONG SlotNumber,
-    IN ULONG Offset,
-    IN PVOID Buffer,
-    IN ULONG Length,
-    OUT PULONG ActualLength
-);
+    _In_ BUS_DATA_TYPE BusDataType,
+    _In_ ULONG BusNumber,
+    _In_ ULONG SlotNumber,
+    _In_ ULONG Offset,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG ActualLength);
 
 NTSTATUS
 NTAPI
 KdpSysWriteBusData(
-    IN ULONG BusDataType,
-    IN ULONG BusNumber,
-    IN ULONG SlotNumber,
-    IN ULONG Offset,
-    IN PVOID Buffer,
-    IN ULONG Length,
-    OUT PULONG ActualLength
-);
+    _In_ BUS_DATA_TYPE BusDataType,
+    _In_ ULONG BusNumber,
+    _In_ ULONG SlotNumber,
+    _In_ ULONG Offset,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG ActualLength);
 
 //
 // Control Space
@@ -456,22 +440,20 @@ KdpSysWriteBusData(
 NTSTATUS
 NTAPI
 KdpSysReadControlSpace(
-    IN ULONG Processor,
-    IN ULONG64 BaseAddress,
-    IN PVOID Buffer,
-    IN ULONG Length,
-    OUT PULONG ActualLength
-);
+    _In_ ULONG Processor,
+    _In_ ULONG64 BaseAddress,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG ActualLength);
 
 NTSTATUS
 NTAPI
 KdpSysWriteControlSpace(
-    IN ULONG Processor,
-    IN ULONG64 BaseAddress,
-    IN PVOID Buffer,
-    IN ULONG Length,
-    OUT PULONG ActualLength
-);
+    _In_ ULONG Processor,
+    _In_ ULONG64 BaseAddress,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG ActualLength);
 
 //
 // I/O Space
@@ -479,26 +461,24 @@ KdpSysWriteControlSpace(
 NTSTATUS
 NTAPI
 KdpSysReadIoSpace(
-    IN ULONG InterfaceType,
-    IN ULONG BusNumber,
-    IN ULONG AddressSpace,
-    IN ULONG64 IoAddress,
-    IN PVOID DataValue,
-    IN ULONG DataSize,
-    OUT PULONG ActualDataSize
-);
+    _In_ INTERFACE_TYPE InterfaceType,
+    _In_ ULONG BusNumber,
+    _In_ ULONG AddressSpace,
+    _In_ ULONG64 IoAddress,
+    _Out_writes_bytes_(DataSize) PVOID DataValue,
+    _In_ ULONG DataSize,
+    _Out_ PULONG ActualDataSize);
 
 NTSTATUS
 NTAPI
 KdpSysWriteIoSpace(
-    IN ULONG InterfaceType,
-    IN ULONG BusNumber,
-    IN ULONG AddressSpace,
-    IN ULONG64 IoAddress,
-    IN PVOID DataValue,
-    IN ULONG DataSize,
-    OUT PULONG ActualDataSize
-);
+    _In_ INTERFACE_TYPE InterfaceType,
+    _In_ ULONG BusNumber,
+    _In_ ULONG AddressSpace,
+    _In_ ULONG64 IoAddress,
+    _In_reads_bytes_(DataSize) PVOID DataValue,
+    _In_ ULONG DataSize,
+    _Out_ PULONG ActualDataSize);
 
 //
 // Low Memory
@@ -540,7 +520,6 @@ extern LARGE_INTEGER KdTimerStart;
 extern ULONG KdDisableCount;
 extern KD_CONTEXT KdpContext;
 extern PKDEBUG_ROUTINE KiDebugRoutine;
-extern PKDEBUG_SWITCH_ROUTINE KiDebugSwitchRoutine;
 extern BOOLEAN KdBreakAfterSymbolLoad;
 extern BOOLEAN KdPitchDebugger;
 extern BOOLEAN KdAutoEnableOnEvent;

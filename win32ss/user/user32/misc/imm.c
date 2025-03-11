@@ -9,7 +9,7 @@
 
 #include <user32.h>
 #include <strsafe.h>
-#include <ddk/immdev.h>
+#include <immdev.h>
 
 WINE_DEFAULT_DEBUG_CHANNEL(user32);
 
@@ -717,7 +717,7 @@ static LRESULT ImeWnd_OnImeSystem(PIMEUI pimeui, WPARAM wParam, LPARAM lParam)
             break;
 
         case IMS_FREELAYOUT:
-            ret = IMM_FN(ImmFreeLayout)((DWORD)lParam);
+            ret = IMM_FN(ImmFreeLayout)((HKL)lParam);
             break;
 
         case 0x13:

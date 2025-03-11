@@ -186,6 +186,7 @@ list(APPEND SOURCE
     ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/ipi.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/krnlinit.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/mutex.c
+    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/processor.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/procobj.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/profobj.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/queue.c
@@ -316,6 +317,7 @@ if(ARCH STREQUAL "i386")
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/cpu.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/context.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/exp.c
+        ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/freeze.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/irqobj.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/kiinit.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/ldt.c
@@ -350,7 +352,9 @@ elseif(ARCH STREQUAL "amd64")
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/context.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/cpu.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/except.c
+        ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/freeze.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/interrupt.c
+        ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/ipi.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/irql.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/kiinit.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/krnlinit.c
@@ -360,6 +364,7 @@ elseif(ARCH STREQUAL "amd64")
         ${REACTOS_SOURCE_DIR}/ntoskrnl/mm/amd64/procsup.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ps/amd64/psctx.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/stubs.c
+        ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/traphandler.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/amd64/usercall.c)
     if(BUILD_MP)
         list(APPEND SOURCE

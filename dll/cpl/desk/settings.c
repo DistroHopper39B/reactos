@@ -1,9 +1,7 @@
 /*
  * COPYRIGHT:       See COPYING in the top level directory
  * PROJECT:         ReactOS Display Control Panel
- * FILE:            dll/cpl/desk/settings.c
  * PURPOSE:         Settings property page
- *
  * PROGRAMMERS:     Trevor McCort (lycan359@gmail.com)
  *                  Hervé Poussineau (hpoussin@reactos.org)
  */
@@ -35,7 +33,7 @@ UpdateDisplay(IN HWND hwndDlg, PSETTINGS_DATA pData, IN BOOL bUpdateThumb)
     HWND hwndMonSel;
     MONSL_MONINFO info;
 
-    LoadString(hApplet, IDS_PIXEL, Pixel, sizeof(Pixel) / sizeof(TCHAR));
+    LoadString(hApplet, IDS_PIXEL, Pixel, _countof(Pixel));
     _stprintf(Buffer, Pixel, pData->CurrentDisplayDevice->CurrentSettings->dmPelsWidth, pData->CurrentDisplayDevice->CurrentSettings->dmPelsHeight, Pixel);
     SendDlgItemMessage(hwndDlg, IDC_SETTINGS_RESOLUTION_TEXT, WM_SETTEXT, 0, (LPARAM)Buffer);
 
@@ -49,7 +47,7 @@ UpdateDisplay(IN HWND hwndDlg, PSETTINGS_DATA pData, IN BOOL bUpdateThumb)
             break;
         }
     }
-    if (LoadString(hApplet, (2900 + pData->CurrentDisplayDevice->CurrentSettings->dmBitsPerPel), Buffer, sizeof(Buffer) / sizeof(TCHAR)))
+    if (LoadString(hApplet, (2900 + pData->CurrentDisplayDevice->CurrentSettings->dmBitsPerPel), Buffer, _countof(Buffer)))
         SendDlgItemMessage(hwndDlg, IDC_SETTINGS_BPP, CB_SELECTSTRING, (WPARAM)-1, (LPARAM)Buffer);
 
     hwndMonSel = GetDlgItem(hwndDlg, IDC_SETTINGS_MONSEL);
@@ -290,12 +288,12 @@ OnDisplayDeviceChanged(IN HWND hwndDlg, IN PSETTINGS_DATA pData, IN PDISPLAY_DEV
     for (Current = pDeviceEntry->Settings; Current != NULL; Current = Current->Flink)
     {
         TCHAR Buffer[64];
-        if (LoadString(hApplet, (2900 + Current->dmBitsPerPel), Buffer, sizeof(Buffer) / sizeof(TCHAR)))
+        if (LoadString(hApplet, (2900 + Current->dmBitsPerPel), Buffer, _countof(Buffer)))
         {
-            index = (DWORD) SendDlgItemMessage(hwndDlg, IDC_SETTINGS_BPP, CB_FINDSTRINGEXACT, (WPARAM)-1, (LPARAM)Buffer);
+            index = (DWORD)SendDlgItemMessage(hwndDlg, IDC_SETTINGS_BPP, CB_FINDSTRINGEXACT, (WPARAM)-1, (LPARAM)Buffer);
             if (index == (DWORD)CB_ERR)
             {
-                index = (DWORD) SendDlgItemMessage(hwndDlg, IDC_SETTINGS_BPP, CB_ADDSTRING, 0, (LPARAM)Buffer);
+                index = (DWORD)SendDlgItemMessage(hwndDlg, IDC_SETTINGS_BPP, CB_ADDSTRING, 0, (LPARAM)Buffer);
                 SendDlgItemMessage(hwndDlg, IDC_SETTINGS_BPP, CB_SETITEMDATA, index, Current->dmBitsPerPel);
             }
         }
@@ -507,8 +505,8 @@ OnBPPChanged(IN HWND hwndDlg, IN PSETTINGS_DATA pData)
     HWND hSpectrumControl;
     RECT client;
 
-    index = (DWORD) SendDlgItemMessage(hwndDlg, IDC_SETTINGS_BPP, CB_GETCURSEL, 0, 0);
-    dmNewBitsPerPel = (DWORD) SendDlgItemMessage(hwndDlg, IDC_SETTINGS_BPP, CB_GETITEMDATA, index, 0);
+    index = (DWORD)SendDlgItemMessage(hwndDlg, IDC_SETTINGS_BPP, CB_GETCURSEL, 0, 0);
+    dmNewBitsPerPel = (DWORD)SendDlgItemMessage(hwndDlg, IDC_SETTINGS_BPP, CB_GETITEMDATA, index, 0);
 
     /* Show a new spectrum bitmap */
     hSpectrumControl = GetDlgItem(hwndDlg, IDC_SETTINGS_SPECTRUM);
@@ -726,7 +724,7 @@ ConfirmDlgProc(IN HWND hwndDlg, IN UINT uMsg, IN WPARAM wParam, IN LPARAM lParam
             pData->nTimeout = 15;
 
             /* Load the raw timeout string */
-            LoadString(hApplet, IDS_TIMEOUTTEXT, pData->szRawBuffer, ARRAYSIZE(pData->szRawBuffer));
+            LoadString(hApplet, IDS_TIMEOUTTEXT, pData->szRawBuffer, _countof(pData->szRawBuffer));
 
             /* Cook the timeout string and show it */
             _stprintf(pData->szCookedBuffer, pData->szRawBuffer, pData->nTimeout);
@@ -792,15 +790,15 @@ SwitchDisplayMode(HWND hwndDlg, PWSTR DeviceName, PSETTINGS_ENTRY seInit, PSETTI
             break;
 
         case DISP_CHANGE_RESTART:
-            LoadString(hApplet, IDS_DISPLAY_SETTINGS, Title, sizeof(Title) / sizeof(TCHAR));
-            LoadString(hApplet, IDS_APPLY_NEEDS_RESTART, Message, sizeof(Message) / sizeof (TCHAR));
+            LoadString(hApplet, IDS_DISPLAY_SETTINGS, Title, _countof(Title));
+            LoadString(hApplet, IDS_APPLY_NEEDS_RESTART, Message, _countof(Message));
             MessageBox(hwndDlg, Message, Title, MB_OK | MB_ICONINFORMATION);
             return FALSE;
 
         case DISP_CHANGE_FAILED:
         default:
-            LoadString(hApplet, IDS_DISPLAY_SETTINGS, Title, sizeof(Title) / sizeof(TCHAR));
-            LoadString(hApplet, IDS_APPLY_FAILED, Message, sizeof(Message) / sizeof (TCHAR));
+            LoadString(hApplet, IDS_DISPLAY_SETTINGS, Title, _countof(Title));
+            LoadString(hApplet, IDS_APPLY_FAILED, Message, _countof(Message));
             MessageBox(hwndDlg, Message, Title, MB_OK | MB_ICONSTOP);
             return FALSE;
     }
@@ -827,19 +825,47 @@ SwitchDisplayMode(HWND hwndDlg, PWSTR DeviceName, PSETTINGS_ENTRY seInit, PSETTI
                 return FALSE;
 
             case DISP_CHANGE_RESTART:
-                LoadString(hApplet, IDS_DISPLAY_SETTINGS, Title, sizeof(Title) / sizeof(TCHAR));
-                LoadString(hApplet, IDS_APPLY_NEEDS_RESTART, Message, sizeof(Message) / sizeof (TCHAR));
+                LoadString(hApplet, IDS_DISPLAY_SETTINGS, Title, _countof(Title));
+                LoadString(hApplet, IDS_APPLY_NEEDS_RESTART, Message, _countof(Message));
                 MessageBox(hwndDlg, Message, Title, MB_OK | MB_ICONINFORMATION);
                 return FALSE;
 
             case DISP_CHANGE_FAILED:
             default:
-                LoadString(hApplet, IDS_DISPLAY_SETTINGS, Title, sizeof(Title) / sizeof(TCHAR));
-                LoadString(hApplet, IDS_APPLY_FAILED, Message, sizeof(Message) / sizeof (TCHAR));
+                LoadString(hApplet, IDS_DISPLAY_SETTINGS, Title, _countof(Title));
+                LoadString(hApplet, IDS_APPLY_FAILED, Message, _countof(Message));
                 MessageBox(hwndDlg, Message, Title, MB_OK | MB_ICONSTOP);
                 return FALSE;
         }
     }
+}
+
+static
+PSETTINGS_ENTRY
+FindBestElement(
+    _In_ PDISPLAY_DEVICE_ENTRY pDevice)
+{
+    PSETTINGS_ENTRY Request = &pDevice->InitialSettings, BestEntry = NULL, Current;
+    LONG Distance, NearestDistance = MAXLONG;
+
+    /* Find the best entry in the list */
+    for (Current = pDevice->Settings; Current; Current = Current->Flink)
+    {
+        Distance = 0x100000 * labs(Current->dmBitsPerPel       - Request->dmBitsPerPel      ) +
+                      0x100 * labs(Current->dmPelsWidth        - Request->dmPelsWidth       ) +
+                      0x100 * labs(Current->dmPelsHeight       - Request->dmPelsHeight      ) +
+                              labs(Current->dmDisplayFrequency - Request->dmDisplayFrequency);
+        if (Distance == 0)
+            return Current;
+
+        if (Distance < NearestDistance)
+        {
+            BestEntry = Current;
+            NearestDistance = Distance;
+        }
+    }
+
+    return BestEntry;
 }
 
 static VOID
@@ -866,10 +892,7 @@ ApplyDisplaySettings(HWND hwndDlg, PSETTINGS_DATA pData)
     }
     else
     {
-        pData->CurrentDisplayDevice->CurrentSettings->dmPelsWidth = pData->CurrentDisplayDevice->InitialSettings.dmPelsWidth;
-        pData->CurrentDisplayDevice->CurrentSettings->dmPelsHeight = pData->CurrentDisplayDevice->InitialSettings.dmPelsHeight;
-        pData->CurrentDisplayDevice->CurrentSettings->dmBitsPerPel = pData->CurrentDisplayDevice->InitialSettings.dmBitsPerPel;
-        pData->CurrentDisplayDevice->CurrentSettings->dmDisplayFrequency = pData->CurrentDisplayDevice->InitialSettings.dmDisplayFrequency;
+        pData->CurrentDisplayDevice->CurrentSettings = FindBestElement(pData->CurrentDisplayDevice);
         UpdateDisplay(hwndDlg, pData, TRUE);
     }
 }
@@ -921,16 +944,16 @@ SettingsPageProc(IN HWND hwndDlg, IN UINT uMsg, IN WPARAM wParam, IN LPARAM lPar
                     DEVMODE devmode;
                     ZeroMemory(&devmode, sizeof(devmode));
                     devmode.dmSize = (WORD)sizeof(devmode);
-                    if (EnumDisplaySettingsExW(pData->CurrentDisplayDevice->DeviceName, ENUM_CURRENT_SETTINGS, &devmode, 0))
+                    if (EnumDisplaySettingsExW(pData->CurrentDisplayDevice->DeviceName,
+                                               ENUM_CURRENT_SETTINGS, &devmode, 0))
                     {
-                        pData->CurrentDisplayDevice->InitialSettings.dmPelsWidth = devmode.dmPelsWidth;
-                        pData->CurrentDisplayDevice->InitialSettings.dmPelsHeight = devmode.dmPelsHeight;
-                        pData->CurrentDisplayDevice->InitialSettings.dmBitsPerPel = devmode.dmBitsPerPel;
-                        pData->CurrentDisplayDevice->InitialSettings.dmDisplayFrequency = devmode.dmDisplayFrequency;
-                        pData->CurrentDisplayDevice->CurrentSettings->dmPelsWidth = pData->CurrentDisplayDevice->InitialSettings.dmPelsWidth;
-                        pData->CurrentDisplayDevice->CurrentSettings->dmPelsHeight = pData->CurrentDisplayDevice->InitialSettings.dmPelsHeight;
-                        pData->CurrentDisplayDevice->CurrentSettings->dmBitsPerPel = pData->CurrentDisplayDevice->InitialSettings.dmBitsPerPel;
-                        pData->CurrentDisplayDevice->CurrentSettings->dmDisplayFrequency = pData->CurrentDisplayDevice->InitialSettings.dmDisplayFrequency;
+                        PSETTINGS_ENTRY pInitialSettings = &pData->CurrentDisplayDevice->InitialSettings;
+                        pInitialSettings->dmPelsWidth = devmode.dmPelsWidth;
+                        pInitialSettings->dmPelsHeight = devmode.dmPelsHeight;
+                        pInitialSettings->dmBitsPerPel = devmode.dmBitsPerPel;
+                        pInitialSettings->dmDisplayFrequency = devmode.dmDisplayFrequency;
+                        pData->CurrentDisplayDevice->CurrentSettings =
+                            FindBestElement(pData->CurrentDisplayDevice);
                         UpdateDisplay(hwndDlg, pData, TRUE);
                     }
                 }
@@ -951,7 +974,7 @@ SettingsPageProc(IN HWND hwndDlg, IN UINT uMsg, IN WPARAM wParam, IN LPARAM lPar
                 case TB_BOTTOM:
                 case TB_ENDTRACK:
                 {
-                    DWORD newPosition = (DWORD) SendDlgItemMessage(hwndDlg, IDC_SETTINGS_RESOLUTION, TBM_GETPOS, 0, 0);
+                    DWORD newPosition = (DWORD)SendDlgItemMessage(hwndDlg, IDC_SETTINGS_RESOLUTION, TBM_GETPOS, 0, 0);
                     OnResolutionChanged(hwndDlg, pData, newPosition, TRUE);
                     break;
                 }
@@ -998,8 +1021,7 @@ SettingsPageProc(IN HWND hwndDlg, IN UINT uMsg, IN WPARAM wParam, IN LPARAM lPar
             pt.x = (SHORT)LOWORD(lParam);
             pt.y = (SHORT)HIWORD(lParam);
 
-            hwndMonSel = GetDlgItem(hwndDlg,
-                                    IDC_SETTINGS_MONSEL);
+            hwndMonSel = GetDlgItem(hwndDlg, IDC_SETTINGS_MONSEL);
             if ((HWND)wParam == hwndMonSel)
             {
                 if (pt.x == -1 && pt.y == -1)
@@ -1023,18 +1045,12 @@ SettingsPageProc(IN HWND hwndDlg, IN UINT uMsg, IN WPARAM wParam, IN LPARAM lPar
                     else
                         pt.x = pt.y = 0;
 
-                    MapWindowPoints(hwndMonSel,
-                                    NULL,
-                                    &pt,
-                                    1);
+                    MapWindowPoints(hwndMonSel, NULL, &pt, 1);
                 }
                 else
                 {
                     ptClient = pt;
-                    MapWindowPoints(NULL,
-                                    hwndMonSel,
-                                    &ptClient,
-                                    1);
+                    MapWindowPoints(NULL, hwndMonSel, &ptClient, 1);
 
                     Index = (INT)SendMessage(hwndMonSel,
                                              MSLM_HITTEST,

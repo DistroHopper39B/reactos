@@ -140,7 +140,7 @@ LoadCurrentScheme(OUT COLOR_SCHEME *scheme)
 #if (WINVER >= 0x0600)
     /* Size of NONCLIENTMETRICSA/W depends on current version of the OS.
      * see:
-     *  https://msdn.microsoft.com/en-us/library/windows/desktop/ff729175%28v=vs.85%29.aspx
+     *  https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-nonclientmetricsa
      */
     if (GetVersionEx(&osvi))
     {
@@ -997,7 +997,8 @@ DrawThemePreview(IN HDC hdcMem, IN PCOLOR_SCHEME scheme, IN PTHEME_SELECTION pSe
     FillRect(hdcMem, prcWindow, hbrBack);
     DeleteObject(hbrBack);
 
-    InflateRect(prcWindow, -10, -10);
+    InflateRect(prcWindow, -8, -8);
+    prcWindow->bottom -= 12;
 
     hres = DrawNCPreview(hdcMem,
                          DNCP_DRAW_ALL,

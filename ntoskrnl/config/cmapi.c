@@ -67,8 +67,7 @@ CmpIsHiveAlreadyLoaded(IN HANDLE KeyHandle,
         if (Hive->Frozen)
         {
             /* FIXME: TODO */
-            DPRINT1("ERROR: Hive is frozen\n");
-            while (TRUE);
+            UNIMPLEMENTED_DBGBREAK("ERROR: Hive is frozen\n");
         }
      }
 
@@ -105,22 +104,22 @@ CmpDoFlushAll(IN BOOLEAN ForceFlush)
             CmpLockHiveFlusherExclusive(Hive);
 
             /* Check for illegal state */
-            if ((ForceFlush) && (Hive->UseCount))
+            if (ForceFlush && Hive->UseCount)
             {
                 /* Registry needs to be locked down */
                 CMP_ASSERT_EXCLUSIVE_REGISTRY_LOCK();
-                DPRINT1("FIXME: Hive is damaged and needs fixup\n");
-                while (TRUE);
+                UNIMPLEMENTED_DBGBREAK("FIXME: Hive is damaged and needs fixup\n");
             }
 
             /* Only sync if we are forced to or if it won't cause a hive shrink */
-            if ((ForceFlush) || (!HvHiveWillShrink(&Hive->Hive)))
+            if (ForceFlush || !HvHiveWillShrink(&Hive->Hive))
             {
                 /* Do the sync */
                 Status = HvSyncHive(&Hive->Hive);
 
                 /* If something failed - set the flag and continue looping */
-                if (!NT_SUCCESS(Status)) Result = FALSE;
+                if (!NT_SUCCESS(Status))
+                    Result = FALSE;
             }
             else
             {
@@ -708,8 +707,8 @@ DoAgain:
         }
 
         /* We need the exclusive KCB lock now */
-        if (!(CmpIsKcbLockedExclusive(Kcb)) &&
-            !(CmpTryToConvertKcbSharedToExclusive(Kcb)))
+        if (!CmpIsKcbLockedExclusive(Kcb) &&
+            !CmpTryToConvertKcbSharedToExclusive(Kcb))
         {
             /* Acquire exclusive lock */
             CmpConvertKcbSharedToExclusive(Kcb);
@@ -873,7 +872,7 @@ DoAgain:
         Kcb->KcbLastWriteTime = Parent->LastWriteTime;
 
         /* Check if the cell is cached */
-        if ((Found) && (CMP_IS_CELL_CACHED(Kcb->ValueCache.ValueList)))
+        if (Found && CMP_IS_CELL_CACHED(Kcb->ValueCache.ValueList))
         {
             /* Shouldn't happen */
             ASSERT(FALSE);
@@ -884,7 +883,7 @@ DoAgain:
             CmpCleanUpKcbValueCache(Kcb);
 
             /* Sanity checks */
-            ASSERT(!(CMP_IS_CELL_CACHED(Kcb->ValueCache.ValueList)));
+            ASSERT(!CMP_IS_CELL_CACHED(Kcb->ValueCache.ValueList));
             ASSERT(!(Kcb->ExtFlags & CM_KCB_SYM_LINK_FOUND));
 
             /* Set the value cache */
@@ -901,8 +900,8 @@ DoAgain:
 
     /* Release the cells */
 Quickie:
-    if ((ParentCell != HCELL_NIL) && (Hive)) HvReleaseCell(Hive, ParentCell);
-    if ((ChildCell != HCELL_NIL) && (Hive)) HvReleaseCell(Hive, ChildCell);
+    if ((ParentCell != HCELL_NIL) && Hive) HvReleaseCell(Hive, ParentCell);
+    if ((ChildCell != HCELL_NIL) && Hive) HvReleaseCell(Hive, ChildCell);
 
     /* Release the locks */
     if (FlusherLocked) CmpUnlockHiveFlusher((PCMHIVE)Hive);
@@ -972,9 +971,9 @@ CmDeleteValueKey(IN PCM_KEY_CONTROL_BLOCK Kcb,
         if (ChildCell == HCELL_NIL) goto Quickie;
 
         /* We found the value, mark all relevant cells dirty */
-        if (!((HvMarkCellDirty(Hive, Cell, FALSE)) &&
-              (HvMarkCellDirty(Hive, Parent->ValueList.List, FALSE)) &&
-              (HvMarkCellDirty(Hive, ChildCell, FALSE))))
+        if (!(HvMarkCellDirty(Hive, Cell, FALSE) &&
+              HvMarkCellDirty(Hive, Parent->ValueList.List, FALSE) &&
+              HvMarkCellDirty(Hive, ChildCell, FALSE)))
         {
             /* Not enough log space, fail */
             Status = STATUS_NO_LOG_SPACE;
@@ -1037,7 +1036,7 @@ CmDeleteValueKey(IN PCM_KEY_CONTROL_BLOCK Kcb,
         CmpCleanUpKcbValueCache(Kcb);
 
         /* Sanity checks */
-        ASSERT(!(CMP_IS_CELL_CACHED(Kcb->ValueCache.ValueList)));
+        ASSERT(!CMP_IS_CELL_CACHED(Kcb->ValueCache.ValueList));
         ASSERT(!(Kcb->ExtFlags & CM_KCB_SYM_LINK_FOUND));
 
         /* Set the value cache */
@@ -2207,14 +2206,18 @@ CmpUnlinkHiveFromMaster(IN PCMHIVE CmHive,
 
 NTSTATUS
 NTAPI
-CmUnloadKey(IN PCM_KEY_CONTROL_BLOCK Kcb,
-            IN ULONG Flags)
+CmUnloadKey(
+    _In_ PCM_KEY_CONTROL_BLOCK Kcb,
+    _In_ ULONG Flags)
 {
     PHHIVE Hive;
     PCMHIVE CmHive;
     HCELL_INDEX Cell;
 
     DPRINT("CmUnloadKey(%p, %lx)\n", Kcb, Flags);
+
+    /* Ensure the registry is locked exclusively for the calling thread */
+    CMP_ASSERT_EXCLUSIVE_REGISTRY_LOCK();
 
     /* Get the hive */
     Hive = Kcb->KeyHive;
@@ -2243,7 +2246,7 @@ CmUnloadKey(IN PCM_KEY_CONTROL_BLOCK Kcb,
     {
         if (Flags != REG_FORCE_UNLOAD)
         {
-            if (CmpEnumerateOpenSubKeys(Kcb, FALSE, FALSE) != 0)
+            if (CmpEnumerateOpenSubKeys(Kcb, TRUE, FALSE) != 0)
             {
                 /* There are open subkeys but we don't force hive unloading, fail */
                 Hive->HiveFlags &= ~HIVE_IS_UNLOADING;
@@ -2252,7 +2255,6 @@ CmUnloadKey(IN PCM_KEY_CONTROL_BLOCK Kcb,
         }
         else
         {
-            DPRINT1("CmUnloadKey: Force unloading is HALF-IMPLEMENTED, expect dangling KCBs problems!\n");
             if (CmpEnumerateOpenSubKeys(Kcb, TRUE, TRUE) != 0)
             {
                 /* There are open subkeys that we cannot force to unload, fail */
@@ -2294,14 +2296,8 @@ CmUnloadKey(IN PCM_KEY_CONTROL_BLOCK Kcb,
     Kcb->Delete = TRUE;
     CmpRemoveKeyControlBlock(Kcb);
 
-    if (Flags != REG_FORCE_UNLOAD)
-    {
-        /* Release the KCB locks */
-        CmpReleaseTwoKcbLockByKey(Kcb->ConvKey, Kcb->ParentKcb->ConvKey);
-
-        /* Release the hive loading lock */
-        ExReleasePushLockExclusive(&CmpLoadHiveLock);
-    }
+    /* Release the hive loading lock */
+    ExReleasePushLockExclusive(&CmpLoadHiveLock);
 
     /* Release hive lock */
     CmpUnlockRegistry();
@@ -2341,9 +2337,9 @@ CmUnloadKey(IN PCM_KEY_CONTROL_BLOCK Kcb,
 ULONG
 NTAPI
 CmpEnumerateOpenSubKeys(
-    IN PCM_KEY_CONTROL_BLOCK RootKcb,
-    IN BOOLEAN RemoveEmptyCacheEntries,
-    IN BOOLEAN DereferenceOpenedEntries)
+    _In_ PCM_KEY_CONTROL_BLOCK RootKcb,
+    _In_ BOOLEAN RemoveEmptyCacheEntries,
+    _In_ BOOLEAN DereferenceOpenedEntries)
 {
     PCM_KEY_HASH Entry;
     PCM_KEY_CONTROL_BLOCK CachedKcb;
@@ -2353,6 +2349,9 @@ CmpEnumerateOpenSubKeys(
     ULONG SubKeys = 0;
 
     DPRINT("CmpEnumerateOpenSubKeys() called\n");
+
+    /* Ensure the registry is locked exclusively for the calling thread */
+    CMP_ASSERT_EXCLUSIVE_REGISTRY_LOCK();
 
     /* The root key is the only referenced key. There are no referenced sub keys. */
     if (RootKcb->RefCount == 1)
@@ -2401,9 +2400,6 @@ CmpEnumerateOpenSubKeys(
                         if (DereferenceOpenedEntries &&
                             !(CachedKcb->ExtFlags & CM_KCB_READ_ONLY_KEY))
                         {
-                            /* Registry needs to be locked down */
-                            CMP_ASSERT_EXCLUSIVE_REGISTRY_LOCK();
-
                             /* Flush any notifications */
                             CmpFlushNotifiesOnKeyBodyList(CachedKcb, TRUE); // Lock is already held
 

@@ -4,7 +4,7 @@
  * FILE:            ntoskrnl/po/power.c
  * PURPOSE:         Power Manager
  * PROGRAMMERS:     Casper S. Hornstrup (chorns@users.sourceforge.net)
- *                  Herv� Poussineau (hpoussin@reactos.com)
+ *                  Hervé Poussineau (hpoussin@reactos.com)
  */
 
 /* INCLUDES ******************************************************************/
@@ -410,7 +410,7 @@ PoInitSystem(IN ULONG BootPhase)
                                                 (PVOID)&GUID_DEVICE_SYS_BUTTON,
                                                 IopRootDeviceNode->PhysicalDeviceObject->DriverObject,
                                                 PopAddRemoveSysCapsCallback,
-                                                NULL,
+                                                (PVOID)(ULONG_PTR)PolicyDeviceSystemButton,
                                                 &NotificationEntry);
         if (!NT_SUCCESS(Status))
             return FALSE;
@@ -421,8 +421,20 @@ PoInitSystem(IN ULONG BootPhase)
                                                 (PVOID)&GUID_DEVICE_LID,
                                                 IopRootDeviceNode->PhysicalDeviceObject->DriverObject,
                                                 PopAddRemoveSysCapsCallback,
-                                                NULL,
+                                                (PVOID)(ULONG_PTR)PolicyDeviceSystemButton,
                                                 &NotificationEntry);
+        if (!NT_SUCCESS(Status))
+            return FALSE;
+
+        /* Register battery notification */
+        Status = IoRegisterPlugPlayNotification(EventCategoryDeviceInterfaceChange,
+                                                PNPNOTIFY_DEVICE_INTERFACE_INCLUDE_EXISTING_INTERFACES,
+                                                (PVOID)&GUID_DEVICE_BATTERY,
+                                                IopRootDeviceNode->PhysicalDeviceObject->DriverObject,
+                                                PopAddRemoveSysCapsCallback,
+                                                (PVOID)(ULONG_PTR)PolicyDeviceBattery,
+                                                &NotificationEntry);
+
         return NT_SUCCESS(Status);
     }
 
@@ -821,10 +833,13 @@ NtPowerInformation(IN POWER_INFORMATION_LEVEL PowerInformationLevel,
 
             _SEH2_TRY
             {
-                /* Just zero the struct (and thus set BatteryState->BatteryPresent = FALSE) */
-                RtlZeroMemory(BatteryState, sizeof(SYSTEM_BATTERY_STATE));
+                /* Just zero the struct */
+                RtlZeroMemory(BatteryState, sizeof(*BatteryState));
                 BatteryState->EstimatedTime = MAXULONG;
+                BatteryState->BatteryPresent = PopCapabilities.SystemBatteriesPresent;
 //                BatteryState->AcOnLine = TRUE;
+//                BatteryState->MaxCapacity = ;
+//                BatteryState->RemainingCapacity = ;
 
                 Status = STATUS_SUCCESS;
             }

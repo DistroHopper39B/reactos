@@ -65,7 +65,6 @@
 #include "uxtheme.h"
 
 #include "wine/debug.h"
-#include "wine/unicode.h"
 
 /******************************************************************************
  * Data structures
@@ -177,9 +176,9 @@ WINE_DEFAULT_DEBUG_CHANNEL(propsheet);
 
 static WCHAR *heap_strdupW(const WCHAR *str)
 {
-    int len = strlenW(str) + 1;
+    int len = lstrlenW(str) + 1;
     WCHAR *ret = Alloc(len * sizeof(WCHAR));
-    strcpyW(ret, str);
+    lstrcpyW(ret, str);
     return ret;
 }
 
@@ -2021,6 +2020,13 @@ static BOOL PROPSHEET_SetCurSel(HWND hwndDlg,
     if (!psInfo->proppage[index].hwndPage) {
       if(!PROPSHEET_CreatePage(hwndDlg, index, psInfo, ppshpage)) {
         PROPSHEET_RemovePage(hwndDlg, index, NULL);
+
+        if (!psInfo->isModeless)
+        {
+            DestroyWindow(hwndDlg);
+            return FALSE;
+        }
+
         if(index >= psInfo->nPages)
           index--;
         if(index < 0)
@@ -2150,8 +2156,8 @@ static void PROPSHEET_SetTitleW(HWND hwndDlg, DWORD dwStyle, LPCWSTR lpszText)
   if (dwStyle & PSH_PROPTITLE)
   {
     WCHAR* dest;
-    int lentitle = strlenW(lpszText);
-    int lenprop  = strlenW(psInfo->strPropertiesFor);
+    int lentitle = lstrlenW(lpszText);
+    int lenprop  = lstrlenW(psInfo->strPropertiesFor);
 
     dest = Alloc( (lentitle + lenprop + 1)*sizeof (WCHAR));
     wsprintfW(dest, psInfo->strPropertiesFor, lpszText);
@@ -2787,10 +2793,14 @@ static void PROPSHEET_CleanUp(HWND hwndDlg)
   GlobalFree(psInfo);
 }
 
+#ifdef __REACTOS__
+static BOOL PROPSHEET_IsDialogMessage(HWND hwnd, LPMSG lpMsg);
+#endif
+
 static INT do_loop(const PropSheetInfo *psInfo)
 {
-    MSG msg;
-    INT ret = -1;
+    MSG msg = { 0 };
+    INT ret = 0;
     HWND hwnd = psInfo->hwnd;
     HWND parent = psInfo->ppshheader.hwndParent;
 
@@ -2799,18 +2809,19 @@ static INT do_loop(const PropSheetInfo *psInfo)
         if(ret == -1)
             break;
 
+#ifdef __REACTOS__
+        if (!PROPSHEET_IsDialogMessage(hwnd, &msg))
+#else
         if(!IsDialogMessageW(hwnd, &msg))
+#endif
         {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }
     }
 
-    if(ret == 0)
-    {
+    if(ret == 0 && msg.message)
         PostQuitMessage(msg.wParam);
-        ret = -1;
-    }
 
     if(ret != -1)
         ret = psInfo->result;
@@ -2966,7 +2977,7 @@ static LPWSTR load_string( HINSTANCE instance, LPCWSTR str )
     }
     else
     {
-        int len = (strlenW(str) + 1) * sizeof(WCHAR);
+        int len = (lstrlenW(str) + 1) * sizeof(WCHAR);
         ret = Alloc( len );
         if (ret) memcpy( ret, str, len );
     }

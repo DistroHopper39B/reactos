@@ -7,7 +7,7 @@
  * PURPOSE:     Romanian resource file
  * TRANSLATORS: Copyright 2011-2019 Ștefan Fulea <stefan.fulea@mail.com>
  *              Copyright 2018 George Bișoc <george.bisoc@reactos.org>
- *              Copyright 2022 Andrei Miloiu <miloiuandrei@gmail.com>
+ *              Copyright 2022-2024 Andrei Miloiu <miloiuandrei@gmail.com>
  */
 
 #pragma once
@@ -1366,7 +1366,7 @@ static MUI_ENTRY roROInstallDirectoryEntries[] =
     {
         6,
         9,
-        "Aici vor fi amplasate fi\272ierele sistemului ReactOS:",
+        "Alege\376i un director \356n care va fi instalat ReactOS:",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -1546,14 +1546,7 @@ static MUI_ENTRY roROBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "Programul de instalare nu poate instala modulul de",
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        9,
-        "ini\376ializare a calculatorului pe discul local.",
+        "Instalare modul de ini\376ializare al calculatorului.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2088,7 +2081,7 @@ MUI_ERROR roROErrorEntries[] =
     },
     {
         // ERROR_UPDATE_LOCALESETTINGS,
-        "E\272ec la instituirea sistemului de localizare.\n",
+        "Instalatoprul nu a putut seta loca\376ia sistemului.\n",
         "ENTER = Repornire calculator"
     },
     {
@@ -2099,7 +2092,7 @@ MUI_ERROR roROErrorEntries[] =
     },
     {
         // ERROR_UPDATE_GEOID,
-        "E\272ec la instituirea de geo id.",
+        "Instalatorul nu a putut seta geo id.",
         "ENTER = Repornire calculator"
     },
     {
@@ -2329,7 +2322,7 @@ MUI_STRING roROStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Configura\376ie de tastatur\343 \356n actualizare..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   Date de paginare \356n curs de adaugare \356n registru..."},
+    "   Date de paginare \356n curs de adaugare..."},
     {STRING_DONE,
     "   Terminat!"},
     {STRING_REBOOTCOMPUTER2,

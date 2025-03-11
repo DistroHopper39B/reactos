@@ -14,8 +14,6 @@
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(WINDOWS);
 
-extern ULONG LoaderPagesSpanned;
-
 static const PCSTR MemTypeDesc[] = {
     "ExceptionBlock    ", // ?
     "SystemBlock       ", // ?
@@ -46,11 +44,6 @@ static const PCSTR MemTypeDesc[] = {
 static VOID
 WinLdrInsertDescriptor(IN OUT PLOADER_PARAMETER_BLOCK LoaderBlock,
                        IN PMEMORY_ALLOCATION_DESCRIPTOR NewDescriptor);
-
-extern PFREELDR_MEMORY_DESCRIPTOR BiosMemoryMap;
-extern ULONG BiosMemoryMapEntryCount;
-extern PFN_NUMBER MmLowestPhysicalPage;
-extern PFN_NUMBER MmHighestPhysicalPage;
 
 /* GLOBALS ***************************************************************/
 
@@ -114,7 +107,7 @@ MempSetupPagingForRegion(
           BasePage, PageCount, Type);
 
     /* Make sure we don't map too high */
-    if (BasePage + PageCount > LoaderPagesSpanned) return;
+    if (BasePage + PageCount > MmGetLoaderPagesSpanned()) return;
 
     switch (Type)
     {
@@ -185,7 +178,7 @@ WinLdrSetupMemoryLayout(IN OUT PLOADER_PARAMETER_BLOCK LoaderBlock)
     PPAGE_LOOKUP_TABLE_ITEM MemoryMap;
     ULONG LastPageType;
     //PKTSS Tss;
-    //BOOLEAN Status;
+    BOOLEAN Status;
 
     /* Cleanup heap */
     FrLdrHeapCleanupAll();
@@ -229,15 +222,14 @@ WinLdrSetupMemoryLayout(IN OUT PLOADER_PARAMETER_BLOCK LoaderBlock)
     MemoryMapSizeInPages = (NoEntries * sizeof(PAGE_LOOKUP_TABLE_ITEM) + MM_PAGE_SIZE - 1) / MM_PAGE_SIZE;
 
     TRACE("Got memory map with %d entries\n", NoEntries);
-#if 0
-    // Always contiguously map low 1Mb of memory
-    Status = MempSetupPaging(0, 0x100, FALSE);
+
+    // Always map first page of memory
+    Status = MempSetupPaging(0, 1, FALSE);
     if (!Status)
     {
-        ERR("Error during MempSetupPaging of low 1Mb\n");
+        ERR("Error during MempSetupPaging of first page\n");
         return FALSE;
     }
-#endif
 
     /* Before creating the map, we need to map pages to kernel mode */
     LastPageIndex = 1;
@@ -311,12 +303,16 @@ WinLdrSetupMemoryLayout(IN OUT PLOADER_PARAMETER_BLOCK LoaderBlock)
         MadCount++;
     }
 #endif
+    PFREELDR_MEMORY_DESCRIPTOR BiosMemoryMap;
+    ULONG BiosMemoryMapEntryCount;
+
+    BiosMemoryMapEntryCount = MmGetBiosMemoryMap(&BiosMemoryMap);
 
     /* Now we need to add high descriptors from the bios memory map */
     for (i = 0; i < BiosMemoryMapEntryCount; i++)
     {
         /* Check if its higher than the lookup table */
-        if (BiosMemoryMap->BasePage > MmHighestPhysicalPage)
+        if (BiosMemoryMap->BasePage > MmGetHighestPhysicalPage())
         {
             /* Copy this descriptor */
             MempAddMemoryBlock(LoaderBlock,

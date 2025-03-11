@@ -20,6 +20,7 @@ MUI_SUBFONT LatinFonts[] =
     { L"MS Sans Serif",          L"Tahoma" },
     { L"MS Shell Dlg",           L"Tahoma" },
     { L"MS Shell Dlg 2",         L"Tahoma" },
+    { L"Segoe UI Symbol",        L"Arial" },
     { L"System",                 L"FreeSans" },
     { L"Terminal",               L"Lucida Console" },
     { L"Times",                  L"Times New Roman" },
@@ -51,6 +52,7 @@ MUI_SUBFONT CyrillicFonts[] =
     { L"MS Sans Serif",          L"Tahoma" },
     { L"MS Shell Dlg",           L"Tahoma" },
     { L"MS Shell Dlg 2",         L"Tahoma" },
+    { L"Segoe UI Symbol",        L"Arial" },
     { L"System",                 L"FreeSans" },
     { L"Terminal",               L"Lucida Console" },
     { L"Times",                  L"Times New Roman" },
@@ -82,6 +84,7 @@ MUI_SUBFONT GreekFonts[] =
     { L"MS Sans Serif",          L"Tahoma" },
     { L"MS Shell Dlg",           L"Tahoma" },
     { L"MS Shell Dlg 2",         L"Tahoma" },
+    { L"Segoe UI Symbol",        L"Arial" },
     { L"System",                 L"FreeSans" },
     { L"Terminal",               L"Lucida Console" },
     { L"Times",                  L"Times New Roman" },
@@ -113,6 +116,7 @@ MUI_SUBFONT HebrewFonts[] =
     { L"MS Sans Serif",          L"Tahoma" },
     { L"MS Shell Dlg",           L"Tahoma" },
     { L"MS Shell Dlg 2",         L"Tahoma" },
+    { L"Segoe UI Symbol",        L"Arial" },
     { L"System",                 L"FreeSans" },
     { L"Terminal",               L"Courier New" },
     { L"Times",                  L"Times New Roman" },
@@ -144,7 +148,6 @@ MUI_SUBFONT ChineseSimplifiedFonts[] =
     { L"Courier New Greek,161",  L"Courier New,161" },
     { L"Courier New TUR,162",    L"Courier New,162" },
     { L"Fixedsys",               L"Fixedsys Excelsior 3.01-L2" },
-    { L"Franklin Gothic Medium", L"Droid Sans Fallback" },
     { L"Helv",                   L"MS Sans Serif" },
     { L"Helvetica",              L"Arial" },
     { L"MS Sans Serif",          L"Droid Sans Fallback" },
@@ -154,11 +157,9 @@ MUI_SUBFONT ChineseSimplifiedFonts[] =
     { L"MS UI Gothic",           L"Droid Sans Fallback" },
     { L"MS UI Gothic 2",         L"Droid Sans Fallback" },
     { L"NSimSun",                L"Droid Sans Fallback" },
+    { L"Segoe UI Symbol",        L"Arial" },
     { L"SimHei",                 L"Droid Sans Fallback" },
     { L"SimSun",                 L"Droid Sans Fallback" },
-    { L"Source Sans Pro",        L"Droid Sans Fallback" },
-    { L"System",                 L"Droid Sans Fallback" },
-    { L"Tahoma",                 L"Droid Sans Fallback" },
     { L"Terminal",               L"Lucida Console" },
     { L"Times",                  L"Times New Roman" },
     { L"Times New Roman Baltic,186",   L"Times New Roman,186" },
@@ -197,7 +198,6 @@ MUI_SUBFONT ChineseTraditionalFonts[] =
     { L"DLCMingBold",            L"Droid Sans Fallback" },
     { L"DLCMingMedium",          L"Droid Sans Fallback" },
     { L"Fixedsys",               L"Fixedsys Excelsior 3.01-L2" },
-    { L"Franklin Gothic Medium", L"Droid Sans Fallback" },
     { L"Helv",                   L"MS Sans Serif" },
     { L"Helvetica",              L"Arial" },
     { L"MS Sans Serif",          L"Droid Sans Fallback" },
@@ -208,9 +208,7 @@ MUI_SUBFONT ChineseTraditionalFonts[] =
     { L"Ming Light",             L"Droid Sans Fallback" },
     { L"MingLiU",                L"Droid Sans Fallback" },
     { L"PMingLiU",               L"Droid Sans Fallback" },
-    { L"Source Sans Pro",        L"Droid Sans Fallback" },
-    { L"System",                 L"Droid Sans Fallback" },
-    { L"Tahoma",                 L"Droid Sans Fallback" },
+    { L"Segoe UI Symbol",        L"Arial" },
     { L"Terminal",               L"Lucida Console" },
     { L"Times",                  L"Times New Roman" },
     { L"Times New Roman Baltic,186",   L"Times New Roman,186" },
@@ -246,7 +244,6 @@ MUI_SUBFONT JapaneseFonts[] =
     { L"Courier New Greek,161",  L"Courier New,161" },
     { L"Courier New TUR,162",    L"Courier New,162" },
     { L"Fixedsys",               L"Fixedsys Excelsior 3.01-L2" },
-    { L"Franklin Gothic Medium", L"Droid Sans Fallback" },
     { L"Helv",                   L"MS Sans Serif" },
     { L"Helvetica",              L"Arial" },
     { L"MS Gothic",              L"Droid Sans Fallback" },
@@ -258,9 +255,7 @@ MUI_SUBFONT JapaneseFonts[] =
     { L"MS Shell Dlg 2",         L"Droid Sans Fallback" },
     { L"MS UI Gothic",           L"Droid Sans Fallback" },
     { L"MS UI Gothic 2",         L"Droid Sans Fallback" },
-    { L"Source Sans Pro",        L"Droid Sans Fallback" },
-    { L"System",                 L"Droid Sans Fallback" },
-    { L"Tahoma",                 L"Droid Sans Fallback" },
+    { L"Segoe UI Symbol",        L"Arial" },
     { L"Terminal",               L"Lucida Console" },
     { L"Times",                  L"Times New Roman" },
     { L"Times New Roman Baltic,186",   L"Times New Roman,186" },
@@ -280,10 +275,12 @@ MUI_SUBFONT JapaneseFonts[] =
 
 WCHAR KF_LocalName0[] = {0xBC14, 0xD0D5, 0};            /* Batang */
 WCHAR KF_LocalName1[] = {0xBC14, 0xD0D5, 0xCCB4, 0};    /* BatangChe */
-WCHAR KF_LocalName2[] = {0xAD81, 0xC11C, 0};            /* Gungsuh */
-WCHAR KF_LocalName3[] = {0xAD81, 0xC11C, 0xCCB4, 0};    /* GungsuhChe */
+WCHAR KF_LocalName2[] = {0xB3CB, 0xC6C0, 0};            /* Dotum */
+WCHAR KF_LocalName3[] = {0xB3CB, 0xC6C0, 0xCCB4, 0};    /* DotumChe */
 WCHAR KF_LocalName4[] = {0xAD74, 0xB9BC, 0};            /* Gulim */
 WCHAR KF_LocalName5[] = {0xAD74, 0xB9BC, 0xCCB4, 0};    /* GulimChe */
+WCHAR KF_LocalName6[] = {0xAD81, 0xC11C, 0};            /* Gungsuh */
+WCHAR KF_LocalName7[] = {0xAD81, 0xC11C, 0xCCB4, 0};    /* GungsuhChe */
 MUI_SUBFONT KoreanFonts[] =
 {
     { L"Arial Baltic,186",       L"Arial,186" },
@@ -299,8 +296,9 @@ MUI_SUBFONT KoreanFonts[] =
     { L"Courier New CYR,204",    L"Courier New,204" },
     { L"Courier New Greek,161",  L"Courier New,161" },
     { L"Courier New TUR,162",    L"Courier New,162" },
+    { L"Dotum",                  L"Droid Sans Fallback" },
+    { L"DotumChe",               L"Droid Sans Fallback" },
     { L"Fixedsys",               L"Fixedsys Excelsior 3.01-L2" },
-    { L"Franklin Gothic Medium", L"Droid Sans Fallback" },
     { L"Gulim",                  L"Droid Sans Fallback" },
     { L"GulimChe",               L"Droid Sans Fallback" },
     { L"Gungsuh",                L"Droid Sans Fallback" },
@@ -312,9 +310,7 @@ MUI_SUBFONT KoreanFonts[] =
     { L"MS Shell Dlg 2",         L"Droid Sans Fallback" },
     { L"MS UI Gothic",           L"Droid Sans Fallback" },
     { L"MS UI Gothic 2",         L"Droid Sans Fallback" },
-    { L"Source Sans Pro",        L"Droid Sans Fallback" },
-    { L"System",                 L"Droid Sans Fallback" },
-    { L"Tahoma",                 L"Droid Sans Fallback" },
+    { L"Segoe UI Symbol",        L"Arial" },
     { L"Terminal",               L"Lucida Console" },
     { L"Times",                  L"Times New Roman" },
     { L"Times New Roman Baltic,186",   L"Times New Roman,186" },
@@ -331,6 +327,8 @@ MUI_SUBFONT KoreanFonts[] =
     { KF_LocalName3,             L"Droid Sans Fallback" },
     { KF_LocalName4,             L"Droid Sans Fallback" },
     { KF_LocalName5,             L"Droid Sans Fallback" },
+    { KF_LocalName6,             L"Droid Sans Fallback" },
+    { KF_LocalName7,             L"Droid Sans Fallback" },
     { NULL, NULL }
 };
 
@@ -349,6 +347,7 @@ MUI_SUBFONT UnicodeFonts[] =
     { L"Courier New TUR,162",    L"Courier New,162" },
     { L"Fixedsys",               L"Fixedsys Excelsior 3.01-L2" },
     { L"Helvetica",              L"Arial" },
+    { L"Segoe UI Symbol",        L"Arial" },
     { L"System",                 L"FreeSans" },
     { L"Terminal",               L"Courier New" },
     { L"Times",                  L"Times New Roman" },
@@ -382,6 +381,7 @@ MUI_SUBFONT HindiFonts[] =
     { L"MS Shell Dlg",           L"FreeSans" },
     { L"MS Shell Dlg 2",         L"FreeSans" },
     { L"Palatino Linotype",      L"FreeSans" },
+    { L"Segoe UI Symbol",        L"Arial" },
     { L"System",                 L"FreeSans" },
     { L"Tahoma",                 L"FreeSans" },
     { L"Terminal",               L"Lucida Console" },

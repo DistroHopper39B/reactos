@@ -549,7 +549,7 @@ list(APPEND SOURCE_MSVCRT
 #    _mbsncat_s_l
 #    _mbsnccnt.c
 #    _mbsnccnt_l
-#    _mbsncmp.c
+    _mbsncmp.c
 #    _mbsncmp_l
 #    _mbsncoll.c
 #    _mbsncoll_l
@@ -585,7 +585,7 @@ list(APPEND SOURCE_MSVCRT
 #    _mbsspn_l
 #    _mbsspnp.c
 #    _mbsspnp_l
-#    _mbsstr.c
+    _mbsstr.c
 #    _mbsstr_l
 #    _mbstok.c
 #    _mbstok_l
@@ -1137,7 +1137,7 @@ list(APPEND SOURCE_MSVCRT
 #    qsort_s
 #    raise.c
 #    rand.c
-#    rand_s.c
+    rand_s.c
 #    realloc.c
 #    remove.c
 #    rename.c

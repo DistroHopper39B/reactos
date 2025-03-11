@@ -103,7 +103,7 @@ extern BOOLEAN ExCmosClockIsSane;
 extern USHORT KeProcessorArchitecture;
 extern USHORT KeProcessorLevel;
 extern USHORT KeProcessorRevision;
-extern ULONG KeFeatureBits;
+extern ULONG64 KeFeatureBits;
 extern KNODE KiNode0;
 extern PKNODE KeNodeBlock[1];
 extern UCHAR KeNumberNodes;
@@ -137,8 +137,7 @@ extern LIST_ENTRY KiProcessInSwapListHead, KiProcessOutSwapListHead;
 extern LIST_ENTRY KiStackInSwapListHead;
 extern KEVENT KiSwapEvent;
 extern PKPRCB KiProcessorBlock[];
-extern ULONG KiMask32Array[MAXIMUM_PRIORITY];
-extern ULONG_PTR KiIdleSummary;
+extern KAFFINITY KiIdleSummary;
 extern PVOID KeUserApcDispatcher;
 extern PVOID KeUserCallbackDispatcher;
 extern PVOID KeUserExceptionDispatcher;
@@ -156,8 +155,7 @@ extern VOID __cdecl KiInterruptTemplate(VOID);
 
 /* MACROS *************************************************************************/
 
-#define AFFINITY_MASK(Id) KiMask32Array[Id]
-#define PRIORITY_MASK(Id) KiMask32Array[Id]
+#define PRIORITY_MASK(Priority) (1UL << (Priority))
 
 /* Tells us if the Timer or Event is a Syncronization or Notification Object */
 #define TIMER_OR_EVENT_TYPE 0x7L
@@ -381,7 +379,7 @@ UCHAR
 NTAPI
 KeFindNextRightSetAffinity(
     IN UCHAR Number,
-    IN ULONG Set
+    IN KAFFINITY Set
 );
 
 VOID
@@ -885,21 +883,6 @@ KiContinue(
     IN PKTRAP_FRAME TrapFrame
 );
 
-DECLSPEC_NORETURN
-VOID
-FASTCALL
-KiServiceExit(
-    IN PKTRAP_FRAME TrapFrame,
-    IN NTSTATUS Status
-);
-
-DECLSPEC_NORETURN
-VOID
-FASTCALL
-KiServiceExit2(
-    IN PKTRAP_FRAME TrapFrame
-);
-
 #ifndef _M_AMD64
 VOID
 FASTCALL
@@ -984,6 +967,16 @@ VOID
 NTAPI
 KiInitMachineDependent(VOID);
 
+VOID
+NTAPI
+KxFreezeExecution(
+    VOID);
+
+VOID
+NTAPI
+KxThawExecution(
+    VOID);
+
 BOOLEAN
 NTAPI
 KeFreezeExecution(IN PKTRAP_FRAME TrapFrame,
@@ -992,6 +985,11 @@ KeFreezeExecution(IN PKTRAP_FRAME TrapFrame,
 VOID
 NTAPI
 KeThawExecution(IN BOOLEAN Enable);
+
+KCONTINUE_STATUS
+NTAPI
+KxSwitchKdProcessor(
+    _In_ ULONG ProcessorIndex);
 
 _IRQL_requires_min_(DISPATCH_LEVEL)
 _Acquires_nonreentrant_lock_(*LockHandle->Lock)
@@ -1026,9 +1024,14 @@ KiSaveProcessorControlState(
 VOID
 NTAPI
 KiSaveProcessorState(
-    IN PKTRAP_FRAME TrapFrame,
-    IN PKEXCEPTION_FRAME ExceptionFrame
-);
+    _In_ PKTRAP_FRAME TrapFrame,
+    _In_ PKEXCEPTION_FRAME ExceptionFrame);
+
+VOID
+NTAPI
+KiRestoreProcessorState(
+    _Out_ PKTRAP_FRAME TrapFrame,
+    _Out_ PKEXCEPTION_FRAME ExceptionFrame);
 
 VOID
 FASTCALL
@@ -1058,14 +1061,14 @@ KiSystemFatalException(
 
 PVOID
 NTAPI
-KiPcToFileHeader(IN PVOID Eip,
+KiPcToFileHeader(IN PVOID Pc,
                  OUT PLDR_DATA_TABLE_ENTRY *LdrEntry,
                  IN BOOLEAN DriversOnly,
                  OUT PBOOLEAN InKernel);
 
 PVOID
 NTAPI
-KiRosPcToUserFileHeader(IN PVOID Eip,
+KiRosPcToUserFileHeader(IN PVOID Pc,
                         OUT PLDR_DATA_TABLE_ENTRY *LdrEntry);
 
 PCHAR

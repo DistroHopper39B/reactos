@@ -1,12 +1,16 @@
 
 add_subdirectory(load_notifications)
+add_subdirectory(empty_dll)
 
 include_directories($<TARGET_FILE_DIR:load_notifications>)
+include_directories($<TARGET_FILE_DIR:empty_dll>)
 include_directories(${REACTOS_SOURCE_DIR}/ntoskrnl/include)
 spec2def(ntdll_apitest.exe ntdll_apitest.spec)
 
 list(APPEND SOURCE
+    DllLoadNotification.c
     LdrEnumResources.c
+    LdrLoadDll.c
     load_notifications.c
     locale.c
     NtAcceptConnectPort.c
@@ -40,6 +44,7 @@ list(APPEND SOURCE
     NtQueryInformationThread.c
     NtQueryInformationToken.c
     NtQueryKey.c
+    NtQueryObject.c
     NtQueryOpenSubKeys.c
     NtQuerySystemEnvironmentValue.c
     NtQuerySystemInformation.c
@@ -79,6 +84,7 @@ list(APPEND SOURCE
     RtlGetLengthWithoutTrailingPathSeperators.c
     RtlGetLongestNtPathLength.c
     RtlGetNtProductType.c
+    RtlGetProcessHeaps.c
     RtlGetUnloadEventTrace.c
     RtlHandle.c
     RtlImageDirectoryEntryToData.c
@@ -115,6 +121,7 @@ list(APPEND PCH_SKIP_SOURCE
     testlist.c)
 
 add_rc_deps(testdata.rc ${CMAKE_CURRENT_BINARY_DIR}/load_notifications/load_notifications.dll)
+add_rc_deps(testdata.rc ${CMAKE_CURRENT_BINARY_DIR}/empty_dll/empty_dll.dll)
 
 add_executable(ntdll_apitest
     ${SOURCE}
@@ -132,13 +139,10 @@ target_link_libraries(ntdll_apitest rtl_test_lib wine uuid ${PSEH_LIB})
 set_module_type(ntdll_apitest win32cui)
 add_importlibs(ntdll_apitest msvcrt advapi32 kernel32 ntdll)
 add_pch(ntdll_apitest precomp.h "${PCH_SKIP_SOURCE}")
-add_dependencies(ntdll_apitest load_notifications)
+add_dependencies(ntdll_apitest load_notifications empty_dll)
 
 if(NOT MSVC)
-    set_source_files_properties(RtlGetFullPathName_UstrEx.c PROPERTIES COMPILE_FLAGS "-Wno-format")
-
-    # Avoid "universal character names are only valid in C++ and C99" error.
-    set_property(TARGET ntdll_apitest PROPERTY C_STANDARD 99)
+    set_source_files_properties(RtlGetFullPathName_UstrEx.c PROPERTIES COMPILE_OPTIONS "-Wno-format")
 endif()
 
 add_rostests_file(TARGET ntdll_apitest)

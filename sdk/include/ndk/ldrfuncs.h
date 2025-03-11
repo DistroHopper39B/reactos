@@ -28,6 +28,10 @@ Author:
 #include <ntimage.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //
 // Resource Functions
 //
@@ -58,7 +62,6 @@ LdrEnumResources(
     _Inout_ ULONG *ResourceCount,
     _Out_writes_to_(*ResourceCount,*ResourceCount) LDR_ENUM_RESOURCE_INFO *Resources
 );
-
 
 NTSTATUS
 NTAPI
@@ -116,7 +119,7 @@ NTSTATUS
 NTAPI
 LdrUnlockLoaderLock(
     _In_ ULONG Flags,
-    _In_opt_ ULONG Cookie
+    _In_opt_ ULONG_PTR Cookie
 );
 
 BOOLEAN
@@ -143,5 +146,35 @@ LdrEnumerateLoadedModules(
     _In_ PLDR_ENUM_CALLBACK EnumProc,
     _In_opt_ PVOID Context
 );
+
+#if (_WIN32_WINNT >= _WIN32_WINNT_VISTA) || (DLL_EXPORT_VERSION >= _WIN32_WINNT_VISTA)
+
+NTSTATUS
+NTAPI
+LdrRegisterDllNotification(
+    _In_ ULONG Flags,
+    _In_ PLDR_DLL_NOTIFICATION_FUNCTION NotificationFunction,
+    _In_opt_ PVOID Context,
+    _Out_ PVOID* Cookie);
+
+NTSTATUS
+NTAPI
+LdrUnregisterDllNotification(
+    _In_ PVOID Cookie);
+
+#endif /* (_WIN32_WINNT >= _WIN32_WINNT_VISTA) || (DLL_EXPORT_VERSION >= _WIN32_WINNT_VISTA) */
+
+#ifdef NTOS_MODE_USER
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlDllShutdownInProgress(
+    VOID
+);
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

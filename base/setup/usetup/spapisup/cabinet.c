@@ -8,7 +8,9 @@
  *   CSH 15/08-2003 Created
  */
 
+#ifndef _USETUP_PCH_
 #include "usetup.h"
+#endif
 
 #define Z_SOLO
 #include <zlib.h>
@@ -136,6 +138,8 @@ typedef struct _CFDATA
 
 /* FUNCTIONS ****************************************************************/
 
+#if !defined(_INC_MALLOC) && !defined(_INC_STDLIB)
+
 /* Needed by zlib, but we don't want the dependency on the CRT */
 void *__cdecl
 malloc(size_t size)
@@ -154,6 +158,8 @@ calloc(size_t nmemb, size_t size)
 {
     return (void *)RtlAllocateHeap(ProcessHeap, HEAP_ZERO_MEMORY, nmemb * size);
 }
+
+#endif // !_INC_MALLOC && !_INC_STDLIB
 
 
 /* Codecs */
@@ -1098,6 +1104,48 @@ CabinetExtractFile(
             }
         }
 
+        if (!ConvertDosDateTimeToFileTime(Search->File->FileDate,
+                                          Search->File->FileTime,
+                                          &FileTime))
+        {
+            DPRINT1("DosDateTimeToFileTime() failed\n");
+            Status = CAB_STATUS_CANNOT_WRITE;
+            goto CloseDestFile;
+        }
+
+        NtStatus = NtQueryInformationFile(DestFile,
+                                          &IoStatusBlock,
+                                          &FileBasic,
+                                          sizeof(FILE_BASIC_INFORMATION),
+                                          FileBasicInformation);
+        if (!NT_SUCCESS(NtStatus))
+        {
+            DPRINT("NtQueryInformationFile() failed (%x)\n", NtStatus);
+        }
+        else
+        {
+            memcpy(&FileBasic.LastAccessTime, &FileTime, sizeof(FILETIME));
+
+            NtStatus = NtSetInformationFile(DestFile,
+                                            &IoStatusBlock,
+                                            &FileBasic,
+                                            sizeof(FILE_BASIC_INFORMATION),
+                                            FileBasicInformation);
+            if (!NT_SUCCESS(NtStatus))
+            {
+                DPRINT("NtSetInformationFile() failed (%x)\n", NtStatus);
+            }
+        }
+
+        SetAttributesOnFile(Search->File, DestFile);
+
+        /* Nothing more to do for 0 sized files */
+        if (Search->File->FileSize == 0)
+        {
+            Status = CAB_STATUS_SUCCESS;
+            goto CloseDestFile;
+        }
+
         MaxDestFileSize.QuadPart = Search->File->FileSize;
         NtStatus = NtCreateSection(&DestFileSection,
                                    SECTION_ALL_ACCESS,
@@ -1133,40 +1181,6 @@ CabinetExtractFile(
         }
 
         CurrentDestBuffer = DestFileBuffer;
-        if (!ConvertDosDateTimeToFileTime(Search->File->FileDate,
-                                          Search->File->FileTime,
-                                          &FileTime))
-        {
-            DPRINT1("DosDateTimeToFileTime() failed\n");
-            Status = CAB_STATUS_CANNOT_WRITE;
-            goto UnmapDestFile;
-        }
-
-        NtStatus = NtQueryInformationFile(DestFile,
-                                          &IoStatusBlock,
-                                          &FileBasic,
-                                          sizeof(FILE_BASIC_INFORMATION),
-                                          FileBasicInformation);
-        if (!NT_SUCCESS(NtStatus))
-        {
-            DPRINT("NtQueryInformationFile() failed (%x)\n", NtStatus);
-        }
-        else
-        {
-            memcpy(&FileBasic.LastAccessTime, &FileTime, sizeof(FILETIME));
-
-            NtStatus = NtSetInformationFile(DestFile,
-                                            &IoStatusBlock,
-                                            &FileBasic,
-                                            sizeof(FILE_BASIC_INFORMATION),
-                                            FileBasicInformation);
-            if (!NT_SUCCESS(NtStatus))
-            {
-                DPRINT("NtSetInformationFile() failed (%x)\n", NtStatus);
-            }
-        }
-
-        SetAttributesOnFile(Search->File, DestFile);
     }
 
     /* Call extract event handler */
@@ -1246,7 +1260,8 @@ CabinetExtractFile(
             DPRINT("Cannot uncompress block\n");
             if (Status == CS_NOMEMORY)
                 Status = CAB_STATUS_NOMEMORY;
-            Status = CAB_STATUS_INVALID_CAB;
+            else
+                Status = CAB_STATUS_INVALID_CAB;
             goto UnmapDestFile;
         }
 

@@ -13,6 +13,54 @@
 
 using namespace Gdiplus;
 
+HICON g_hDefaultPackageIcon = NULL;
+static int g_DefaultPackageIconILIdx = I_IMAGENONE;
+UINT g_IconSize = 0;
+
+// **** Menu helpers ****
+
+BOOL
+DeleteMenuEx(
+    _In_ HMENU hMenu,
+    _In_ UINT  uPosition,
+    _In_ UINT  uFlags)
+{
+    INT pos;
+    MENUITEMINFOW mii = { sizeof(mii), MIIM_FTYPE, 0 };
+    bool bIsValidItem1, bIsValidItem2;
+    bool bIsSep1, bIsSep2;
+
+    if (uFlags & MF_BYPOSITION)
+        pos = (INT)uPosition;
+    else
+        pos = ::GetMenuPosFromID(hMenu, uPosition);
+    if (pos < 0)
+        return FALSE;
+
+    bIsValidItem1 = ((pos > 0) && ::GetMenuItemInfoW(hMenu, pos - 1, TRUE, &mii));
+    bIsSep1 = bIsValidItem1 && !!(mii.fType & MFT_SEPARATOR);
+
+    bIsValidItem2 = ::GetMenuItemInfoW(hMenu, pos + 1, TRUE, &mii);
+    bIsSep2 = bIsValidItem2 && !!(mii.fType & MFT_SEPARATOR);
+
+    if (bIsSep1 && !bIsSep2 && !bIsValidItem2)
+        pos = pos - 1; // Delete separator only if pos+1 has no item
+    else if (!bIsSep1 && bIsSep2 && !bIsValidItem1)
+        pos = pos + 1; // Delete separator only if pos-1 has no item
+    else if (bIsSep1 && bIsSep2)
+        pos = pos + 1;
+    else
+        pos = -1;
+
+    // Delete one of the separators if necessary
+    if (pos != -1)
+        ::DeleteMenu(hMenu, pos, MF_BYPOSITION);
+
+    // Finally, delete the menu item itself.
+    return ::DeleteMenu(hMenu, uPosition, uFlags);
+}
+// **** Menu helpers ****
+
 // **** CMainToolbar ****
 
 VOID
@@ -146,26 +194,28 @@ CMainToolbar::Create(HWND hwndParent)
 
     AddButtons(_countof(Buttons), Buttons);
 
-    /* Remember ideal width to use as a max width of buttons */
-    SIZE size;
-    GetIdealSize(FALSE, &size);
-    m_dButtonsWidthMax = size.cx;
+    /* Remember the ideal width to use as a max width of buttons */
+    UpdateMaxButtonsWidth();
 
     return m_hWnd;
 }
 
-VOID
-CMainToolbar::HideButtonCaption()
+void
+CMainToolbar::ShowButtonCaption(bool bShow)
 {
     DWORD dCurrentExStyle = (DWORD)SendMessageW(TB_GETEXTENDEDSTYLE, 0, 0);
-    SendMessageW(TB_SETEXTENDEDSTYLE, 0, dCurrentExStyle | TBSTYLE_EX_MIXEDBUTTONS);
+    if (bShow)
+        SendMessageW(TB_SETEXTENDEDSTYLE, 0, dCurrentExStyle & ~TBSTYLE_EX_MIXEDBUTTONS);
+    else
+        SendMessageW(TB_SETEXTENDEDSTYLE, 0, dCurrentExStyle | TBSTYLE_EX_MIXEDBUTTONS);
 }
 
-VOID
-CMainToolbar::ShowButtonCaption()
+void
+CMainToolbar::UpdateMaxButtonsWidth()
 {
-    DWORD dCurrentExStyle = (DWORD)SendMessageW(TB_GETEXTENDEDSTYLE, 0, 0);
-    SendMessageW(TB_SETEXTENDEDSTYLE, 0, dCurrentExStyle & ~TBSTYLE_EX_MIXEDBUTTONS);
+    SIZE size;
+    GetIdealSize(FALSE, &size);
+    m_dButtonsWidthMax = size.cx;
 }
 
 DWORD
@@ -263,21 +313,6 @@ CAppRichEdit::InsertTextWithString(UINT StringID, const CStringW &Text, DWORD Te
     {
         LoadAndInsertText(StringID, Text, TextFlags);
     }
-}
-
-VOID
-CAppRichEdit::SetWelcomeText()
-{
-    CStringW szText;
-
-    szText.LoadStringW(IDS_WELCOME_TITLE);
-    SetText(szText, CFE_BOLD);
-
-    szText.LoadStringW(IDS_WELCOME_TEXT);
-    InsertText(szText, 0);
-
-    szText.LoadStringW(IDS_WELCOME_URL);
-    InsertText(szText, CFM_LINK);
 }
 // **** CAppRichEdit ****
 
@@ -789,6 +824,11 @@ CAppInfoDisplay::ProcessWindowMessage(
             }
             break;
         }
+        case WM_SYSCOLORCHANGE:
+        {
+            RichEdit->SendMessageW(EM_SETBKGNDCOLOR, 0, GetSysColor(COLOR_BTNFACE));
+            break;
+        }
     }
 
     return FALSE;
@@ -916,27 +956,59 @@ CAppInfoDisplay::Create(HWND hwndParent)
 }
 
 VOID
-CAppInfoDisplay::ShowAppInfo(CAppInfo *Info)
+CAppInfoDisplay::ShowAppInfo(CAppInfo &Info, bool OnlyUpdateText)
 {
-    CStringW ScrnshotLocation;
-    if (Info->RetrieveScreenshot(ScrnshotLocation))
+    if (!OnlyUpdateText)
     {
-        ScrnshotPrev->DisplayImage(ScrnshotLocation);
+        CStringW ScrnshotLocation;
+        if (Info.RetrieveScreenshot(ScrnshotLocation))
+        {
+            ScrnshotPrev->DisplayImage(ScrnshotLocation);
+        }
+        else
+        {
+            ScrnshotPrev->DisplayEmpty();
+        }
+    }
+    ResizeChildren();
+    Info.ShowAppInfo(RichEdit);
+}
+
+void
+CAppInfoDisplay::SetWelcomeText(bool bAppwiz)
+{
+    CStringW szText;
+
+    ScrnshotPrev->DisplayEmpty();
+    ResizeChildren();
+
+    // Display the standard banner in normal mode, or
+    // the specific "Add/Remove Programs" in APPWIZ-mode.
+    if (!bAppwiz)
+    {
+        szText.LoadStringW(IDS_WELCOME_TITLE);
+        RichEdit->SetText(szText, CFE_BOLD);
+        RichEdit->InsertText(L"\n\n", 0);
+
+        szText.LoadStringW(IDS_WELCOME_TEXT);
+        RichEdit->InsertText(szText, 0);
+
+        szText.LoadStringW(IDS_WELCOME_URL);
+        RichEdit->InsertText(szText, CFM_LINK);
     }
     else
     {
-        ScrnshotPrev->DisplayEmpty();
-    }
-    ResizeChildren();
-    Info->ShowAppInfo(RichEdit);
-}
+        szText.LoadStringW(IDS_APPWIZ_TITLE);
+        RichEdit->SetText(szText, CFE_BOLD);
+        RichEdit->InsertText(L"\n\n", 0);
 
-VOID
-CAppInfoDisplay::SetWelcomeText()
-{
-    ScrnshotPrev->DisplayEmpty();
-    ResizeChildren();
-    RichEdit->SetWelcomeText();
+        szText.LoadStringW(IDS_APPWIZ_TEXT1);
+        RichEdit->InsertText(szText, 0);
+        RichEdit->InsertText(L"\n", 0);
+
+        szText.LoadStringW(IDS_APPWIZ_TEXT2);
+        RichEdit->InsertText(szText, 0);
+    }
 }
 
 VOID
@@ -970,16 +1042,91 @@ CAppInfoDisplay::~CAppInfoDisplay()
 
 // **** CAppsListView ****
 
+struct CAsyncLoadIcon {
+    CAsyncLoadIcon *pNext;
+    HWND hAppsList;
+    CAppInfo *AppInfo; // Only used to find the item in the list, do not access on background thread
+    UINT TaskId;
+    bool Parse;
+    WCHAR Location[ANYSIZE_ARRAY];
+
+    void Free() { free(this); }
+    static CAsyncLoadIcon* Queue(HWND hAppsList, CAppInfo &AppInfo, bool Parse);
+    static void StartTasks();
+} *g_AsyncIconTasks = NULL;
+static UINT g_AsyncIconTaskId = 0;
+
+static DWORD CALLBACK
+AsyncLoadIconProc(LPVOID Param)
+{
+    for (CAsyncLoadIcon *task = (CAsyncLoadIcon*)Param, *old; task; old->Free())
+    {
+        if (task->TaskId == g_AsyncIconTaskId)
+        {
+            HICON hIcon;
+            HICON *phBigIcon = SettingsInfo.bSmallIcons ? NULL : &hIcon;
+            HICON *phSmallIcon = phBigIcon ? NULL : &hIcon;
+            if (!task->Parse)
+                hIcon = (HICON)LoadImageW(NULL, task->Location, IMAGE_ICON, g_IconSize, g_IconSize, LR_LOADFROMFILE);
+            else if (!ExtractIconExW(task->Location, PathParseIconLocationW(task->Location), phBigIcon, phSmallIcon, 1))
+                hIcon = NULL;
+
+            if (hIcon)
+            {
+                SendMessageW(task->hAppsList, WM_RAPPSLIST_ASYNCICON, (WPARAM)hIcon, (LPARAM)task);
+                DestroyIcon(hIcon);
+            }
+        }
+        old = task;
+        task = task->pNext;
+    }
+    return 0;
+}
+
+CAsyncLoadIcon*
+CAsyncLoadIcon::Queue(HWND hAppsList, CAppInfo &AppInfo, bool Parse)
+{
+    ATLASSERT(GetCurrentThreadId() == GetWindowThreadProcessId(hAppsList, NULL));
+    CStringW szIconPath;
+    if (!AppInfo.RetrieveIcon(szIconPath))
+        return NULL;
+    SIZE_T cbstr = (szIconPath.GetLength() + 1) * sizeof(WCHAR);
+    CAsyncLoadIcon *task = (CAsyncLoadIcon*)malloc(sizeof(CAsyncLoadIcon) + cbstr);
+    if (!task)
+        return NULL;
+    task->hAppsList = hAppsList;
+    task->AppInfo = &AppInfo;
+    task->TaskId = g_AsyncIconTaskId;
+    task->Parse = Parse;
+    CopyMemory(task->Location, szIconPath.GetBuffer(), cbstr);
+    szIconPath.ReleaseBuffer();
+    task->pNext = g_AsyncIconTasks;
+    g_AsyncIconTasks = task;
+    return task;
+}
+
+void
+CAsyncLoadIcon::StartTasks()
+{
+    CAsyncLoadIcon *tasks = g_AsyncIconTasks;
+    g_AsyncIconTasks = NULL;
+    if (HANDLE hThread = CreateThread(NULL, 0, AsyncLoadIconProc, tasks, 0, NULL))
+        CloseHandle(hThread);
+    else
+        AsyncLoadIconProc(tasks); // Insist so we at least free the tasks
+}
+
 CAppsListView::CAppsListView()
 {
+    m_hImageListView = 0;
 }
 
 CAppsListView::~CAppsListView()
 {
     if (m_hImageListView)
-    {
         ImageList_Destroy(m_hImageListView);
-    }
+    if (g_hDefaultPackageIcon)
+        DestroyIcon(g_hDefaultPackageIcon);
 }
 
 LRESULT
@@ -1000,25 +1147,43 @@ CAppsListView::OnEraseBackground(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &
     return lRes;
 }
 
+LRESULT
+CAppsListView::OnAsyncIcon(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
+{
+    CAsyncLoadIcon *task = (CAsyncLoadIcon*)lParam;
+    bHandled = TRUE;
+    if (task->TaskId == g_AsyncIconTaskId)
+    {
+        LVITEM lvi;
+        LVFINDINFO lvfi;
+        lvfi.flags = LVFI_PARAM;
+        lvfi.lParam = (LPARAM)task->AppInfo;
+        lvi.iItem = ListView_FindItem(m_hWnd, -1, &lvfi);
+        if (lvi.iItem != -1)
+        {
+            lvi.iImage = ImageList_AddIcon(m_hImageListView, (HICON)wParam);
+            if (lvi.iImage != -1)
+            {
+                lvi.mask = LVIF_IMAGE;
+                lvi.iSubItem = 0;
+                ListView_SetItem(m_hWnd, &lvi);
+            }
+        }
+    }
+    return 0;
+}
+
 VOID
 CAppsListView::SetWatermark(const CStringW &Text)
 {
     m_Watermark = Text;
 }
 
-VOID
-CAppsListView::SetCheckboxesVisible(BOOL bIsVisible)
+void
+CAppsListView::ShowCheckboxes(bool bShow)
 {
-    if (bIsVisible)
-    {
-        SetExtendedListViewStyle(LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT);
-    }
-    else
-    {
-        SetExtendedListViewStyle(LVS_EX_FULLROWSELECT);
-    }
-
-    bHasCheckboxes = bIsVisible;
+    SetExtendedListViewStyle((bShow ? LVS_EX_CHECKBOXES : 0) | LVS_EX_FULLROWSELECT);
+    bHasCheckboxes = bShow;
 }
 
 VOID
@@ -1151,13 +1316,8 @@ CAppsListView::Create(HWND hwndParent)
 
     if (hwnd)
     {
-        SetCheckboxesVisible(FALSE);
+        ShowCheckboxes(false);
     }
-
-    m_hImageListView = ImageList_Create(LISTVIEW_ICON_SIZE, LISTVIEW_ICON_SIZE, GetSystemColorDepth() | ILC_MASK, 0, 1);
-
-    SetImageList(m_hImageListView, LVSIL_SMALL);
-    SetImageList(m_hImageListView, LVSIL_NORMAL);
 
 #pragma push_macro("SubclassWindow")
 #undef SubclassWindow
@@ -1215,14 +1375,16 @@ CAppsListView::GetFocusedItemData()
 BOOL
 CAppsListView::SetDisplayAppType(APPLICATION_VIEW_TYPE AppType)
 {
+    ++g_AsyncIconTaskId; // Stop loading icons that are now invalid
     if (!DeleteAllItems())
         return FALSE;
+
     ApplicationViewType = AppType;
-
     bIsAscending = TRUE;
-
     ItemCount = 0;
     CheckedItemCount = 0;
+
+    ListView_Scroll(m_hWnd, 0, 0x7fff * -1); // FIXME: a bug in Wine ComCtl32 where VScroll is not reset after deleting items
 
     // delete old columns
     while (ColumnCount)
@@ -1230,7 +1392,23 @@ CAppsListView::SetDisplayAppType(APPLICATION_VIEW_TYPE AppType)
         DeleteColumn(--ColumnCount);
     }
 
+    if (!g_hDefaultPackageIcon)
+    {
+        ImageList_Destroy(m_hImageListView);
+        g_IconSize = GetSystemMetrics(SettingsInfo.bSmallIcons ? SM_CXSMICON : SM_CXICON);
+        g_IconSize = max(g_IconSize, 8);
+        UINT ilc = GetSystemColorDepth() | ILC_MASK;
+        m_hImageListView = ImageList_Create(g_IconSize, g_IconSize, ilc, 0, 1);
+        SetImageList(m_hImageListView, LVSIL_SMALL);
+        SetImageList(m_hImageListView, LVSIL_NORMAL);
+        g_hDefaultPackageIcon = (HICON)LoadImageW(hInst, MAKEINTRESOURCEW(IDI_MAIN),
+                                                  IMAGE_ICON, g_IconSize, g_IconSize, LR_SHARED);
+    }
     ImageList_RemoveAll(m_hImageListView);
+
+    g_DefaultPackageIconILIdx = ImageList_AddIcon(m_hImageListView, g_hDefaultPackageIcon);
+    if (g_DefaultPackageIconILIdx == -1)
+        g_DefaultPackageIconILIdx = I_IMAGENONE;
 
     // add new columns
     CStringW szText;
@@ -1240,16 +1418,18 @@ CAppsListView::SetDisplayAppType(APPLICATION_VIEW_TYPE AppType)
 
             /* Add columns to ListView */
             szText.LoadStringW(IDS_APP_NAME);
-            AddColumn(ColumnCount++, szText, 250, LVCFMT_LEFT);
+            AddColumn(ColumnCount++, szText, 368, LVCFMT_LEFT);
 
             szText.LoadStringW(IDS_APP_INST_VERSION);
             AddColumn(ColumnCount++, szText, 90, LVCFMT_RIGHT);
 
+#if 0 // This column is not currently useful for installed apps.
             szText.LoadStringW(IDS_APP_DESCRIPTION);
             AddColumn(ColumnCount++, szText, 300, LVCFMT_LEFT);
+#endif
 
-            // disable checkboxes
-            SetCheckboxesVisible(FALSE);
+            // Disable checkboxes
+            ShowCheckboxes(false);
             break;
 
         case AppViewTypeAvailableApps:
@@ -1264,8 +1444,8 @@ CAppsListView::SetDisplayAppType(APPLICATION_VIEW_TYPE AppType)
             szText.LoadStringW(IDS_APP_DESCRIPTION);
             AddColumn(ColumnCount++, szText, 300, LVCFMT_LEFT);
 
-            // enable checkboxes
-            SetCheckboxesVisible(TRUE);
+            // Enable checkboxes
+            ShowCheckboxes(true);
             break;
 
         default:
@@ -1284,32 +1464,20 @@ CAppsListView::SetViewMode(DWORD ViewMode)
 BOOL
 CAppsListView::AddApplication(CAppInfo *AppInfo, BOOL InitialCheckState)
 {
+    if (!AppInfo)
+    {
+        CAsyncLoadIcon::StartTasks();
+        return TRUE;
+    }
+
+    int IconIndex = g_DefaultPackageIconILIdx;
     if (ApplicationViewType == AppViewTypeInstalledApps)
     {
-        /* Load icon from registry */
-        HICON hIcon = NULL;
-        CStringW szIconPath;
-        if (AppInfo->RetrieveIcon(szIconPath))
-        {
-            PathParseIconLocationW((LPWSTR)szIconPath.GetString());
-
-            /* Load only the 1st icon from the application executable,
-             * because all apps provide the executables which have the main icon
-             * as 1st in the index , so we don't need other icons here */
-            hIcon = ExtractIconW(hInst, szIconPath.GetString(), 0);
-        }
-
-        /* Use the default icon if none were found in the file, or if it is not supported (returned 1) */
-        if (!hIcon || (hIcon == (HICON)1))
-        {
-            /* Load default icon */
-            hIcon = LoadIconW(hInst, MAKEINTRESOURCEW(IDI_MAIN));
-        }
-
-        int IconIndex = ImageList_AddIcon(m_hImageListView, hIcon);
-        DestroyIcon(hIcon);
-
         int Index = AddItem(ItemCount, IconIndex, AppInfo->szDisplayName, (LPARAM)AppInfo);
+        if (Index == -1)
+            return FALSE;
+        CAsyncLoadIcon::Queue(m_hWnd, *AppInfo, true);
+
         SetItemText(Index, 1, AppInfo->szDisplayVersion.IsEmpty() ? L"---" : AppInfo->szDisplayVersion);
         SetItemText(Index, 2, AppInfo->szComments.IsEmpty() ? L"---" : AppInfo->szComments);
 
@@ -1318,25 +1486,10 @@ CAppsListView::AddApplication(CAppInfo *AppInfo, BOOL InitialCheckState)
     }
     else if (ApplicationViewType == AppViewTypeAvailableApps)
     {
-        /* Load icon from file */
-        HICON hIcon = NULL;
-        CStringW szIconPath;
-        if (AppInfo->RetrieveIcon(szIconPath))
-        {
-            hIcon = (HICON)LoadImageW(
-                NULL, szIconPath, IMAGE_ICON, LISTVIEW_ICON_SIZE, LISTVIEW_ICON_SIZE, LR_LOADFROMFILE);
-        }
-
-        if (!hIcon)
-        {
-            /* Load default icon */
-            hIcon = LoadIconW(hInst, MAKEINTRESOURCEW(IDI_MAIN));
-        }
-
-        int IconIndex = ImageList_AddIcon(m_hImageListView, hIcon);
-        DestroyIcon(hIcon);
-
         int Index = AddItem(ItemCount, IconIndex, AppInfo->szDisplayName, (LPARAM)AppInfo);
+        if (Index == -1)
+            return FALSE;
+        CAsyncLoadIcon::Queue(m_hWnd, *AppInfo, false);
 
         if (InitialCheckState)
         {
@@ -1398,6 +1551,41 @@ CApplicationView::ProcessWindowMessage(
             bSuccess &= CreateListView();
             bSuccess &= CreateAppInfoDisplay();
 
+            /* APPWIZ-mode: Remove the unneeded menu items and toolbar buttons */
+            if (m_MainWindow->m_bAppwizMode)
+            {
+                HMENU hMenu;
+
+                /* Delete the "Settings" item in the "File" sub-menu */
+                hMenu = ::GetSubMenu(m_MainWindow->GetMenu(), 0);
+                DeleteMenuEx(hMenu, ID_SETTINGS, MF_BYCOMMAND);
+
+                /* Remove the menu items: ID_INSTALL, ID_RESETDB */
+                hMenu = GetMenu();
+                DeleteMenuEx(hMenu, ID_INSTALL, MF_BYCOMMAND);
+                DeleteMenuEx(hMenu, ID_RESETDB, MF_BYCOMMAND);
+
+                /* Remove the toolbar buttons:
+                 * ID_INSTALL, ID_CHECK_ALL, ID_RESETDB
+                 * We only keep:
+                 * ID_UNINSTALL, ID_MODIFY, ID_REFRESH */
+                TBBUTTONINFO info = { sizeof(info), 0 };
+                int index;
+
+                index = m_Toolbar->GetButtonInfo(ID_INSTALL, &info);
+                if (index >= 0) m_Toolbar->DeleteButton(index);
+
+                index = m_Toolbar->GetButtonInfo(ID_CHECK_ALL, &info);
+                if (index >= 0) m_Toolbar->DeleteButton(index);
+
+                index = m_Toolbar->GetButtonInfo(ID_RESETDB, &info);
+                if (index >= 0) m_Toolbar->DeleteButton(index);
+
+                /* Update the ideal width to use as a max width of buttons */
+                m_Toolbar->UpdateMaxButtonsWidth();
+            }
+
+            /* Resize the toolbar */
             m_Toolbar->AutoSize();
 
             RECT rTop;
@@ -1482,15 +1670,6 @@ CApplicationView::ProcessWindowMessage(
                         }
                     }
                     break;
-
-                    case NM_RCLICK:
-                    {
-                        if (((LPNMLISTVIEW)lParam)->iItem != -1)
-                        {
-                            ShowPopupMenuEx(m_hWnd, m_hWnd, 0, ID_INSTALL);
-                        }
-                    }
-                    break;
                 }
             }
             else if (pNotifyHeader->hwndFrom == m_Toolbar->GetWindow())
@@ -1509,7 +1688,7 @@ CApplicationView::ProcessWindowMessage(
         {
             /* Forward WM_SYSCOLORCHANGE to common controls */
             m_ListView->SendMessageW(WM_SYSCOLORCHANGE, wParam, lParam);
-            m_ListView->SendMessageW(EM_SETBKGNDCOLOR, 0, GetSysColor(COLOR_BTNFACE));
+            m_AppsInfo->SendMessageW(WM_SYSCOLORCHANGE, wParam, lParam);
             m_Toolbar->SendMessageW(WM_SYSCOLORCHANGE, wParam, lParam);
             m_ComboBox->SendMessageW(WM_SYSCOLORCHANGE, wParam, lParam);
         }
@@ -1524,6 +1703,30 @@ CApplicationView::ProcessWindowMessage(
         case WM_COMMAND:
         {
             OnCommand(wParam, lParam);
+        }
+        break;
+
+        case WM_CONTEXTMENU:
+        {
+            bool kbd = -1 == (int)(INT_PTR)lParam;
+            if ((HWND)wParam == m_ListView->m_hWnd)
+            {
+                int item = m_ListView->GetNextItem(-1, LVNI_FOCUSED | LVNI_SELECTED);
+                if (item != -1)
+                {
+                    POINT *ppt = NULL, pt;
+                    if (kbd)
+                    {
+                        RECT r;
+                        ListView_GetItemRect((HWND)wParam, item, &r, LVIR_LABEL);
+                        pt.x = r.left + (r.right - r.left) / 2;
+                        pt.y = r.top + (r.bottom - r.top) / 2;
+                        ::ClientToScreen((HWND)wParam, ppt = &pt);
+                    }
+                    ShowPopupMenuEx(m_hWnd, m_hWnd, 0, ID_INSTALL, ppt);
+                    return TRUE;
+                }
+            }
         }
         break;
     }
@@ -1610,6 +1813,22 @@ CApplicationView::SetRedraw(BOOL bRedraw)
 }
 
 void
+CApplicationView::RefreshAvailableItem(PCWSTR PackageName)
+{
+    if (ApplicationViewType != AppViewTypeAvailableApps || !PackageName)
+        return;
+    CAppInfo *pApp;
+    for (UINT i = 0; (pApp = (CAppInfo*)m_ListView->GetItemData(i)) != NULL; ++i)
+    {
+        if (pApp->szIdentifier.CompareNoCase(PackageName) == 0)
+        {
+            RefreshDetailsPane(*pApp, true);
+            break;
+        }
+    }
+}
+
+void
 CApplicationView::SetFocusOnSearchBar()
 {
     m_SearchBar->SetFocus();
@@ -1621,7 +1840,7 @@ CApplicationView::OnSize(HWND hwnd, WPARAM wParam, LPARAM lParam)
     if (wParam == SIZE_MINIMIZED)
         return;
 
-    /* Size tool bar */
+    /* Resize the toolbar */
     m_Toolbar->AutoSize();
 
     /* Automatically hide captions */
@@ -1630,11 +1849,11 @@ CApplicationView::OnSize(HWND hwnd, WPARAM wParam, LPARAM lParam)
 
     if (dSearchbarMargin > dToolbarTreshold)
     {
-        m_Toolbar->ShowButtonCaption();
+        m_Toolbar->ShowButtonCaption(true);
     }
     else if (dSearchbarMargin < dToolbarTreshold)
     {
-        m_Toolbar->HideButtonCaption();
+        m_Toolbar->ShowButtonCaption(false);
     }
 
     RECT r = {0, 0, LOWORD(lParam), HIWORD(lParam)};
@@ -1810,9 +2029,10 @@ CApplicationView::Create(HWND hwndParent)
 {
     RECT r = {0, 0, 0, 0};
 
-    HMENU menu = GetSubMenu(LoadMenuW(hInst, MAKEINTRESOURCEW(IDR_APPLICATIONMENU)), 0);
+    // Pick the "Programs" sub-menu for building the context menu.
+    HMENU hMenu = ::GetSubMenu(m_MainWindow->GetMenu(), 1);
 
-    return CWindowImpl::Create(hwndParent, r, L"", WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 0, menu);
+    return CWindowImpl::Create(hwndParent, r, L"", WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 0, hMenu);
 }
 
 BOOL
@@ -1823,32 +2043,41 @@ CApplicationView::SetDisplayAppType(APPLICATION_VIEW_TYPE AppType)
         return FALSE;
     }
     ApplicationViewType = AppType;
-    m_AppsInfo->SetWelcomeText();
+    m_AppsInfo->SetWelcomeText(m_MainWindow->m_bAppwizMode);
 
     HMENU hMenu = ::GetMenu(m_hWnd);
     switch (AppType)
     {
         case AppViewTypeInstalledApps:
-            EnableMenuItem(hMenu, ID_REGREMOVE, MF_ENABLED);
+        {
             EnableMenuItem(hMenu, ID_INSTALL, MF_GRAYED);
             EnableMenuItem(hMenu, ID_UNINSTALL, MF_ENABLED);
             EnableMenuItem(hMenu, ID_MODIFY, MF_ENABLED);
+            EnableMenuItem(hMenu, ID_REGREMOVE, MF_ENABLED);
 
             m_Toolbar->SendMessageW(TB_ENABLEBUTTON, ID_INSTALL, FALSE);
             m_Toolbar->SendMessageW(TB_ENABLEBUTTON, ID_UNINSTALL, TRUE);
             m_Toolbar->SendMessageW(TB_ENABLEBUTTON, ID_MODIFY, TRUE);
+            m_Toolbar->SendMessageW(TB_ENABLEBUTTON, ID_CHECK_ALL, FALSE);
             break;
+        }
 
         case AppViewTypeAvailableApps:
-            EnableMenuItem(hMenu, ID_REGREMOVE, MF_GRAYED);
+        {
+            // We shouldn't get there in APPWIZ-mode.
+            ATLASSERT(!m_MainWindow->m_bAppwizMode);
+
             EnableMenuItem(hMenu, ID_INSTALL, MF_ENABLED);
             EnableMenuItem(hMenu, ID_UNINSTALL, MF_GRAYED);
             EnableMenuItem(hMenu, ID_MODIFY, MF_GRAYED);
+            EnableMenuItem(hMenu, ID_REGREMOVE, MF_GRAYED);
 
             m_Toolbar->SendMessageW(TB_ENABLEBUTTON, ID_INSTALL, TRUE);
             m_Toolbar->SendMessageW(TB_ENABLEBUTTON, ID_UNINSTALL, FALSE);
             m_Toolbar->SendMessageW(TB_ENABLEBUTTON, ID_MODIFY, FALSE);
+            m_Toolbar->SendMessageW(TB_ENABLEBUTTON, ID_CHECK_ALL, TRUE);
             break;
+        }
     }
     return TRUE;
 }
@@ -1893,6 +2122,47 @@ CApplicationView::AppendTabOrderWindow(int Direction, ATL::CSimpleArray<HWND> &T
     m_AppsInfo->AppendTabOrderWindow(Direction, TabOrderList);
 }
 
+VOID
+CApplicationView::GetRestoreListSelectionData(RESTORELISTSELECTION &Restore)
+{
+    LVITEMW &Item = Restore.Item;
+    Item.mask = LVIF_TEXT|LVIF_STATE;
+    Item.iItem = -1, Item.iSubItem = 0;
+    Item.stateMask = LVIS_FOCUSED|LVIS_SELECTED;
+    Item.pszText = Restore.Name, Item.cchTextMax = _countof(Restore.Name);
+
+    HWND hList = m_ListView ? m_ListView->m_hWnd : NULL;
+    if (hList)
+    {
+        Item.iItem = ListView_GetNextItem(hList, -1, LVNI_FOCUSED);
+        ListView_GetItem(hList, &Item);
+    }
+}
+
+VOID
+CApplicationView::RestoreListSelection(const RESTORELISTSELECTION &Restore)
+{
+    const LVITEMW &Item = Restore.Item;
+    int index = Item.iItem;
+    if (index != -1) // Was there a selected item?
+    {
+        LVFINDINFOW fi;
+        fi.flags = LVFI_STRING;
+        fi.psz = Item.pszText;
+        index = ListView_FindItem(m_ListView->m_hWnd, -1, &fi);
+    }
+    if (index != -1) // Is it still in the list?
+    {
+        ListView_SetItemState(m_ListView->m_hWnd, index, Item.state, Item.stateMask);
+    }
+}
+
+VOID
+CApplicationView::RefreshDetailsPane(CAppInfo &Info, bool OnlyUpdateText)
+{
+    m_AppsInfo->ShowAppInfo(Info, OnlyUpdateText);
+}
+
 // this function is called when a item of listview get focus.
 // CallbackParam is the param passed to listview when adding the item (the one getting focus now).
 VOID
@@ -1901,7 +2171,7 @@ CApplicationView::ItemGetFocus(LPVOID CallbackParam)
     if (CallbackParam)
     {
         CAppInfo *Info = static_cast<CAppInfo *>(CallbackParam);
-        m_AppsInfo->ShowAppInfo(Info);
+        RefreshDetailsPane(*Info);
 
         if (ApplicationViewType == AppViewTypeInstalledApps)
         {

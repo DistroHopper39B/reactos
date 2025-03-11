@@ -130,14 +130,30 @@
 #define STATUS_USER_APC                  ((DWORD)0x000000C0)
 #define STATUS_TIMEOUT                   ((DWORD)0x00000102)
 #define STATUS_PENDING                   ((DWORD)0x00000103)
+#define DBG_EXCEPTION_HANDLED            ((DWORD)0x00010001)
+#define DBG_CONTINUE                     ((DWORD)0x00010002)
 #define STATUS_SEGMENT_NOTIFICATION      ((DWORD)0x40000005)
+#define STATUS_FATAL_APP_EXIT            ((DWORD)0x40000015)
+#define DBG_REPLY_LATER                  ((DWORD)0x40010001)
+#define DBG_TERMINATE_THREAD             ((DWORD)0x40010003)
+#define DBG_TERMINATE_PROCESS            ((DWORD)0x40010004)
+#define DBG_CONTROL_C                    ((DWORD)0x40010005)
+#define DBG_PRINTEXCEPTION_C             ((DWORD)0x40010006)
+#define DBG_RIPEXCEPTION                 ((DWORD)0x40010007)
+#define DBG_CONTROL_BREAK                ((DWORD)0x40010008)
+#define DBG_COMMAND_EXCEPTION            ((DWORD)0x40010009)
+#define DBG_PRINTEXCEPTION_WIDE_C        ((DWORD)0x4001000A)
 #define STATUS_GUARD_PAGE_VIOLATION      ((DWORD)0x80000001)
 #define STATUS_DATATYPE_MISALIGNMENT     ((DWORD)0x80000002)
 #define STATUS_BREAKPOINT                ((DWORD)0x80000003)
 #define STATUS_SINGLE_STEP               ((DWORD)0x80000004)
+#define STATUS_LONGJUMP                  ((DWORD)0x80000026)
+#define STATUS_UNWIND_CONSOLIDATE        ((DWORD)0x80000029)
+#define DBG_EXCEPTION_NOT_HANDLED        ((DWORD)0x80010001)
 #define STATUS_ACCESS_VIOLATION          ((DWORD)0xC0000005)
 #define STATUS_IN_PAGE_ERROR             ((DWORD)0xC0000006)
 #define STATUS_INVALID_HANDLE            ((DWORD)0xC0000008)
+#define STATUS_INVALID_PARAMETER         ((DWORD)0xC000000D)
 #define STATUS_NO_MEMORY                 ((DWORD)0xC0000017)
 #define STATUS_ILLEGAL_INSTRUCTION       ((DWORD)0xC000001D)
 #define STATUS_NONCONTINUABLE_EXCEPTION  ((DWORD)0xC0000025)
@@ -154,10 +170,23 @@
 #define STATUS_INTEGER_OVERFLOW          ((DWORD)0xC0000095)
 #define STATUS_PRIVILEGED_INSTRUCTION    ((DWORD)0xC0000096)
 #define STATUS_STACK_OVERFLOW            ((DWORD)0xC00000FD)
+#define STATUS_DLL_NOT_FOUND             ((DWORD)0xC0000135)
+#define STATUS_ORDINAL_NOT_FOUND         ((DWORD)0xC0000138)
+#define STATUS_ENTRYPOINT_NOT_FOUND      ((DWORD)0xC0000139)
 #define STATUS_CONTROL_C_EXIT            ((DWORD)0xC000013A)
+#define STATUS_DLL_INIT_FAILED           ((DWORD)0xC0000142)
+#define STATUS_CONTROL_STACK_VIOLATION   ((DWORD)0xC00001B2)
 #define STATUS_FLOAT_MULTIPLE_FAULTS     ((DWORD)0xC00002B4)
 #define STATUS_FLOAT_MULTIPLE_TRAPS      ((DWORD)0xC00002B5)
 #define STATUS_REG_NAT_CONSUMPTION       ((DWORD)0xC00002C9)
+#define STATUS_HEAP_CORRUPTION           ((DWORD)0xC0000374)
+#define STATUS_STACK_BUFFER_OVERRUN      ((DWORD)0xC0000409)
+#define STATUS_INVALID_CRUNTIME_PARAMETER ((DWORD)0xC0000417)
+#define STATUS_ASSERTION_FAILURE         ((DWORD)0xC0000420)
+#define STATUS_ENCLAVE_VIOLATION         ((DWORD)0xC00004A2)
+#define STATUS_INTERRUPTED               ((DWORD)0xC0000515)
+#define STATUS_THREAD_NOT_RUNNING        ((DWORD)0xC0000516)
+#define STATUS_ALREADY_REGISTERED        ((DWORD)0xC0000718)
 #define STATUS_SXS_EARLY_DEACTIVATION    ((DWORD)0xC015000F)
 #define STATUS_SXS_INVALID_DEACTIVATION  ((DWORD)0xC0150010)
 
@@ -4297,7 +4326,7 @@ RtlSecureZeroMemory(_Out_writes_bytes_all_(Length) PVOID Buffer,
 }
 
 #if defined(_M_IX86)
-FORCEINLINE struct _TEB * NtCurrentTeb(void)
+FORCEINLINE struct _TEB * NtCurrentTeb(VOID)
 {
     return (struct _TEB *)__readfsdword(0x18);
 }
@@ -4306,17 +4335,17 @@ FORCEINLINE PVOID GetCurrentFiber(VOID)
     return (PVOID)(ULONG_PTR)__readfsdword(0x10);
 }
 #elif defined (_M_AMD64)
-FORCEINLINE struct _TEB * NtCurrentTeb(void)
+FORCEINLINE struct _TEB * NtCurrentTeb(VOID)
 {
     return (struct _TEB *)__readgsqword(FIELD_OFFSET(NT_TIB, Self));
 }
 FORCEINLINE PVOID GetCurrentFiber(VOID)
 {
-  #ifdef NONAMELESSUNION
+#ifdef NONAMELESSUNION
     return (PVOID)__readgsqword(FIELD_OFFSET(NT_TIB, DUMMYUNIONNAME.FiberData));
-  #else
+#else
     return (PVOID)__readgsqword(FIELD_OFFSET(NT_TIB, FiberData));
-  #endif
+#endif
 }
 #elif defined (_M_ARM)
 #define CP15_PMSELR      15, 0,  9, 12, 5
@@ -4324,20 +4353,20 @@ FORCEINLINE PVOID GetCurrentFiber(VOID)
 #define CP15_TPIDRURW    15, 0, 13,  0, 2
 #define CP15_TPIDRURO    15, 0, 13,  0, 3
 #define CP15_TPIDRPRW    15, 0, 13,  0, 4
-FORCEINLINE struct _TEB * NtCurrentTeb(void)
+FORCEINLINE struct _TEB * NtCurrentTeb(VOID)
 {
     return (struct _TEB *)(ULONG_PTR)_MoveFromCoprocessor(CP15_TPIDRURW);
 }
 FORCEINLINE PVOID GetCurrentFiber(VOID)
 {
-  #ifdef NONAMELESSUNION
-    return ((PNT_TIB )(ULONG_PTR)_MoveFromCoprocessor(CP15_TPIDRURW))->DUMMYUNIONNAME.FiberData;
-  #else
-    return ((PNT_TIB )(ULONG_PTR)_MoveFromCoprocessor(CP15_TPIDRURW))->FiberData;
-  #endif
+#ifdef NONAMELESSUNION
+    return ((PNT_TIB)(ULONG_PTR)_MoveFromCoprocessor(CP15_TPIDRURW))->DUMMYUNIONNAME.FiberData;
+#else
+    return ((PNT_TIB)(ULONG_PTR)_MoveFromCoprocessor(CP15_TPIDRURW))->FiberData;
+#endif
 }
 #elif defined (_M_ARM64)
-FORCEINLINE struct _TEB * NtCurrentTeb(void)
+FORCEINLINE struct _TEB * NtCurrentTeb(VOID)
 {
     //UNIMPLEMENTED;
     return 0;
@@ -4358,11 +4387,11 @@ FORCEINLINE unsigned long _read_teb_dword(const unsigned long Offset)
             : "r7");
     return result;
 }
-FORCEINLINE struct _TEB * NtCurrentTeb(void)
+FORCEINLINE struct _TEB * NtCurrentTeb(VOID)
 {
     return (struct _TEB *)_read_teb_dword(0x18);
 }
-FORCEINLINE PVOID GetCurrentFiber(void)
+FORCEINLINE PVOID GetCurrentFiber(VOID)
 {
     return _read_teb_dword(0x10);
 }
@@ -4370,7 +4399,7 @@ FORCEINLINE PVOID GetCurrentFiber(void)
 #error Unknown architecture
 #endif
 
-FORCEINLINE PVOID GetFiberData(void)
+FORCEINLINE PVOID GetFiberData(VOID)
 {
     return *((PVOID *)GetCurrentFiber());
 }
@@ -4397,7 +4426,7 @@ FORCEINLINE PVOID GetFiberData(void)
 #if defined(_MSC_VER)
 FORCEINLINE
 VOID
-MemoryBarrier (VOID)
+MemoryBarrier(VOID)
 {
     LONG Barrier;
     __asm { xchg Barrier, eax }
@@ -4451,7 +4480,11 @@ DbgRaiseAssertionFailure(VOID)
 typedef struct _TP_POOL TP_POOL, *PTP_POOL;
 typedef struct _TP_WORK TP_WORK, *PTP_WORK;
 typedef struct _TP_CALLBACK_INSTANCE TP_CALLBACK_INSTANCE, *PTP_CALLBACK_INSTANCE;
+typedef struct _TP_TIMER TP_TIMER, *PTP_TIMER;
+typedef struct _TP_WAIT TP_WAIT, *PTP_WAIT;
+typedef struct _TP_IO TP_IO, *PTP_IO;
 
+typedef DWORD TP_WAIT_RESULT;
 typedef DWORD TP_VERSION, *PTP_VERSION;
 
 typedef enum _TP_CALLBACK_PRIORITY {
@@ -4461,6 +4494,12 @@ typedef enum _TP_CALLBACK_PRIORITY {
   TP_CALLBACK_PRIORITY_INVALID,
   TP_CALLBACK_PRIORITY_COUNT = TP_CALLBACK_PRIORITY_INVALID
 } TP_CALLBACK_PRIORITY;
+
+typedef struct _TP_POOL_STACK_INFORMATION
+{
+  SIZE_T StackReserve;
+  SIZE_T StackCommit;
+} TP_POOL_STACK_INFORMATION,*PTP_POOL_STACK_INFORMATION;
 
 typedef VOID
 (NTAPI *PTP_WORK_CALLBACK)(
@@ -4479,6 +4518,9 @@ typedef VOID
 (NTAPI *PTP_CLEANUP_GROUP_CANCEL_CALLBACK)(
   _Inout_opt_ PVOID ObjectContext,
   _Inout_opt_ PVOID CleanupContext);
+
+typedef VOID (NTAPI *PTP_TIMER_CALLBACK)(PTP_CALLBACK_INSTANCE,PVOID,PTP_TIMER);
+typedef VOID (NTAPI *PTP_WAIT_CALLBACK)(PTP_CALLBACK_INSTANCE,PVOID,PTP_WAIT,TP_WAIT_RESULT);
 
 #if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
 typedef struct _TP_CALLBACK_ENVIRON_V3 {

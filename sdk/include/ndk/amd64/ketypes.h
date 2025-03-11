@@ -46,7 +46,7 @@ Author:
 #define KF_AMDK6MTRR                    0x00008000 // Win 5.0-6.1
 #define KF_XSAVEOPT                     0x00008000 // From KF_XSAVEOPT_BIT
 #define KF_XMMI64                       0x00010000 // SSE2
-#define KF_BRANCH                       0x00020000 // From ksamd64.inc, Win 6.1-6.2 
+#define KF_BRANCH                       0x00020000 // From ksamd64.inc, Win 6.1-6.2
 #define KF_00040000                     0x00040000 // Unclear
 #define KF_SSE3                         0x00080000 // Win 6.0+
 #define KF_CMPXCHG16B                   0x00100000 // Win 6.0-6.2
@@ -79,17 +79,6 @@ Author:
 #define KF_XSAVES_BIT                   38 // From ksamd64.inc (0x26 -> 0x4000000000)
 #define KF_FPU_LEAKAGE_BIT              41 // From ksamd64.inc (0x29 -> 0x20000000000)
 #define KF_CAT_BIT                      44 // From ksamd64.inc (0x2C -> 0x100000000000)
-
-//
-// KPCR Access for non-IA64 builds
-//
-//#define K0IPCR                  ((ULONG_PTR)(KIP0PCRADDRESS))
-//#define PCR                     ((volatile KPCR * const)K0IPCR)
-#define PCR ((volatile KPCR * const)__readgsqword(FIELD_OFFSET(KPCR, Self)))
-//#if defined(CONFIG_SMP) || defined(NT_BUILD)
-//#undef  KeGetPcr
-//#define KeGetPcr()              ((volatile KPCR * const)__readfsdword(0x1C))
-//#endif
 
 //
 // Double fault stack size
@@ -138,6 +127,21 @@ typedef enum
 #define KGDT64_SYS_TSS          0x0040
 #define KGDT64_R3_CMTEB         0x0050
 #define KGDT64_R0_LDT           0x0060
+
+//
+// CR0
+//
+#define CR0_PE                  0x00000001
+#define CR0_MP                  0x00000002
+#define CR0_EM                  0x00000004
+#define CR0_TS                  0x00000008
+#define CR0_ET                  0x00000010
+#define CR0_NE                  0x00000020
+#define CR0_WP                  0x00010000
+#define CR0_AM                  0x00040000
+#define CR0_NW                  0x20000000
+#define CR0_CD                  0x40000000
+#define CR0_PG                  0x80000000
 
 //
 // CR4
@@ -301,6 +305,21 @@ typedef enum
 #define IPI_SYNCH_REQUEST       16
 
 //
+// Flags for KPRCB::IpiFrozen
+//
+// Values shown with !ipi extension in WinDbg:
+// 0 = [Running], 1 = [Unknown], 2 = [Frozen], 3 = [Thaw], 4 = [Freeze Owner]
+// 5 = [Target Freeze], 6-15 = [Unknown]
+// 0x20 = [Active] (flag)
+//
+#define IPI_FROZEN_STATE_RUNNING 0
+#define IPI_FROZEN_STATE_FROZEN 2
+#define IPI_FROZEN_STATE_THAW 3
+#define IPI_FROZEN_STATE_OWNER 4
+#define IPI_FROZEN_STATE_TARGET_FREEZE 5
+#define IPI_FROZEN_FLAG_ACTIVE 0x20
+
+//
 // PRCB Flags
 //
 #define PRCB_MINOR_VERSION      1
@@ -318,6 +337,8 @@ typedef enum
 //
 // HAL Variables
 //
+#define PRIMARY_VECTOR_BASE     0x30
+#define MAXIMUM_IDTVECTOR       0xFF
 #define INITIAL_STALL_COUNT     100
 #define MM_HAL_VA_START         0xFFFFFFFFFFC00000ULL /* This is Vista+ */
 #define MM_HAL_VA_END           0xFFFFFFFFFFFFFFFFULL
@@ -340,6 +361,9 @@ typedef enum
 
 #define NMI_STACK_SIZE 0x2000
 #define ISR_STACK_SIZE 0x6000
+
+/* Number of bytes reserved for syscall parameters */
+#define MAX_SYSCALL_PARAM_SIZE (16 * 8)
 
 //
 // Synchronization-level IRQL
@@ -621,7 +645,6 @@ typedef struct _REQUEST_MAILBOX
 //
 // Processor Region Control Block
 //
-#pragma pack(push,4)
 typedef struct _KPRCB
 {
     ULONG MxCsr;
@@ -916,7 +939,10 @@ typedef struct _KPRCB
     ULONG CacheCount;
 #endif
 #ifdef __REACTOS__
+#if  (NTDDI_VERSION < NTDDI_WINBLUE)
+    // On Win 8.1+ the FeatureBits field is extended to 64 bits
     ULONG FeatureBitsHigh;
+#endif
 #endif
 } KPRCB, *PKPRCB;
 
@@ -965,7 +991,6 @@ typedef struct _KIPCR
     ULONG ContextSwitches;
 
 } KIPCR, *PKIPCR;
-#pragma pack(pop)
 
 //
 // TSS Definition
@@ -1070,6 +1095,15 @@ typedef struct _UCALLOUT_FRAME
     ULONG ApiNumber;
     MACHINE_FRAME MachineFrame;
 } UCALLOUT_FRAME, *PUCALLOUT_FRAME; // size = 0x0058
+
+//
+// User side APC dispatcher frame
+//
+typedef struct _UAPC_FRAME
+{
+    CONTEXT Context;
+    MACHINE_FRAME MachineFrame;
+} UAPC_FRAME, *PUAPC_FRAME;
 
 //
 // Stack frame layout for KiUserExceptionDispatcher

@@ -34,6 +34,9 @@
 #include <shlwapi.h>
 #include <wine/debug.h>
 #include <wine/unicode.h>
+#ifdef __REACTOS__
+#include <strsafe.h>
+#endif
 
 #include "pidl.h"
 #include "shell32_main.h"
@@ -41,7 +44,40 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(shell);
 
-#define MAX_EXTENSION_LENGTH 20
+#define MAX_EXTENSION_LENGTH 20 // FIXME: The limit is 254?
+
+static LONG GetRegString(HKEY hKey, PCWSTR SubKey, PCWSTR Name, PWSTR Buffer, UINT cchBuf)
+{
+    DWORD cb = sizeof(*Buffer) * cchBuf;
+    return RegGetValueW(hKey, SubKey, Name, RRF_RT_REG_SZ, NULL, Buffer, &cb);
+}
+
+HRESULT HCR_GetProgIdKeyOfExtension(PCWSTR szExtension, PHKEY phKey, BOOL AllowFallback)
+{
+    LONG err;
+    WCHAR ext[max(1 + MAX_EXTENSION_LENGTH + 1, MAX_PATH)];
+    WCHAR progid[MAX_PATH];
+    if (szExtension[0] != '.')
+    {
+        ext[0] = '.';
+        lstrcpynW(ext + 1, szExtension, _countof(ext) - 1);
+        szExtension = ext;
+    }
+    err = GetRegString(HKEY_CLASSES_ROOT, szExtension, NULL, progid, _countof(progid));
+    if (!err && progid[0] != UNICODE_NULL)
+    {
+        err = RegOpenKeyExW(HKEY_CLASSES_ROOT, progid, 0, KEY_READ, phKey);
+        if (!err)
+            return err; /* A real ProgId key, return S_OK */
+    }
+    if (AllowFallback)
+    {
+        err = RegOpenKeyExW(HKEY_CLASSES_ROOT, szExtension, 0, KEY_READ, phKey);
+        if (!err)
+            return S_FALSE;
+    }
+    return HRESULT_FROM_WIN32(err);
+}
 
 BOOL HCR_MapTypeToValueW(LPCWSTR szExtension, LPWSTR szFileType, LONG len, BOOL bPrependDot)
 {	
@@ -63,14 +99,6 @@ BOOL HCR_MapTypeToValueW(LPCWSTR szExtension, LPWSTR szFileType, LONG len, BOOL 
 	{ 
 	  return FALSE;
 	}
-
-#ifdef __REACTOS__
-        if (!RegLoadMUIStringW(hkey, L"FriendlyTypeName", szFileType, len, NULL, 0, NULL))
-        {
-            RegCloseKey(hkey);
-            return TRUE;
-        }
-#endif
 
 	if (RegQueryValueW(hkey, NULL, szFileType, &len))
 	{ 
@@ -106,14 +134,6 @@ BOOL HCR_MapTypeToValueA(LPCSTR szExtension, LPSTR szFileType, LONG len, BOOL bP
 	  return FALSE;
 	}
 
-#ifdef __REACTOS__
-        if (!RegLoadMUIStringA(hkey, "FriendlyTypeName", szFileType, len, NULL, 0, NULL))
-        {
-            RegCloseKey(hkey);
-            return TRUE;
-        }
-#endif
-
 	if (RegQueryValueA(hkey, NULL, szFileType, &len))
 	{ 
 	  RegCloseKey(hkey);
@@ -127,9 +147,11 @@ BOOL HCR_MapTypeToValueA(LPCSTR szExtension, LPSTR szFileType, LONG len, BOOL bP
 	return TRUE;
 }
 
+EXTERN_C HRESULT SHELL32_EnumDefaultVerbList(LPCWSTR List, UINT Index, LPWSTR Verb, SIZE_T cchMax);
+
 BOOL HCR_GetDefaultVerbW( HKEY hkeyClass, LPCWSTR szVerb, LPWSTR szDest, DWORD len )
 {
-        WCHAR sTemp[MAX_PATH];
+        WCHAR sTemp[MAX_PATH], verbs[MAX_PATH];
         LONG size;
         HKEY hkey;
 
@@ -141,21 +163,25 @@ BOOL HCR_GetDefaultVerbW( HKEY hkeyClass, LPCWSTR szVerb, LPWSTR szDest, DWORD l
             return TRUE;
         }
 
-        size=len;
-        *szDest='\0';
-        if (!RegQueryValueW(hkeyClass, L"shell\\", szDest, &size) && *szDest)
+        /* MSDN says to first try the default verb */
+        size = _countof(verbs);
+        if (!RegQueryValueW(hkeyClass, L"shell", verbs, &size) && *verbs)
         {
-            /* The MSDN says to first try the default verb */
-            lstrcpyW(sTemp, L"shell\\");
-            lstrcatW(sTemp, szDest);
-            lstrcatW(sTemp, L"\\command");
-            if (!RegOpenKeyExW(hkeyClass, sTemp, 0, KEY_READ, &hkey))
+            for (UINT i = 0;; ++i)
             {
-                RegCloseKey(hkey);
-                TRACE("default verb=%s\n", debugstr_w(szDest));
-                return TRUE;
+                if (FAILED(SHELL32_EnumDefaultVerbList(verbs, i, szDest, len)))
+                    break;
+                if (FAILED(StringCchPrintfW(sTemp, _countof(sTemp), L"shell\\%s\\command", szDest)))
+                    break;
+                if (!RegOpenKeyExW(hkeyClass, sTemp, 0, KEY_READ, &hkey))
+                {
+                    RegCloseKey(hkey);
+                    TRACE("default verb=%s\n", debugstr_w(szDest));
+                    return TRUE;
+                }
             }
         }
+        *szDest = UNICODE_NULL;
 
         /* then fallback to 'open' */
         lstrcpyW(sTemp, L"shell\\open\\command");
@@ -239,11 +265,11 @@ BOOL HCR_RegOpenClassIDKey(REFIID riid, HKEY *hkey)
 
 static BOOL HCR_RegGetIconW(HKEY hkey, LPWSTR szDest, LPCWSTR szName, DWORD len, int* picon_idx)
 {
-    DWORD dwType;
+    DWORD dwType, size = len * sizeof(WCHAR);
     WCHAR sTemp[MAX_PATH];
-    WCHAR sNum[7];
+    WCHAR sNum[5];
 
-    if (!RegQueryValueExW(hkey, szName, 0, &dwType, (LPBYTE)szDest, &len))
+    if (!RegQueryValueExW(hkey, szName, 0, &dwType, (LPBYTE)szDest, &size))
     {
       if (dwType == REG_EXPAND_SZ)
       {
@@ -333,6 +359,60 @@ BOOL HCR_GetIconA(LPCSTR szClass, LPSTR szDest, LPCSTR szName, DWORD len, int* p
 
 	return ret;
 }
+
+#ifdef __REACTOS__
+BOOL HCU_GetIconW(LPCWSTR szClass, LPWSTR szDest, LPCWSTR szName, DWORD len, int* picon_idx)
+{
+    HKEY hkey;
+    WCHAR sTemp[MAX_PATH];
+    BOOL ret = FALSE;
+
+    TRACE("%s\n", debugstr_w(szClass));
+
+    StringCchPrintfW(sTemp, _countof(sTemp), L"%s\\DefaultIcon", szClass);
+
+    if (!RegOpenKeyExW(HKEY_CURRENT_USER, sTemp, 0, KEY_READ, &hkey))
+    {
+        ret = HCR_RegGetIconW(hkey, szDest, szName, len, picon_idx);
+        RegCloseKey(hkey);
+    }
+
+    if (ret)
+        TRACE("-- %s %i\n", debugstr_w(szDest), *picon_idx);
+    else
+        TRACE("-- not found\n");
+
+    return ret;
+}
+
+BOOL HLM_GetIconW(int reg_idx, LPWSTR szDest, DWORD len, int* picon_idx)
+{
+    HKEY hkey;
+    WCHAR sTemp[5];
+    BOOL ret = FALSE;
+
+    TRACE("%d\n", reg_idx);
+
+    StringCchPrintfW(sTemp, _countof(sTemp), L"%d", reg_idx);
+
+    if (!RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+                       L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Icons",
+                       0,
+                       KEY_READ,
+                       &hkey))
+    {
+        ret = HCR_RegGetIconW(hkey, szDest, sTemp, len, picon_idx);
+        RegCloseKey(hkey);
+    }
+
+    if (ret)
+        TRACE("-- %s %i\n", debugstr_w(szDest), *picon_idx);
+    else
+        TRACE("-- not found\n");
+
+    return ret;
+}
+#endif
 
 /***************************************************************************************
 *	HCR_GetClassName	[internal]

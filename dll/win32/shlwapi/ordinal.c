@@ -61,7 +61,11 @@ extern HINSTANCE shlwapi_hInstance;
 extern DWORD SHLWAPI_ThreadRef_index;
 
 HRESULT WINAPI IUnknown_QueryService(IUnknown*,REFGUID,REFIID,LPVOID*);
+#ifdef __REACTOS__
+HRESULT WINAPI SHInvokeCommand(HWND hWnd, IShellFolder* lpFolder, LPCITEMIDLIST lpApidl, LPCSTR lpVerb);
+#else
 HRESULT WINAPI SHInvokeCommand(HWND,IShellFolder*,LPCITEMIDLIST,DWORD);
+#endif
 BOOL    WINAPI SHAboutInfoW(LPWSTR,DWORD);
 
 /*
@@ -2440,13 +2444,55 @@ HRESULT WINAPI QISearch(
  *  id   [I] Index of child Window to set the Font
  *
  * RETURNS
+#ifdef __REACTOS__
+ *  VOID
+#else
  *  Success: S_OK
+#endif
  *
  */
+#ifdef __REACTOS__
+VOID WINAPI SHSetDefaultDialogFont(HWND hWnd, INT id)
+#else
 HRESULT WINAPI SHSetDefaultDialogFont(HWND hWnd, INT id)
+#endif
 {
+#ifdef __REACTOS__
+    HFONT hOldFont, hNewFont;
+    LOGFONTW lfOldFont, lfNewFont;
+    HWND hwndItem;
+
+    TRACE("(%p, %d)\n", hWnd, id);
+
+    hOldFont = (HFONT)SendMessageW(hWnd, WM_GETFONT, 0, 0);
+    GetObjectW(hOldFont, sizeof(lfOldFont), &lfOldFont);
+    SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lfNewFont), &lfNewFont, 0);
+
+    if (lfOldFont.lfCharSet == lfNewFont.lfCharSet)
+        return;
+
+    hNewFont = GetPropW(hWnd, L"PropDlgFont");
+    if (!hNewFont)
+    {
+        /* Create the icon-title font of the same height */
+        lfNewFont.lfHeight = lfOldFont.lfHeight;
+        hNewFont = CreateFontIndirectW(&lfNewFont);
+
+        /* If creating the font is failed, then keep the old font */
+        if (!hNewFont)
+            hNewFont = hOldFont;
+
+        /* Set "PropDlgFont" property if the font is changed */
+        if (hOldFont != hNewFont)
+            SetPropW(hWnd, L"PropDlgFont", hNewFont);
+    }
+
+    hwndItem = GetDlgItem(hWnd, id);
+    SendMessageW(hwndItem, WM_SETFONT, (WPARAM)hNewFont, 0);
+#else
     FIXME("(%p, %d) stub\n", hWnd, id);
     return S_OK;
+#endif
 }
 
 /*************************************************************************
@@ -2665,6 +2711,7 @@ HWND WINAPI SHCreateWorkerWindowA(WNDPROC wndProc, HWND hWndParent, DWORD dwExSt
   return hWnd;
 }
 
+#ifndef __REACTOS__ /* The followings are defined in <shlwapi_undoc.h> */
 typedef struct tagPOLICYDATA
 {
   DWORD policy;        /* flags value passed to SHRestricted */
@@ -2679,6 +2726,7 @@ static const WCHAR strRegistryPolicyW[] = {'S','o','f','t','w','a','r','e','\\',
                                       's','o','f','t','\\','W','i','n','d','o','w','s','\\',
                                       'C','u','r','r','e','n','t','V','e','r','s','i','o','n',
                                       '\\','P','o','l','i','c','i','e','s',0};
+#endif /* ndef __REACTOS__ */
 
 /*************************************************************************
  * @                          [SHLWAPI.271]
@@ -2695,6 +2743,25 @@ static const WCHAR strRegistryPolicyW[] = {'S','o','f','t','w','a','r','e','\\',
  */
 DWORD WINAPI SHGetRestriction(LPCWSTR lpSubKey, LPCWSTR lpSubName, LPCWSTR lpValue)
 {
+#ifdef __REACTOS__
+    WCHAR szPath[MAX_PATH];
+    DWORD dwSize, dwValue = 0;
+
+    TRACE("(%s, %s, %s)\n", debugstr_w(lpSubKey), debugstr_w(lpSubName), debugstr_w(lpValue));
+
+    if (!lpSubKey)
+        lpSubKey = L"Software\\Microsoft\\Windows\\CurrentVersion\\Policies";
+
+    PathCombineW(szPath, lpSubKey, lpSubName);
+
+    dwSize = sizeof(dwValue);
+    if (SHGetValueW(HKEY_LOCAL_MACHINE, szPath, lpValue, NULL, &dwValue, &dwSize) == ERROR_SUCCESS)
+        return dwValue;
+
+    dwSize = sizeof(dwValue);
+    SHGetValueW(HKEY_CURRENT_USER, szPath, lpValue, NULL, &dwValue, &dwSize);
+    return dwValue;
+#else
 	DWORD retval, datsize = sizeof(retval);
 	HKEY hKey;
 
@@ -2710,6 +2777,7 @@ DWORD WINAPI SHGetRestriction(LPCWSTR lpSubKey, LPCWSTR lpSubName, LPCWSTR lpVal
         SHGetValueW(hKey, lpSubName, lpValue, NULL, &retval, &datsize);
 	RegCloseKey(hKey);
 	return retval;
+#endif
 }
 
 /*************************************************************************
@@ -2732,18 +2800,33 @@ DWORD WINAPI SHGetRestriction(LPCWSTR lpSubKey, LPCWSTR lpSubName, LPCWSTR lpVal
  *  different POLICYDATA structure and implements a similar algorithm adapted to
  *  that structure.
  */
+#ifdef __REACTOS__
+DWORD WINAPI
+SHRestrictionLookup(
+    _In_ DWORD policy,
+    _In_ LPCWSTR initial,
+    _In_ const POLICYDATA *polTable,
+    _Inout_ LPDWORD polArr)
+#else
 DWORD WINAPI SHRestrictionLookup(
 	DWORD policy,
 	LPCWSTR initial,
 	LPPOLICYDATA polTable,
 	LPDWORD polArr)
+#endif
 {
 	TRACE("(0x%08x %s %p %p)\n", policy, debugstr_w(initial), polTable, polArr);
 
+#ifndef __REACTOS__
 	if (!polTable || !polArr)
 	  return 0;
+#endif
 
+#ifndef __REACTOS__
+	for (;polTable->appstr; polTable++, polArr++)
+#else
 	for (;polTable->policy; polTable++, polArr++)
+#endif
 	{
 	  if (policy == polTable->policy)
 	  {
@@ -2977,7 +3060,11 @@ HWND WINAPI SHCreateWorkerWindowW(WNDPROC wndProc, HWND hWndParent, DWORD dwExSt
 HRESULT WINAPI SHInvokeDefaultCommand(HWND hWnd, IShellFolder* lpFolder, LPCITEMIDLIST lpApidl)
 {
     TRACE("%p %p %p\n", hWnd, lpFolder, lpApidl);
+#ifdef __REACTOS__
+    return SHInvokeCommand(hWnd, lpFolder, lpApidl, NULL);
+#else
     return SHInvokeCommand(hWnd, lpFolder, lpApidl, 0);
+#endif
 }
 
 /*************************************************************************
@@ -3536,6 +3623,13 @@ UINT WINAPI SHDefExtractIconWrapW(LPCWSTR pszIconFile, int iIndex, UINT uFlags, 
  *           executed.
  *  Failure: An HRESULT error code indicating the error.
  */
+#ifdef __REACTOS__
+EXTERN_C HRESULT WINAPI SHInvokeCommandWithFlagsAndSite(HWND, IUnknown*, IShellFolder*, LPCITEMIDLIST, UINT, LPCSTR);
+HRESULT WINAPI SHInvokeCommand(HWND hWnd, IShellFolder* lpFolder, LPCITEMIDLIST lpApidl, LPCSTR lpVerb)
+{
+    return SHInvokeCommandWithFlagsAndSite(hWnd, NULL, lpFolder, lpApidl, 0, lpVerb);
+}
+#else
 HRESULT WINAPI SHInvokeCommand(HWND hWnd, IShellFolder* lpFolder, LPCITEMIDLIST lpApidl, DWORD dwCommandId)
 {
   IContextMenu *iContext;
@@ -3588,6 +3682,7 @@ HRESULT WINAPI SHInvokeCommand(HWND hWnd, IShellFolder* lpFolder, LPCITEMIDLIST 
   }
   return hRet;
 }
+#endif /* __REACTOS__ */
 
 /*************************************************************************
  *      @	[SHLWAPI.370]
@@ -5319,7 +5414,7 @@ HRESULT VariantChangeTypeForRead(_Inout_ VARIANTARG *pvarg, _In_ VARTYPE vt)
 
     if (vt == VT_I1 || vt == VT_I2 || vt == VT_I4)
     {
-        if (!StrToIntExW(V_BSTR(&vargTemp), STIF_SUPPORT_HEX, &V_I4(&variTemp)))
+        if (!StrToIntExW(V_BSTR(&vargTemp), STIF_SUPPORT_HEX, (int*)&V_I4(&variTemp)))
             goto DoDefault;
 
         V_VT(&variTemp) = VT_INT;
@@ -5334,7 +5429,7 @@ HRESULT VariantChangeTypeForRead(_Inout_ VARIANTARG *pvarg, _In_ VARTYPE vt)
 
     if (vt == VT_UI1 || vt == VT_UI2 || vt == VT_UI4)
     {
-        if (!StrToIntExW(V_BSTR(&vargTemp), STIF_SUPPORT_HEX, (LPINT)&V_UI4(&variTemp)))
+        if (!StrToIntExW(V_BSTR(&vargTemp), STIF_SUPPORT_HEX, (int*)&V_UI4(&variTemp)))
             goto DoDefault;
 
         V_VT(&variTemp) = VT_UINT;
@@ -5346,7 +5441,7 @@ HRESULT VariantChangeTypeForRead(_Inout_ VARIANTARG *pvarg, _In_ VARTYPE vt)
 
     if (vt == VT_INT || vt == VT_UINT)
     {
-        if (!StrToIntExW(V_BSTR(&vargTemp), STIF_SUPPORT_HEX, &V_INT(&variTemp)))
+        if (!StrToIntExW(V_BSTR(&vargTemp), STIF_SUPPORT_HEX, (int*)&V_INT(&variTemp)))
             goto DoDefault;
 
         V_VT(&variTemp) = VT_UINT;

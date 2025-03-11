@@ -187,29 +187,20 @@ LdrpUpdateLoadCount3(IN PLDR_DATA_TABLE_ENTRY LdrEntry,
                 RedirectedImportName = ImportNameUnic;
 
                 /* Check if the SxS Assemblies specify another file */
-                Status = RtlDosApplyFileIsolationRedirection_Ustr(TRUE,
-                                                                  ImportNameUnic,
-                                                                  &LdrApiDefaultExtension,
-                                                                  UpdateString,
-                                                                  NULL,
-                                                                  &RedirectedImportName,
-                                                                  NULL,
-                                                                  NULL,
-                                                                  NULL);
+                Status = LdrpApplyFileNameRedirection(
+                    ImportNameUnic, &LdrApiDefaultExtension, UpdateString, NULL, &RedirectedImportName,
+                    &RedirectedDll);
 
                 /* Check success */
-                if (NT_SUCCESS(Status))
+                if (NT_SUCCESS(Status) && RedirectedDll)
                 {
-                    /* Let Ldrp know */
                     if (ShowSnaps)
                     {
                         DPRINT1("LDR: %Z got redirected to %wZ\n", &ImportNameAnsi, RedirectedImportName);
                     }
-
-                    RedirectedDll = TRUE;
                 }
 
-                if (RedirectedDll || Status == STATUS_SXS_KEY_NOT_FOUND)
+                if (NT_SUCCESS(Status))
                 {
                     if (LdrpCheckForLoadedDll(NULL,
                                               RedirectedImportName,
@@ -251,7 +242,7 @@ LdrpUpdateLoadCount3(IN PLDR_DATA_TABLE_ENTRY LdrEntry,
                 else
                 {
                     /* Unrecoverable SxS failure */
-                    DPRINT1("LDR: RtlDosApplyFileIsolationRedirection_Ustr failed with status %x for dll %wZ\n", Status, ImportNameUnic);
+                    DPRINT1("LDR: LdrpApplyFileNameRedirection failed with status %x for dll %wZ\n", Status, ImportNameUnic);
                 }
 
             }
@@ -270,27 +261,20 @@ LdrpUpdateLoadCount3(IN PLDR_DATA_TABLE_ENTRY LdrEntry,
                     RedirectedImportName = ImportNameUnic;
 
                     /* Check if the SxS Assemblies specify another file */
-                    Status = RtlDosApplyFileIsolationRedirection_Ustr(TRUE,
-                                                                      ImportNameUnic,
-                                                                      &LdrApiDefaultExtension,
-                                                                      UpdateString,
-                                                                      NULL,
-                                                                      &RedirectedImportName,
-                                                                      NULL,
-                                                                      NULL,
-                                                                      NULL);
+                    Status = LdrpApplyFileNameRedirection(
+                        ImportNameUnic, &LdrApiDefaultExtension, UpdateString, NULL, &RedirectedImportName,
+                        &RedirectedDll);
+
                     /* Check success */
-                    if (NT_SUCCESS(Status))
+                    if (NT_SUCCESS(Status) && RedirectedDll)
                     {
                         if (ShowSnaps)
                         {
                             DPRINT1("LDR: %Z got redirected to %wZ\n", &ImportNameAnsi, RedirectedImportName);
                         }
-                        /* Let Ldrp know */
-                        RedirectedDll = TRUE;
                     }
 
-                    if (RedirectedDll || Status == STATUS_SXS_KEY_NOT_FOUND)
+                    if (NT_SUCCESS(Status))
                     {
                         if (LdrpCheckForLoadedDll(NULL,
                                                   RedirectedImportName,
@@ -332,7 +316,7 @@ LdrpUpdateLoadCount3(IN PLDR_DATA_TABLE_ENTRY LdrEntry,
                     else
                     {
                         /* Unrecoverable SxS failure */
-                        DPRINT1("LDR: RtlDosApplyFileIsolationRedirection_Ustr failed  with status %x for dll %wZ\n", Status, ImportNameUnic);
+                        DPRINT1("LDR: LdrpApplyFileNameRedirection failed  with status %x for dll %wZ\n", Status, ImportNameUnic);
                     }
 
                 }
@@ -376,28 +360,19 @@ LdrpUpdateLoadCount3(IN PLDR_DATA_TABLE_ENTRY LdrEntry,
                 RedirectedImportName = ImportNameUnic;
 
                 /* Check if the SxS Assemblies specify another file */
-                Status = RtlDosApplyFileIsolationRedirection_Ustr(TRUE,
-                                                                  ImportNameUnic,
-                                                                  &LdrApiDefaultExtension,
-                                                                  UpdateString,
-                                                                  NULL,
-                                                                  &RedirectedImportName,
-                                                                  NULL,
-                                                                  NULL,
-                                                                  NULL);
+                Status = LdrpApplyFileNameRedirection(
+                    ImportNameUnic, &LdrApiDefaultExtension, UpdateString, NULL, &RedirectedImportName, &RedirectedDll);
+
                 /* Check success */
-                if (NT_SUCCESS(Status))
+                if (NT_SUCCESS(Status) && RedirectedDll)
                 {
                     if (ShowSnaps)
                     {
                         DPRINT1("LDR: %Z got redirected to %wZ\n", &ImportNameAnsi, RedirectedImportName);
                     }
-
-                    /* Let Ldrp know */
-                    RedirectedDll = TRUE;
                 }
 
-                if (RedirectedDll || Status == STATUS_SXS_KEY_NOT_FOUND)
+                if (NT_SUCCESS(Status))
                 {
                     if (LdrpCheckForLoadedDll(NULL,
                                               RedirectedImportName,
@@ -440,9 +415,8 @@ LdrpUpdateLoadCount3(IN PLDR_DATA_TABLE_ENTRY LdrEntry,
                 else
                 {
                     /* Unrecoverable SxS failure */
-                    DPRINT1("LDR: RtlDosApplyFileIsolationRedirection_Ustr failed for dll %wZ\n", ImportNameUnic);
+                    DPRINT1("LDR: LdrpApplyFileNameRedirection failed for dll %wZ\n", ImportNameUnic);
                 }
-
             }
 
             /* Go to the next entry */
@@ -1252,7 +1226,12 @@ SkipCheck:
     /* Insert this entry */
     LdrpInsertMemoryTableEntry(LdrEntry);
 
-    // LdrpSendDllNotifications(LdrEntry, TRUE, Status == STATUS_IMAGE_NOT_AT_BASE)
+#if (_WIN32_WINNT >= _WIN32_WINNT_VISTA) || (DLL_EXPORT_VERSION >= _WIN32_WINNT_VISTA)
+    LdrpSendDllNotifications(LdrEntry, LDR_DLL_NOTIFICATION_REASON_LOADED);
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN8)
+    LdrEntry->Flags |= LDRP_LOAD_NOTIFICATIONS_SENT; /* LdrEntry->LoadNotificationsSent = TRUE; */
+#endif
+#endif
 
     /* Check for invalid CPU Image */
     if (Status == STATUS_IMAGE_MACHINE_TYPE_MISMATCH)
@@ -2455,6 +2434,7 @@ LdrpLoadDll(IN BOOLEAN Redirected,
     RtlCopyUnicodeString(&RawDllName, DllName);
 
     /* Find the extension, if present */
+    /* NOTE: Access violation is expected here in some cases (Buffer[-1]) */
     p = DllName->Buffer + DllName->Length / sizeof(WCHAR) - 1;
     GotExtension = FALSE;
     while (p >= DllName->Buffer)

@@ -32,10 +32,11 @@
  * It needs to be implemented by those platforms which need SLIP or PPP
  */
 
-#ifndef __SIO_H__
-#define __SIO_H__
+#ifndef SIO_H
+#define SIO_H
 
 #include "lwip/arch.h"
+#include "lwip/opt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -122,7 +123,7 @@ u32_t sio_tryread(sio_fd_t fd, u8_t *data, u32_t len);
  *
  * @note This function will block until all data can be sent.
  */
-u32_t sio_write(sio_fd_t fd, u8_t *data, u32_t len);
+u32_t sio_write(sio_fd_t fd, const u8_t *data, u32_t len);
 #endif
 
 #ifndef sio_read_abort
@@ -138,4 +139,4 @@ void sio_read_abort(sio_fd_t fd);
 }
 #endif
 
-#endif /* __SIO_H__ */
+#endif /* SIO_H */

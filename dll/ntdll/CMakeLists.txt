@@ -21,8 +21,13 @@ add_library(rtl_um OBJECT
     rtl/libsupp.c
     rtl/uilist.c
     rtl/version.c)
-target_link_libraries(rtl_um ${PSEH_LIB})
+target_link_libraries(rtl_um apisets ${PSEH_LIB})
 add_dependencies(rtl_um psdk)
+
+# On NT6+ this is used by advapi32
+add_library(etwtrace etw/trace.c)
+target_link_libraries(etwtrace ${PSEH_LIB})
+add_dependencies(etwtrace psdk)
 
 list(APPEND SOURCE
     dbg/dbgui.c
@@ -30,8 +35,7 @@ list(APPEND SOURCE
     ldr/ldrinit.c
     ldr/ldrpe.c
     ldr/ldrutils.c
-    ldr/verifier.c
-    etw/trace.c)
+    ldr/verifier.c)
 
 if(ARCH STREQUAL "i386")
     list(APPEND ASM_SOURCE dispatch/i386/dispatch.S)
@@ -61,7 +65,10 @@ set_module_type(ntdll win32dll ENTRYPOINT 0)
 set_subsystem(ntdll console)
 ################# END  HACK #################
 
-target_link_libraries(ntdll csrlib rtl rtl_um rtl_vista ntdllsys libcntpr uuid ${PSEH_LIB})
+target_link_libraries(ntdll ntdll_vista_static etwtrace csrlib rtl rtl_um rtl_vista ntdllsys libcntpr uuid ${PSEH_LIB})
+if(DLL_EXPORT_VERSION GREATER_EQUAL 0x600)
+    target_link_libraries(ntdll cryptlib)
+endif()
 
 if (STACK_PROTECTOR)
     target_sources(ntdll PRIVATE $<TARGET_OBJECTS:gcc_ssp_nt>)
@@ -70,3 +77,8 @@ endif()
 add_pch(ntdll include/ntdll.h "${PCH_SKIP_SOURCE}")
 add_dependencies(ntdll ntstatus asm)
 add_cd_file(TARGET ntdll DESTINATION reactos/system32 NO_CAB FOR all)
+
+# Newer VS versions link to _ftol2 / _ftoul2_legacy
+if(MSVC AND ARCH STREQUAL "i386")
+    target_link_libraries(libntdll ftol2)
+endif()

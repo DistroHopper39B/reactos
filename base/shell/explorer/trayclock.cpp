@@ -104,8 +104,10 @@ private:
     VOID PaintLine(IN HDC hDC, IN OUT RECT *rcClient, IN UINT LineNumber, IN UINT szLinesIndex);
 
 public:
+    // *** IOleWindow methods ***
 
-    HRESULT WINAPI GetWindow(HWND* phwnd)
+    STDMETHODIMP
+    GetWindow(HWND* phwnd) override
     {
         if (!phwnd)
             return E_INVALIDARG;
@@ -113,7 +115,8 @@ public:
         return S_OK;
     }
 
-    HRESULT WINAPI ContextSensitiveHelp(BOOL fEnterMode)
+    STDMETHODIMP
+    ContextSensitiveHelp(BOOL fEnterMode) override
     {
         return E_NOTIMPL;
     }
@@ -572,7 +575,7 @@ VOID CTrayClockWnd::PaintLine(IN HDC hDC, IN OUT RECT *rcClient, IN UINT LineNum
         return;
 
     INT HShift = ((IsHorizontal && (VisibleLines <= 1 ||
-                   g_TaskbarSettings.bCompactTrayIcons)) ? 0 : TRAY_CLOCK_WND_SPACING_X);
+                   g_TaskbarSettings.UseCompactTrayIcons())) ? 0 : TRAY_CLOCK_WND_SPACING_X);
 
     TextOut(hDC,
             ((rcClient->right - LineSizes[szLinesIndex].cx) / 2) + HShift,
@@ -684,7 +687,7 @@ LRESULT CTrayClockWnd::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
     VisibleLines = GetMinimumSize(IsHorizontal, &szClient);
     CurrentSize = szClient;
 
-    InvalidateRect(NULL, TRUE);
+    UpdateWnd();
     return TRUE;
 }
 

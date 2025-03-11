@@ -900,7 +900,7 @@ SetProcessAffinityMask(IN HANDLE hProcess,
     Status = NtSetInformationProcess(hProcess,
                                      ProcessAffinityMask,
                                      (PVOID)&dwProcessAffinityMask,
-                                     sizeof(DWORD));
+                                     sizeof(dwProcessAffinityMask));
     if (!NT_SUCCESS(Status))
     {
         /* Handle failure */
@@ -1627,6 +1627,12 @@ FatalExit(IN int ExitCode)
     /* On Checked builds, Windows gives the user a nice little debugger UI */
     CHAR Action[2];
     DbgPrint("FatalExit...\n\n");
+
+    /* Check for reactos specific flag (set by rosautotest) */
+    if (RtlGetNtGlobalFlags() & FLG_DISABLE_DEBUG_PROMPTS)
+    {
+        RtlRaiseStatus(STATUS_FATAL_APP_EXIT);
+    }
 
     while (TRUE)
     {

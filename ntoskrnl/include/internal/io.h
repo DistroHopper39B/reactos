@@ -669,10 +669,20 @@ NTSTATUS
 IopInitPlugPlayEvents(VOID);
 
 NTSTATUS
+IopQueueDeviceChangeEvent(
+    _In_ const GUID *EventGuid,
+    _In_ const GUID *InterfaceClassGuid,
+    _In_ PUNICODE_STRING SymbolicLinkName);
+
+NTSTATUS
 IopQueueTargetDeviceEvent(
-    const GUID *Guid,
-    PUNICODE_STRING DeviceIds
-);
+    _In_ const GUID *Guid,
+    _In_ PUNICODE_STRING DeviceIds);
+
+NTSTATUS
+IopQueueDeviceInstallEvent(
+    _In_ const GUID *Guid,
+    _In_ PUNICODE_STRING DeviceId);
 
 NTSTATUS
 NTAPI
@@ -789,12 +799,10 @@ IoInitSystem(
 );
 
 BOOLEAN
-NTAPI
 IopVerifyDiskSignature(
-    IN PDRIVE_LAYOUT_INFORMATION_EX DriveLayout,
-    IN PARC_DISK_SIGNATURE ArcDiskSignature,
-    OUT PULONG Signature
-);
+    _In_ PDRIVE_LAYOUT_INFORMATION_EX DriveLayout,
+    _In_ PARC_DISK_SIGNATURE ArcDiskSignature,
+    _Out_ PULONG Signature);
 
 BOOLEAN
 NTAPI
@@ -1445,6 +1453,7 @@ extern GENERIC_MAPPING IopFileMapping;
 extern POBJECT_TYPE _IoFileObjectType;
 extern HAL_DISPATCH _HalDispatchTable;
 extern LIST_ENTRY IopErrorLogListHead;
+extern ULONG IopAutoReboot;
 extern ULONG IopNumTriageDumpDataBlocks;
 extern PVOID IopTriageDumpDataBlocks[64];
 extern PIO_BUS_TYPE_GUID_LIST PnpBusTypeGuidList;

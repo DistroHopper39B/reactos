@@ -40,7 +40,10 @@
 
 #if DBG
 
-    VOID    DebugInit(IN ULONG_PTR FrLdrSectionId);
+    VOID
+    DebugInit(
+        _In_ PCSTR DebugString);
+
     ULONG   DbgPrint(const char *Format, ...);
     VOID    DbgPrint2(ULONG Mask, ULONG Level, const char *File, ULONG Line, char *Format, ...);
     VOID    DebugDumpBuffer(ULONG Mask, PVOID Buffer, ULONG Length);
@@ -82,7 +85,7 @@
     //
     // You may have as many BREAKPOINT()'s as you like but you may only
     // have up to four of any of the others.
-#define    BREAKPOINT()                __asm__ ("int $3");
+#define    BREAKPOINT()                __debugbreak()
 void    INSTRUCTION_BREAKPOINT1(unsigned long addr);
 void    MEMORY_READWRITE_BREAKPOINT1(unsigned long addr);
 void    MEMORY_WRITE_BREAKPOINT1(unsigned long addr);
@@ -114,7 +117,7 @@ void    MEMORY_WRITE_BREAKPOINT4(unsigned long addr);
 
     #define UNIMPLEMENTED
 
-    #define DebugInit(FrLdrSectionId)
+    #define DebugInit(DebugString)
     #define BugCheck(fmt, ...)
     #define DbgDumpBuffer(mask, buf, len)
     #define DebugDisableScreenPort()
@@ -122,10 +125,12 @@ void    MEMORY_WRITE_BREAKPOINT4(unsigned long addr);
 
 #endif // DBG
 
+DECLSPEC_NORETURN
 void
 NTAPI
 FrLdrBugCheck(ULONG BugCode);
 
+DECLSPEC_NORETURN
 VOID
 FrLdrBugCheckWithMessage(
     ULONG BugCode,

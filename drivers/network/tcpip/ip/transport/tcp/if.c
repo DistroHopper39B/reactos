@@ -6,9 +6,10 @@
 #include "lwip/ip.h"
 #include "lwip/api.h"
 #include "lwip/tcpip.h"
+#include <ipifcons.h>
 
 err_t
-TCPSendDataCallback(struct netif *netif, struct pbuf *p, struct ip_addr *dest)
+TCPSendDataCallback(struct netif *netif, struct pbuf *p, const ip4_addr_t *dest)
 {
     NDIS_STATUS NdisStatus;
     PNEIGHBOR_CACHE_ENTRY NCE;
@@ -80,7 +81,6 @@ TCPSendDataCallback(struct netif *netif, struct pbuf *p, struct ip_addr *dest)
 VOID
 TCPUpdateInterfaceLinkStatus(PIP_INTERFACE IF)
 {
-#if 0
     ULONG OperationalStatus;
 
     GetInterfaceConnectionStatus(IF, &OperationalStatus);
@@ -89,7 +89,6 @@ TCPUpdateInterfaceLinkStatus(PIP_INTERFACE IF)
         netif_set_link_up(IF->TCPContext);
     else
         netif_set_link_down(IF->TCPContext);
-#endif
 }
 
 err_t
@@ -118,9 +117,9 @@ TCPInterfaceInit(struct netif *netif)
 VOID
 TCPRegisterInterface(PIP_INTERFACE IF)
 {
-    struct ip_addr ipaddr;
-    struct ip_addr netmask;
-    struct ip_addr gw;
+    ip_addr_t ipaddr;
+    ip_addr_t netmask;
+    ip_addr_t gw;
 
     gw.addr = 0;
     ipaddr.addr = 0;
@@ -144,9 +143,9 @@ TCPUnregisterInterface(PIP_INTERFACE IF)
 VOID
 TCPUpdateInterfaceIPInformation(PIP_INTERFACE IF)
 {
-    struct ip_addr ipaddr;
-    struct ip_addr netmask;
-    struct ip_addr gw;
+    ip_addr_t ipaddr;
+    ip_addr_t netmask;
+    ip_addr_t gw;
 
     gw.addr = 0;
 

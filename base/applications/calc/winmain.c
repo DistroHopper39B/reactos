@@ -1015,10 +1015,16 @@ static void handle_copy_command(HWND hWnd)
     TCHAR display[MAX_CALC_SIZE];
     UINT  n;
 
+    // Read current text from output display
     n = GetDlgItemText(hWnd, IDC_TEXT_OUTPUT, display, SIZEOF(display));
 
-    if (calc.base == IDC_RADIO_DEC && _tcschr(calc.buffer, _T('.')) == NULL)
-        display[n - calc.sDecimal_len] = _T('\0');
+    // Check if result is a true number
+    if (!calc.is_nan)
+    {
+        // Remove trailing decimal point if no decimal digits exist
+        if (calc.base == IDC_RADIO_DEC && _tcschr(calc.buffer, _T('.')) == NULL)
+            display[n - calc.sDecimal_len] = _T('\0');
+    }
 
     CopyMemToClipboard(display);
 }
@@ -1635,7 +1641,7 @@ static INT_PTR CALLBACK DlgMainProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
         case IDC_BUTTON_D:
         case IDC_BUTTON_E:
         case IDC_BUTTON_F:
-            calc.is_nan = FALSE;
+            if (calc.is_nan) break;
             build_operand(hWnd, LOWORD(wp));
             return TRUE;
         case IDC_BUTTON_PERCENT:
@@ -1701,6 +1707,7 @@ static INT_PTR CALLBACK DlgMainProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
             }
             return TRUE;
         case IDC_BUTTON_BACK:
+            if (calc.is_nan) break;
             if (calc.sci_in) {
                 if (calc.esp == 0) {
                     TCHAR *ptr;

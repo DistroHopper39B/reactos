@@ -12,7 +12,6 @@
 #define InvalidPointer ((PVOID)0x5555555555555555ULL)
 // #define InvalidPointer ((PVOID)0x0123456789ABCDEFULL)
 
-#ifdef __USE_PSEH2__
 #include <pseh/pseh2.h>
 
 #define StartSeh()                                  \
@@ -32,29 +31,12 @@
        "Exception 0x%08lx, expected 0x%08lx\n",     \
        ExceptionStatus, (ExpectedStatus));          \
 }
-#else
-#define StartSeh()                                  \
-{                                                   \
-    NTSTATUS ExceptionStatus = STATUS_SUCCESS;      \
-    __try                                           \
-    {
-
-#define EndSeh(ExpectedStatus)                      \
-    }                                               \
-    __except(EXCEPTION_EXECUTE_HANDLER)             \
-    {                                               \
-        ExceptionStatus = GetExceptionCode();       \
-    }                                               \
-    ok(ExceptionStatus == (ExpectedStatus),         \
-       "Exception 0x%08lx, expected 0x%08lx\n",     \
-       ExceptionStatus, (ExpectedStatus));          \
-}
-#endif
 
 #define ok_hr(status, expected)                 ok_hex(status, expected)
 #define ok_hr_(file, line, status, expected)    ok_hex_(file, line, status, expected)
 
 #define ok_eq_print(value, expected, spec)  ok((value) == (expected), #value " = " spec ", expected " spec "\n", value, expected)
+#define ok_eq_print_(file, line, value, expected, spec)  ok_(file,line)((value) == (expected), #value " = " spec ", expected " spec "\n", value, expected)
 #define ok_eq_pointer(value, expected)      ok_eq_print(value, expected, "%p")
 #define ok_eq_int(value, expected)          ok_eq_print(value, expected, "%d")
 #define ok_eq_uint(value, expected)         ok_eq_print(value, expected, "%u")
@@ -83,6 +65,8 @@
 #define ok_eq_wstr(value, expected)         ok(!wcscmp(value, expected), #value " = \"%ls\", expected \"%ls\"\n", value, expected)
 #define ok_eq_tag(value, expected)          ok_eq_print(value, expected, "0x%08lx")
 
+#define ok_eq_hex_(file, line, value, expected) ok_eq_print_(file, line, value, expected, "0x%08lx")
+#define ok_eq_hex64_(file, line, value, expected) ok_eq_print_(file, line, value, expected, "%I64x")
 #define ok_eq_hex64(value, expected)        ok_eq_print(value, expected, "%I64x")
 #define ok_eq_xmm(value, expected)          ok((value).Low == (expected).Low, #value " = %I64x'%08I64x, expected %I64x'%08I64x\n", (value).Low, (value).High, (expected).Low, (expected).High)
 

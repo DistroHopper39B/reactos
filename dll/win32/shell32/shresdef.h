@@ -28,8 +28,6 @@
 
 /* Bitmaps */
 #define IDB_REACTOS                 131
-#define IDB_REACTOS_WORKSTATION     400
-#define IDB_REACTOS_SERVER          401
 #define IDB_LINEBAR                 138
 #define IDB_SHELL_IEXPLORE_LG       204
 #define IDB_SHELL_IEXPLORE_LG_HOT   205
@@ -153,6 +151,9 @@
 #define IDS_CANTDISCONNECT        160
 #define IDS_NONE                  161
 
+#define IDS_EXPAND                170
+#define IDS_COLLAPSE              171
+
 /* Friendly File Type Names */
 #define IDS_DIRECTORY             200
 #define IDS_BAT_FILE              201
@@ -187,7 +188,6 @@
 #define IDS_FILE_TYPES            174
 #define IDS_FILE_DETAILS          175
 #define IDS_FILE_DETAILSADV       176
-#define IDS_FILE_EXT_TYPE         999
 #define IDS_BYTES_FORMAT          177
 #define IDS_OPEN_WITH_RECOMMENDED 178
 #define IDS_OPEN_WITH_OTHER       179
@@ -245,6 +245,7 @@
 
 #define IDS_OPENFILELOCATION     341
 #define IDS_SENDTO_MENU          343
+#define IDS_COPYASPATHMENU       30328
 
 #define IDS_MOVEERRORTITLE       344
 #define IDS_COPYERRORTITLE       345
@@ -269,15 +270,21 @@
 #define IDS_FONTS_DESCRIPTION      22920
 #define IDS_ADMINISTRATIVETOOLS_DESCRIPTION 22921
 #define IDS_FOLDER_OPTIONS_DESCRIPTION 22924
+#define IDS_TASKBAR_OPTIONS_INFOTIP 30348
 #define IDS_ADMINISTRATIVETOOLS    22982
 #define IDS_FOLDER_OPTIONS         22985
 #define IDS_FONTS                  22981
+#define IDS_TASKBAR_OPTIONS        32517
 #define IDS_PRINTERS               9319
 #define IDS_MYCOMPUTER             9216
 #define IDS_PERSONAL               9227
 #define IDS_NETWORKPLACE           9217
 #define IDS_OBJECTS                6466
 #define IDS_OBJECTS_SELECTED       6477
+
+/* Explorer file search */
+#define IDS_SEARCH_LOCALDRIVES     10241
+#define IDS_SEARCH_BROWSEITEM      10244
 
 /* Desktop icon titles */
 #define IDS_TITLE_MYCOMP                            30386
@@ -305,6 +312,18 @@
 #define IDS_ADVANCED_CONTROL_PANEL_IN_MY_COMPUTER   30497
 #define IDS_ADVANCED_SHOW_COMP_COLOR                30512
 #define IDS_ADVANCED_SHOW_INFO_TIP                  30502
+
+/* These values must be synchronized with explorer */
+#define IDS_ADVANCED_DISPLAY_FAVORITES              30466
+#define IDS_ADVANCED_DISPLAY_LOG_OFF                30467
+#define IDS_ADVANCED_EXPAND_CONTROL_PANEL           30468
+#define IDS_ADVANCED_EXPAND_MY_DOCUMENTS            30469
+#define IDS_ADVANCED_EXPAND_PRINTERS                30470
+#define IDS_ADVANCED_EXPAND_MY_PICTURES             30472
+#define IDS_ADVANCED_EXPAND_NET_CONNECTIONS         30473
+#define IDS_ADVANCED_DISPLAY_RUN                    30474
+#define IDS_ADVANCED_DISPLAY_ADMINTOOLS             30476
+#define IDS_ADVANCED_SMALL_START_MENU               30477
 
 #define IDS_NEWEXT_ADVANCED_LEFT                    30515
 #define IDS_NEWEXT_ADVANCED_RIGHT                   30516
@@ -584,6 +603,10 @@
 #define IDI_SHELL_UPDATE            47
 #define IDI_SHELL_LOCKED            48
 #define IDI_SHELL_DISCONN           49
+#define IDI_SHELL_NONE_50           50
+#define IDI_SHELL_NONE_51           51
+#define IDI_SHELL_NONE_52           52
+#define IDI_SHELL_NONE_53           53
 #define IDI_SHELL_NOT_CONNECTED_HDD 54
 #define IDI_SHELL_MULTIPLE_FILES   133
 #define IDI_SHELL_OPEN_WITH        134
@@ -856,6 +879,7 @@
 #define IDM_COPYHERE 0x7
 #define IDM_MOVEHERE 0x8
 #define IDM_LINKHERE 0xB
+#define IDM_DVSELECT 0x104
 
 #define IDM_MYDOCUMENTS 516
 #define IDM_MYPICTURES 518
@@ -893,3 +917,4 @@
 #define IDR_SENDTOMENU          158
 #define IDR_COPYTOMENU          159
 #define IDR_MOVETOMENU          160
+#define IDR_COPYASPATHMENU      161

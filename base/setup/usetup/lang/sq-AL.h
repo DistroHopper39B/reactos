@@ -1512,14 +1512,7 @@ static MUI_ENTRY sqALBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "Instalimi nuk mund t\211 instaloj\211 programin e bootloaderit ne kompjuterin tuaj",
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        9,
-        "harddisku.",
+        "Instalimi po instalon bootloaderin.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2283,7 +2276,7 @@ MUI_STRING sqALStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Apdejtimi i p\211rzgjedhj\211s se konfigurimit t\211 tastier\211s..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   Shtimi i informacioneve codepage n\211 regjister..."},
+    "   Shtimi i informacioneve codepage..."},
     {STRING_DONE,
     "   Mbaruam..."},
     {STRING_REBOOTCOMPUTER2,

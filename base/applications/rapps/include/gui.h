@@ -52,18 +52,22 @@ class CMainWindow : public CWindowImpl<CMainWindow, CWindow, CFrameWinTraits>
     CUiWindow<CStatusBar> *m_StatusBar = NULL;
 
     CApplicationView *m_ApplicationView = NULL;
+    friend class CApplicationView;
 
     CAppDB *m_Db;
     CAtlList<CAppInfo *> m_Selected;
 
     BOOL bUpdating = FALSE;
-    BOOL bAppwizMode;
+    BOOL m_bAppwizMode;
     HTREEITEM hRootItemInstalled;
 
     CStringW szSearchPattern;
     AppsCategories SelectedEnumType;
 
   public:
+    static HWND m_hLastFocus;
+    static bool m_PendingInstalledViewRefresh;
+
     explicit CMainWindow(CAppDB *db, BOOL bAppwiz = FALSE);
 
     ~CMainWindow();
@@ -90,6 +94,9 @@ class CMainWindow : public CWindowImpl<CMainWindow, CWindow, CFrameWinTraits>
     VOID
     OnSize(HWND hwnd, WPARAM wParam, LPARAM lParam);
 
+    VOID
+    CheckAvailable();
+
     BOOL
     RemoveSelectedAppFromRegistry();
     BOOL
@@ -105,7 +112,7 @@ class CMainWindow : public CWindowImpl<CMainWindow, CWindow, CFrameWinTraits>
     UpdateStatusBarText();
 
     VOID
-    UpdateApplicationsList(AppsCategories EnumType, BOOL bReload = FALSE);
+    UpdateApplicationsList(AppsCategories EnumType, BOOL bReload = FALSE, BOOL bCheckAvailable = FALSE);
     VOID
     AddApplicationsToView(CAtlList<CAppInfo *> &List);
 

@@ -1400,14 +1400,7 @@ static MUI_ENTRY huHUBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "Nem siker\201lt telep\241teni a rendszerbet\224lt\213t",
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        9,
-        "a sz\240m\241t\242g\202p merevlemez\202re.",
+        "Bootloader telep\241t\202se.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2160,7 +2153,7 @@ MUI_STRING huHUStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Billenty\373zetkioszt\240s be\240ll\241t\240sok friss\241t\202se..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   K\242dlap inform\240ci\242k hozz\240ad\240sa a regisztr\240ci\242s adatb\240zishoz..."},
+    "   K\242dlap inform\240ci\242k hozz\240ad\240sa..."},
     {STRING_DONE,
     "   K\202sz..."},
     {STRING_REBOOTCOMPUTER2,

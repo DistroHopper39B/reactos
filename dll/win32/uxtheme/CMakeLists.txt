@@ -6,12 +6,14 @@ spec2def(uxtheme.dll uxtheme.spec ADD_IMPORTLIB)
 list(APPEND SOURCE
     buffer.c
     draw.c
+    errinfo.c
     main.c
     metric.c
     msstyles.c
     ncscrollbar.c
     nonclient.c
     property.c
+    resource.h
     stylemap.c
     system.c
     themehooks.c
@@ -26,9 +28,12 @@ if(DLL_EXPORT_VERSION GREATER_EQUAL 0x600)
         pngsup.cpp)
 endif()
 
+file(GLOB uxtheme_rc_deps ${CMAKE_CURRENT_SOURCE_DIR}/lang/*.rc)
+add_rc_deps(uxtheme.rc ${uxtheme_rc_deps})
+
 add_library(uxtheme MODULE
     ${SOURCE}
-    version.rc
+    uxtheme.rc
     ${CMAKE_CURRENT_BINARY_DIR}/uxtheme.def)
 
 set_module_type(uxtheme win32dll)

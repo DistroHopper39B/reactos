@@ -38,7 +38,7 @@ NTAPI
 KeStartAllProcessors(VOID)
 {
     PVOID KernelStack, DPCStack;
-    SIZE_T ProcessorCount = 0;
+    ULONG ProcessorCount = 0;
     PAPINFO APInfo;
 
     while (TRUE)
@@ -48,7 +48,7 @@ KeStartAllProcessors(VOID)
         DPCStack = NULL;
 
         // Allocate structures for a new CPU.
-        APInfo = ExAllocatePoolZero(NonPagedPool, sizeof(APINFO), '  eK');
+        APInfo = ExAllocatePoolZero(NonPagedPool, sizeof(*APInfo), TAG_KERNEL);
         if (!APInfo)
             break;
         ASSERT(ALIGN_DOWN_POINTER_BY(APInfo, PAGE_SIZE) == APInfo);
@@ -83,7 +83,7 @@ KeStartAllProcessors(VOID)
 
         KiSetGdtDescriptorBase(KiGetGdtEntry(&APInfo->Gdt, KGDT_TSS), (ULONG_PTR)&APInfo->Tss);
         // Clear TSS Busy flag (aka set the type to "TSS (Available)")
-        KiGetGdtEntry(&APInfo->Gdt, KGDT_TSS)->HighWord.Bits.Type = 0b1001;
+        KiGetGdtEntry(&APInfo->Gdt, KGDT_TSS)->HighWord.Bits.Type = I386_TSS;
 
         APInfo->TssDoubleFault.Esp0 = (ULONG_PTR)&APInfo->NMIStackData;
         APInfo->TssDoubleFault.Esp = (ULONG_PTR)&APInfo->NMIStackData;
@@ -127,7 +127,7 @@ KeStartAllProcessors(VOID)
         KeLoaderBlock->Thread = (ULONG_PTR)&APInfo->Pcr.Prcb->IdleThread;
 
         // Start the CPU
-        DPRINT("Attempting to Start a CPU with number: %u\n", ProcessorCount);
+        DPRINT("Attempting to Start a CPU with number: %lu\n", ProcessorCount);
         if (!HalStartNextProcessor(KeLoaderBlock, ProcessorState))
         {
             break;
@@ -146,11 +146,11 @@ KeStartAllProcessors(VOID)
     ProcessorCount--;
 
     if (APInfo)
-        ExFreePoolWithTag(APInfo, '  eK');
+        ExFreePoolWithTag(APInfo, TAG_KERNEL);
     if (KernelStack)
         MmDeleteKernelStack(KernelStack, FALSE);
     if (DPCStack)
         MmDeleteKernelStack(DPCStack, FALSE);
 
-    DPRINT1("KeStartAllProcessors: Sucessful AP startup count is %u\n", ProcessorCount);
+    DPRINT1("KeStartAllProcessors: Successful AP startup count is %lu\n", ProcessorCount);
 }

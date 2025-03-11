@@ -1517,7 +1517,7 @@ static MUI_ENTRY ltLTBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "Setup cannot install the bootloader on your computer's harddisk.",
+        "Setup is installing the bootloader.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2028,7 +2028,7 @@ MUI_ERROR ltLTErrorEntries[] =
     },
     {
         // ERROR_ADDING_CODEPAGE,
-        "Setup failed to add codepage to registry.\n"
+        "Setup failed to add codepage to the registry.\n"
         "ENTER = Reboot computer"
     },
     {
@@ -2038,7 +2038,7 @@ MUI_ERROR ltLTErrorEntries[] =
     },
     {
         // ERROR_ADDING_KBLAYOUTS,
-        "Setup failed to add keyboard layouts to registry.\n"
+        "Setup failed to add keyboard layouts to the registry.\n"
         "ENTER = Reboot computer"
     },
     {
@@ -2273,7 +2273,7 @@ MUI_STRING ltLTStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Updating keyboard layout settings..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   Adding codepage information to registry..."},
+    "   Adding codepage information..."},
     {STRING_DONE,
     "   Done..."},
     {STRING_REBOOTCOMPUTER2,

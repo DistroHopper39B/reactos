@@ -540,7 +540,7 @@ NtUserCallTwoParam(
 
             if (fAltTab && (Window->style & WS_MINIMIZE))
             {
-                MSG msg = { Window->head.h, WM_SYSCOMMAND, SC_RESTORE, 0 };
+                MSG msg = { UserHMGetHandle(Window), WM_SYSCOMMAND, SC_RESTORE, 0 };
                 MsqPostMessage(Window->head.pti, &msg, FALSE, QS_POSTMESSAGE, 0, 0);
             }
             break;
@@ -706,7 +706,7 @@ NtUserCallHwndOpt(
     return hWnd;
 }
 
-DWORD
+DWORD_PTR
 APIENTRY
 NtUserCallHwnd(
     HWND hWnd,
@@ -727,7 +727,7 @@ NtUserCallHwnd(
                 return 0;
             }
 
-            HelpId = (DWORD)(DWORD_PTR)UserGetProp(Window, gpsi->atomContextHelpIdProp, TRUE);
+            HelpId = HandleToUlong(UserGetProp(Window, gpsi->atomContextHelpIdProp, TRUE));
 
             UserLeave();
             return HelpId;
@@ -754,6 +754,17 @@ NtUserCallHwnd(
             }
             UserLeave();
             return FALSE;
+        }
+
+        case HWND_ROUTINE_DWP_GETENABLEDPOPUP:
+        {
+            PWND pWnd;
+            UserEnterShared();
+            pWnd = UserGetWindowObject(hWnd);
+            if (pWnd)
+                pWnd = DWP_GetEnabledPopup(pWnd);
+            UserLeave();
+            return (DWORD_PTR)pWnd;
         }
     }
 

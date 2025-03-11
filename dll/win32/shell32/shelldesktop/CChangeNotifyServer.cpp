@@ -42,8 +42,8 @@ public:
     HRESULT Initialize();
 
     // *** IOleWindow methods ***
-    virtual HRESULT STDMETHODCALLTYPE GetWindow(HWND *lphwnd);
-    virtual HRESULT STDMETHODCALLTYPE ContextSensitiveHelp(BOOL fEnterMode);
+    STDMETHOD(GetWindow)(HWND *lphwnd) override;
+    STDMETHOD(ContextSensitiveHelp)(BOOL fEnterMode) override;
 
     // Message handlers
     LRESULT OnRegister(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
@@ -199,7 +199,8 @@ CreateDirectoryWatcherFromRegEntry(LPREGENTRY pRegEntry)
         return NULL;
 
     // create a CDirectoryWatcher
-    CDirectoryWatcher *pDirectoryWatcher = CDirectoryWatcher::Create(szPath, pRegEntry->fRecursive);
+    CDirectoryWatcher *pDirectoryWatcher =
+        CDirectoryWatcher::Create(pRegEntry->hwnd, szPath, pRegEntry->fRecursive);
     if (pDirectoryWatcher == NULL)
         return NULL;
 

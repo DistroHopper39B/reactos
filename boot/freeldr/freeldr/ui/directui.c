@@ -93,19 +93,22 @@ UiDrawStatusText(IN PCSTR StatusText)
 }
 
 VOID
-UiInfoBox(IN PCSTR MessageText)
+UiInfoBox(
+    _In_ PCSTR MessageText)
 {
     TuiPrintf(MessageText);
 }
 
 VOID
-UiMessageBox(IN PCSTR MessageText)
+UiMessageBox(
+    _In_ PCSTR MessageText)
 {
     TuiPrintf(MessageText);
 }
 
 VOID
-UiMessageBoxCritical(IN PCSTR MessageText)
+UiMessageBoxCritical(
+    _In_ PCSTR MessageText)
 {
     TuiPrintf(MessageText);
 }
@@ -136,7 +139,6 @@ BOOLEAN
 UiDisplayMenu(
     IN PCSTR MenuHeader,
     IN PCSTR MenuFooter OPTIONAL,
-    IN BOOLEAN ShowBootOptions,
     IN PCSTR MenuItemList[],
     IN ULONG MenuItemCount,
     IN ULONG DefaultMenuItem,

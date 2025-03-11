@@ -24,6 +24,51 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL (shell);
 
+#define D_NONE DROPEFFECT_NONE
+#define D_COPY DROPEFFECT_COPY
+#define D_MOVE DROPEFFECT_MOVE
+#define D_LINK DROPEFFECT_LINK
+
+static void SHELL_StripIllegalFsNameCharacters(_Inout_ LPWSTR Buf)
+{
+    for (LPWSTR src = Buf, dst = src;;)
+    {
+        *dst = *src;
+        if (!*dst)
+            break;
+        else if (wcschr(INVALID_FILETITLE_CHARACTERSW, *dst))
+            src = CharNextW(src);
+        else
+            ++src, ++dst;
+    }
+}
+
+static bool PathIsSameDrive(LPCWSTR Path1, LPCWSTR Path2)
+{
+    int d1 = PathGetDriveNumberW(Path1), d2 = PathGetDriveNumberW(Path2);
+    return d1 == d2 && d2 >= 0;
+}
+
+static bool PathIsDriveRoot(LPCWSTR Path)
+{
+    return PathIsRootW(Path) && PathGetDriveNumberW(Path) >= 0;
+}
+
+static HRESULT
+SHELL_LimitDropEffectToItemAttributes(_In_ IDataObject *pDataObject, _Inout_ PDWORD pdwEffect)
+{
+    DWORD att = *pdwEffect & (SFGAO_CANCOPY | SFGAO_CANMOVE | SFGAO_CANLINK); // DROPEFFECT maps perfectly to these SFGAO bits
+    HRESULT hr = SHGetAttributesFromDataObject(pDataObject, att, &att, NULL);
+    if (FAILED(hr))
+        return S_FALSE;
+    *pdwEffect &= ~(SFGAO_CANCOPY | SFGAO_CANMOVE | SFGAO_CANLINK) | att;
+    return hr;
+}
+
+static void GetDefaultCopyMoveEffect()
+{
+    // FIXME: When the source is on a different volume than the target, change default from move to copy
+}
 
 /****************************************************************************
  * CFSDropTarget::_CopyItems
@@ -105,7 +150,8 @@ CFSDropTarget::CFSDropTarget():
     m_fAcceptFmt(FALSE),
     m_sPathTarget(NULL),
     m_hwndSite(NULL),
-    m_grfKeyState(0)
+    m_grfKeyState(0),
+    m_AllowedEffects(0)
 {
 }
 
@@ -118,13 +164,7 @@ HRESULT CFSDropTarget::Initialize(LPWSTR PathTarget)
     if (!m_cfShellIDList)
         return E_FAIL;
 
-    m_sPathTarget = (WCHAR *)SHAlloc((wcslen(PathTarget) + 1) * sizeof(WCHAR));
-    if (!m_sPathTarget)
-        return E_OUTOFMEMORY;
-
-    wcscpy(m_sPathTarget, PathTarget);
-
-    return S_OK;
+    return SHStrDupW(PathTarget, &m_sPathTarget);
 }
 
 CFSDropTarget::~CFSDropTarget()
@@ -166,13 +206,20 @@ BOOL CFSDropTarget::_QueryDrop(DWORD dwKeyState, LPDWORD pdwEffect)
 {
     /* TODO Windows does different drop effects if dragging across drives.
     i.e., it will copy instead of move if the directories are on different disks. */
+    GetDefaultCopyMoveEffect();
 
     DWORD dwEffect = m_dwDefaultEffect;
 
     *pdwEffect = DROPEFFECT_NONE;
 
     if (m_fAcceptFmt) { /* Does our interpretation of the keystate ... */
-        *pdwEffect = KeyStateToDropEffect (dwKeyState);
+        *pdwEffect = KeyStateToDropEffect(dwKeyState);
+
+        // Transform disallowed move to a copy
+        if ((*pdwEffect & D_MOVE) && (m_AllowedEffects & (D_MOVE | D_COPY)) == D_COPY)
+            *pdwEffect = D_COPY;
+
+        *pdwEffect &= m_AllowedEffects;
 
         if (*pdwEffect == DROPEFFECT_NONE)
             *pdwEffect = dwEffect;
@@ -193,18 +240,20 @@ HRESULT CFSDropTarget::_GetEffectFromMenu(IDataObject *pDataObject, POINTL pt, D
 
     HMENU hpopupmenu = GetSubMenu(hmenu, 0);
 
+    SHELL_LimitDropEffectToItemAttributes(pDataObject, &dwAvailableEffects);
     if ((dwAvailableEffects & DROPEFFECT_COPY) == 0)
         DeleteMenu(hpopupmenu, IDM_COPYHERE, MF_BYCOMMAND);
-    else if ((dwAvailableEffects & DROPEFFECT_MOVE) == 0)
+    if ((dwAvailableEffects & DROPEFFECT_MOVE) == 0)
         DeleteMenu(hpopupmenu, IDM_MOVEHERE, MF_BYCOMMAND);
-    else if ((dwAvailableEffects & DROPEFFECT_LINK) == 0)
+    if ((dwAvailableEffects & DROPEFFECT_LINK) == 0 && (dwAvailableEffects & (DROPEFFECT_COPY | DROPEFFECT_MOVE)))
         DeleteMenu(hpopupmenu, IDM_LINKHERE, MF_BYCOMMAND);
 
-    if ((*pdwEffect & DROPEFFECT_COPY))
+    GetDefaultCopyMoveEffect();
+    if (*pdwEffect & dwAvailableEffects & DROPEFFECT_COPY)
         SetMenuDefaultItem(hpopupmenu, IDM_COPYHERE, FALSE);
-    else if ((*pdwEffect & DROPEFFECT_MOVE))
+    else if (*pdwEffect & dwAvailableEffects & DROPEFFECT_MOVE)
         SetMenuDefaultItem(hpopupmenu, IDM_MOVEHERE, FALSE);
-    else if ((*pdwEffect & DROPEFFECT_LINK))
+    else if (dwAvailableEffects & DROPEFFECT_LINK)
         SetMenuDefaultItem(hpopupmenu, IDM_LINKHERE, FALSE);
 
     /* FIXME: We need to support shell extensions here */
@@ -223,6 +272,7 @@ HRESULT CFSDropTarget::_GetEffectFromMenu(IDataObject *pDataObject, POINTL pt, D
                               NULL,
                               NULL);
 
+    SetForegroundWindow(hwndDummy); // Required for aborting by pressing Esc when dragging from Explorer to desktop
     UINT uCommand = TrackPopupMenu(hpopupmenu,
                                    TPM_LEFTALIGN | TPM_RETURNCMD | TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_NONOTIFY,
                                    pt.x, pt.y, 0, hwndDummy, NULL);
@@ -287,6 +337,9 @@ HRESULT WINAPI CFSDropTarget::DragEnter(IDataObject *pDataObject,
 {
     TRACE("(%p)->(DataObject=%p)\n", this, pDataObject);
 
+    const BOOL bAnyKeyMod = dwKeyState & (MK_SHIFT | MK_CONTROL);
+    m_AllowedEffects = *pdwEffect;
+
     if (*pdwEffect == DROPEFFECT_NONE)
         return S_OK;
 
@@ -304,11 +357,9 @@ HRESULT WINAPI CFSDropTarget::DragEnter(IDataObject *pDataObject,
 
     m_grfKeyState = dwKeyState;
 
-#define D_NONE DROPEFFECT_NONE
-#define D_COPY DROPEFFECT_COPY
-#define D_MOVE DROPEFFECT_MOVE
-#define D_LINK DROPEFFECT_LINK
-    m_dwDefaultEffect = *pdwEffect;
+    SHELL_LimitDropEffectToItemAttributes(pDataObject, pdwEffect);
+    m_AllowedEffects = *pdwEffect;
+    m_dwDefaultEffect = m_AllowedEffects;
     switch (*pdwEffect & (D_COPY | D_MOVE | D_LINK))
     {
         case D_COPY | D_MOVE:
@@ -345,19 +396,24 @@ HRESULT WINAPI CFSDropTarget::DragEnter(IDataObject *pDataObject,
         WCHAR wstrFirstFile[MAX_PATH];
         if (DragQueryFileW((HDROP)medium.hGlobal, 0, wstrFirstFile, _countof(wstrFirstFile)))
         {
-            /* Check if the drive letter is different */
-            if (wstrFirstFile[0] != m_sPathTarget[0])
+            if (!PathIsSameDrive(wstrFirstFile, m_sPathTarget) && m_dwDefaultEffect != D_LINK)
             {
                 m_dwDefaultEffect = DROPEFFECT_COPY;
+            }
+
+            if (!bAnyKeyMod && PathIsDriveRoot(wstrFirstFile) && (m_AllowedEffects & DROPEFFECT_LINK))
+            {
+                m_dwDefaultEffect = DROPEFFECT_LINK; // Don't copy a drive by default
             }
         }
         ReleaseStgMedium(&medium);
     }
 
     if (!m_fAcceptFmt)
-        *pdwEffect = DROPEFFECT_NONE;
+        m_AllowedEffects = DROPEFFECT_NONE;
     else
         *pdwEffect = m_dwDefaultEffect;
+    *pdwEffect &= m_AllowedEffects;
 
     return S_OK;
 }
@@ -412,7 +468,7 @@ HRESULT WINAPI CFSDropTarget::Drop(IDataObject *pDataObject,
     if (*pdwEffect == DROPEFFECT_MOVE && m_site)
     {
         CComPtr<IShellFolderView> psfv;
-        HRESULT hr = IUnknown_QueryService(m_site, SID_IFolderView, IID_PPV_ARG(IShellFolderView, &psfv));
+        HRESULT hr = IUnknown_QueryService(m_site, SID_SFolderView, IID_PPV_ARG(IShellFolderView, &psfv));
         if (SUCCEEDED(hr) && psfv->IsDropOnSource(this) == S_OK)
         {
             _RepositionItems(psfv, pDataObject, pt);
@@ -438,7 +494,7 @@ HRESULT WINAPI CFSDropTarget::Drop(IDataObject *pDataObject,
             data->pt = pt;
             // Need to dereference as pdweffect gets freed.
             data->pdwEffect = *pdwEffect;
-            SHCreateThread(CFSDropTarget::_DoDropThreadProc, data, NULL, NULL);
+            SHCreateThread(CFSDropTarget::_DoDropThreadProc, data, CTF_COINIT | CTF_PROCESS_REF, NULL);
             return S_OK;
         }
     }
@@ -491,7 +547,7 @@ HRESULT CFSDropTarget::_DoDrop(IDataObject *pDataObject,
     if (SUCCEEDED(pDataObject->QueryGetData(&fmt)))
     {
         hr = pDataObject->GetData(&fmt, &medium);
-        TRACE("CFSTR_SHELLIDLIST.\n");
+        TRACE("CFSTR_SHELLIDLIST\n");
         if (FAILED(hr))
         {
             ERR("CFSTR_SHELLIDLIST failed\n");
@@ -548,125 +604,89 @@ HRESULT CFSDropTarget::_DoDrop(IDataObject *pDataObject,
 
         if (bLinking)
         {
-            WCHAR wszPath[MAX_PATH];
-            WCHAR wszTarget[MAX_PATH];
+            WCHAR wszNewLnk[MAX_PATH];
 
             TRACE("target path = %s\n", debugstr_w(m_sPathTarget));
 
             /* We need to create a link for each pidl in the copied items, so step through the pidls from the clipboard */
             for (UINT i = 0; i < lpcida->cidl; i++)
             {
-                // Find out which file we're linking.
-                STRRET strFile;
-                hr = psfFrom->GetDisplayNameOf(apidl[i], SHGDN_FORPARSING, &strFile);
-                if (FAILED_UNEXPECTEDLY(hr))
-                    break;
+                SFGAOF att = SHGetAttributes(psfFrom, apidl[i], SFGAO_FOLDER | SFGAO_STREAM | SFGAO_FILESYSTEM);
+                CComHeapPtr<ITEMIDLIST_ABSOLUTE> pidlFull;
+                hr = SHILCombine(pidl, apidl[i], &pidlFull);
 
-                hr = StrRetToBufW(&strFile, apidl[i], wszPath, _countof(wszPath));
-                if (FAILED_UNEXPECTEDLY(hr))
-                    break;
-
-                TRACE("source path = %s\n", debugstr_w(wszPath));
-
-                WCHAR wszDisplayName[MAX_PATH];
-                LPWSTR pwszFileName = PathFindFileNameW(wszPath);
-                if (PathIsRootW(wszPath)) // Drive?
+                WCHAR targetName[MAX_PATH];
+                if (SUCCEEDED(hr))
                 {
-                    hr = psfFrom->GetDisplayNameOf(apidl[i], SHGDN_NORMAL, &strFile);
-                    if (FAILED_UNEXPECTEDLY(hr))
-                        break;
-
-                    hr = StrRetToBufW(&strFile, apidl[i], wszDisplayName, _countof(wszDisplayName));
-                    if (FAILED_UNEXPECTEDLY(hr))
-                        break;
-
-                    // Delete a ':' in wszDisplayName.
-                    LPWSTR pch0 = wcschr(wszDisplayName, L':');
-                    if (pch0)
-                    {
-                        do
-                        {
-                            *pch0 = *(pch0 + 1);
-                            ++pch0;
-                        } while (*pch0);
-                    }
-
-                    pwszFileName = wszDisplayName; // Use wszDisplayName
+                    // If the target is a file, we use SHGDN_FORPARSING because "NeverShowExt" will hide the ".lnk" extension.
+                    // If the target is a virtual item, we ask for the friendly name because SHGDN_FORPARSING will return a GUID.
+                    BOOL UseParsing = (att & (SFGAO_FILESYSTEM | SFGAO_FOLDER)) == SFGAO_FILESYSTEM;
+                    DWORD ShgdnFor = UseParsing ? SHGDN_FORPARSING : SHGDN_FOREDITING;
+                    hr = Shell_DisplayNameOf(psfFrom, apidl[i], ShgdnFor | SHGDN_INFOLDER, targetName, _countof(targetName));
                 }
-                else if (wszPath[0] == L':' && wszPath[1] == L':') // ::{GUID}?
+                if (FAILED_UNEXPECTEDLY(hr))
                 {
-                    CLSID clsid;
-                    hr = ::CLSIDFromString(&wszPath[2], &clsid);
-                    if (SUCCEEDED(hr))
-                    {
-                        LPITEMIDLIST pidl = ILCreateFromPathW(wszPath);
-                        if (pidl)
-                        {
-                            SHFILEINFOW fi = { NULL };
-                            SHGetFileInfoW((LPCWSTR)pidl, 0, &fi, sizeof(fi),
-                                           SHGFI_DISPLAYNAME | SHGFI_PIDL);
-                            if (fi.szDisplayName[0])
-                            {
-                                lstrcpynW(wszDisplayName, fi.szDisplayName, _countof(wszDisplayName));
-                                pwszFileName = wszDisplayName; // Use wszDisplayName
-                            }
-                            ILFree(pidl);
-                        }
-                    }
+                    SHELL_ErrorBox(m_hwndSite, hr);
+                    break;
                 }
+                SHELL_StripIllegalFsNameCharacters(targetName);
 
-                // Creating a buffer to hold the combined path.
-                WCHAR wszCombined[MAX_PATH];
-                PathCombineW(wszCombined, m_sPathTarget, pwszFileName);
+                WCHAR wszCombined[MAX_PATH + _countof(targetName)];
+                PathCombineW(wszCombined, m_sPathTarget, targetName);
 
                 // Check to see if the source is a link
                 BOOL fSourceIsLink = FALSE;
-                if (!wcsicmp(PathFindExtensionW(wszPath), L".lnk"))
+                if (!_wcsicmp(PathFindExtensionW(targetName), L".lnk") && (att & (SFGAO_FOLDER | SFGAO_STREAM)) != SFGAO_FOLDER)
                 {
                     fSourceIsLink = TRUE;
                     PathRemoveExtensionW(wszCombined);
                 }
 
                 // Create a pathname to save the new link.
-                _GetUniqueFileName(wszCombined, L".lnk", wszTarget, TRUE);
+                _GetUniqueFileName(wszCombined, L".lnk", wszNewLnk, TRUE);
 
                 CComPtr<IPersistFile> ppf;
                 if (fSourceIsLink)
                 {
-                    hr = IShellLink_ConstructFromPath(wszPath, IID_PPV_ARG(IPersistFile, &ppf));
-                    if (FAILED_UNEXPECTEDLY(hr))
-                        break;
+                    PWSTR pwszTargetFull;
+                    hr = SHGetNameFromIDList(pidlFull, SIGDN_DESKTOPABSOLUTEPARSING, &pwszTargetFull);
+                    if (!FAILED_UNEXPECTEDLY(hr))
+                    {
+                        hr = IShellLink_ConstructFromPath(pwszTargetFull, IID_PPV_ARG(IPersistFile, &ppf));
+                        FAILED_UNEXPECTEDLY(hr);
+                        SHFree(pwszTargetFull);
+                    }
                 }
                 else
                 {
                     CComPtr<IShellLinkW> pLink;
                     hr = CShellLink::_CreatorClass::CreateInstance(NULL, IID_PPV_ARG(IShellLinkW, &pLink));
-                    if (FAILED_UNEXPECTEDLY(hr))
-                        break;
+                    if (!FAILED_UNEXPECTEDLY(hr))
+                    {
+                        hr = pLink->SetIDList(pidlFull);
+                        if (!FAILED_UNEXPECTEDLY(hr))
+                            hr = pLink->QueryInterface(IID_PPV_ARG(IPersistFile, &ppf));
 
-                    WCHAR szDirPath[MAX_PATH], *pwszFile;
-                    GetFullPathName(wszPath, MAX_PATH, szDirPath, &pwszFile);
-                    if (pwszFile)
-                        pwszFile[0] = 0;
-
-                    hr = pLink->SetPath(wszPath);
-                    if (FAILED_UNEXPECTEDLY(hr))
-                        break;
-
-                    hr = pLink->SetWorkingDirectory(szDirPath);
-                    if (FAILED_UNEXPECTEDLY(hr))
-                        break;
-
-                    hr = pLink->QueryInterface(IID_PPV_ARG(IPersistFile, &ppf));
-                    if (FAILED_UNEXPECTEDLY(hr))
-                        break;
+                        PWSTR pwszPath, pSep;
+                        if ((att & SFGAO_FILESYSTEM) && SUCCEEDED(SHGetNameFromIDList(pidlFull, SIGDN_FILESYSPATH, &pwszPath)))
+                        {
+                            if ((pSep = PathFindFileNameW(pwszPath)) > pwszPath)
+                            {
+                                pSep[-1] = UNICODE_NULL;
+                                pLink->SetWorkingDirectory(pwszPath);
+                            }
+                            SHFree(pwszPath);
+                        }
+                    }
                 }
-
-                hr = ppf->Save(wszTarget, !fSourceIsLink);
+                if (SUCCEEDED(hr))
+                    hr = ppf->Save(wszNewLnk, !fSourceIsLink);
                 if (FAILED_UNEXPECTEDLY(hr))
+                {
+                    SHELL_ErrorBox(m_hwndSite, hr);
                     break;
-
-                SHChangeNotify(SHCNE_CREATE, SHCNF_PATHW, wszTarget, NULL);
+                }
+                SHChangeNotify(SHCNE_CREATE, SHCNF_PATHW, wszNewLnk, NULL);
             }
         }
         else
@@ -721,7 +741,7 @@ HRESULT CFSDropTarget::_DoDrop(IDataObject *pDataObject,
     }
     else
     {
-        ERR("No viable drop format.\n");
+        ERR("No viable drop format\n");
         hr = E_FAIL;
     }
     return hr;
@@ -729,7 +749,6 @@ HRESULT CFSDropTarget::_DoDrop(IDataObject *pDataObject,
 
 DWORD WINAPI CFSDropTarget::_DoDropThreadProc(LPVOID lpParameter)
 {
-    CoInitialize(NULL);
     _DoDropData *data = static_cast<_DoDropData*>(lpParameter);
     CComPtr<IDataObject> pDataObject;
     HRESULT hr = CoGetInterfaceAndReleaseStream (data->pStream, IID_PPV_ARG(IDataObject, &pDataObject));
@@ -747,7 +766,6 @@ DWORD WINAPI CFSDropTarget::_DoDropThreadProc(LPVOID lpParameter)
     data->This->Release();
     //Release the parameter from the heap.
     HeapFree(GetProcessHeap(), 0, data);
-    CoUninitialize();
     return 0;
 }
 

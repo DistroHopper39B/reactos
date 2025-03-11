@@ -565,15 +565,14 @@ DWORD FASTCALL UserBuildHimcList(PTHREADINFO pti, DWORD dwCount, HIMC *phList)
     return dwRealCount;
 }
 
-// Win: xxxImmProcessKey
 UINT FASTCALL
 IntImmProcessKey(PUSER_MESSAGE_QUEUE MessageQueue, PWND pWnd, UINT uMsg,
                  WPARAM wParam, LPARAM lParam)
 {
-    UINT uVirtualKey, ret = 0;
+    UINT uVirtualKey, ret;
     DWORD dwHotKeyId;
     PKL pKL;
-    PIMC pIMC = NULL;
+    PIMC pIMC;
     PIMEHOTKEY pImeHotKey;
     HKL hKL;
     HWND hWnd;
@@ -592,6 +591,7 @@ IntImmProcessKey(PUSER_MESSAGE_QUEUE MessageQueue, PWND pWnd, UINT uMsg,
             return 0;
     }
 
+    pIMC = NULL;
     hWnd = UserHMGetHandle(pWnd);
     pKL = pWnd->head.pti->KeyboardLayout;
     if (!pKL)
@@ -638,7 +638,7 @@ IntImmProcessKey(PUSER_MESSAGE_QUEUE MessageQueue, PWND pWnd, UINT uMsg,
         if (!pIMC)
             return 0;
 
-        if ((lParam & 0x80000000) &&
+        if ((lParam & (KF_UP << 16)) &&
             (pKL->piiex->ImeInfo.fdwProperty & IME_PROP_IGNORE_UPKEYS))
         {
             return 0;
@@ -939,7 +939,7 @@ NtUserGetAppImeLevel(HWND hWnd)
 
     pti = PsGetCurrentThreadWin32Thread();
     if (pWnd->head.pti->ppi == pti->ppi)
-        ret = (DWORD)(ULONG_PTR)UserGetProp(pWnd, AtomImeLevel, TRUE);
+        ret = HandleToUlong(UserGetProp(pWnd, AtomImeLevel, TRUE));
 
 Quit:
     UserLeave();
@@ -1078,7 +1078,7 @@ NtUserSetAppImeLevel(HWND hWnd, DWORD dwLevel)
 
     pti = PsGetCurrentThreadWin32Thread();
     if (pWnd->head.pti->ppi == pti->ppi)
-        ret = UserSetProp(pWnd, AtomImeLevel, (HANDLE)(ULONG_PTR)dwLevel, TRUE);
+        ret = UserSetProp(pWnd, AtomImeLevel, UlongToHandle(dwLevel), TRUE);
 
 Quit:
     UserLeave();
@@ -1797,10 +1797,7 @@ NtUserQueryInputContext(HIMC hIMC, DWORD dwType)
     UserEnterExclusive();
 
     if (!IS_IMM_MODE())
-    {
-        ERR("!IS_IMM_MODE()\n");
         goto Quit;
-    }
 
     pIMC = UserGetObject(gHandleTable, hIMC, TYPE_INPUTCONTEXT);
     if (!pIMC)
@@ -1979,7 +1976,7 @@ PWND FASTCALL co_IntCreateDefaultImeWindow(PWND pwndTarget, HINSTANCE hInst)
 
     RtlInitLargeUnicodeString(&WindowName, L"Default IME", 0);
 
-    ClassName.Buffer = (PWCH)(ULONG_PTR)gpsi->atomSysClass[ICLS_IME];
+    ClassName.Buffer = UlongToPtr(gpsi->atomSysClass[ICLS_IME]);
     ClassName.Length = 0;
     ClassName.MaximumLength = 0;
 

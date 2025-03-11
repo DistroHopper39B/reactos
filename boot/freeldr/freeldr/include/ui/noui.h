@@ -47,8 +47,14 @@ NoUiDrawCenteredText(
 
 VOID NoUiDrawStatusText(PCSTR StatusText);
 VOID NoUiUpdateDateTime(VOID);
-VOID NoUiMessageBox(PCSTR MessageText);
-VOID NoUiMessageBoxCritical(PCSTR MessageText);
+
+VOID
+NoUiMessageBox(
+    _In_ PCSTR MessageText);
+
+VOID
+NoUiMessageBoxCritical(
+    _In_ PCSTR MessageText);
 
 /* Loading Progress-Bar Functions ********************************************/
 
@@ -87,7 +93,6 @@ BOOLEAN
 NoUiDisplayMenu(
     IN PCSTR MenuHeader,
     IN PCSTR MenuFooter OPTIONAL,
-    IN BOOLEAN ShowBootOptions,
     IN PCSTR MenuItemList[],
     IN ULONG MenuItemCount,
     IN ULONG DefaultMenuItem,

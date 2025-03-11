@@ -208,7 +208,7 @@ ExLockUserBuffer(
     PMDL *OutMdl)
 {
     PMDL Mdl;
-    PAGED_CODE();
+    ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
 
     *MappedSystemVa = NULL;
     *OutMdl = NULL;
@@ -664,7 +664,13 @@ QSI_DEF(SystemProcessorInformation)
 #else
     Spi->MaximumProcessors = 0;
 #endif
-    Spi->ProcessorFeatureBits = KeFeatureBits;
+
+    /* According to Geoff Chappell, on Win 8.1 x64 / Win 10 x86, where this
+       field is extended to 64 bits, it continues to produce only the low 32
+       bits. For the full value, use SYSTEM_PROCESSOR_FEATURES_INFORMATION.
+       See https://www.geoffchappell.com/studies/windows/km/ntoskrnl/api/ex/sysinfo/processor.htm
+     */
+    Spi->ProcessorFeatureBits = (ULONG)KeFeatureBits;
 
     DPRINT("Arch %u Level %u Rev 0x%x\n", Spi->ProcessorArchitecture,
         Spi->ProcessorLevel, Spi->ProcessorRevision);
@@ -1386,7 +1392,7 @@ QSI_DEF(SystemHandleInformation)
 
                         HandleInformation->Handles[Index].CreatorBackTraceIndex = 0;
 
-#if 0 /* FIXME!!! Type field currupted */
+#if 0 /* FIXME!!! Type field corrupted */
                         HandleInformation->Handles[Index].ObjectTypeIndex =
                             (UCHAR) ObjectHeader->Type->Index;
 #else
@@ -2572,7 +2578,7 @@ QSI_DEF(SystemExtendedHandleInformation)
 
                         HandleInformation->Handle[Index].CreatorBackTraceIndex = 0;
 
-#if 0 /* FIXME!!! Type field currupted */
+#if 0 /* FIXME!!! Type field corrupted */
                         HandleInformation->Handles[Index].ObjectTypeIndex =
                             (UCHAR) ObjectHeader->Type->Index;
 #else

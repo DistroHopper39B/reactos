@@ -51,7 +51,7 @@ BOOL APIENTRY Imm32InquireIme(PIMEDPI pImeDpi)
     DWORD dwSysInfoFlags = 0;
     LPIMEINFO pImeInfo = &pImeDpi->ImeInfo;
 
-    if (NtUserGetThreadState(THREADSTATE_ISWINLOGON2))
+    if (NtUserGetThreadState(THREADSTATE_ISWINLOGON))
         dwSysInfoFlags |= IME_SYSINFO_WINLOGON;
 
     if (GetWin32ClientInfo()->dwTIFlags & TIF_16BIT)
@@ -67,7 +67,7 @@ BOOL APIENTRY Imm32InquireIme(PIMEDPI pImeDpi)
     }
     else if (IS_CICERO_MODE() && !IS_16BIT_MODE())
     {
-        if (!pImeDpi->CtfImeInquireExW(pImeInfo, szUIClass, dwSysInfoFlags, pImeDpi->hKL))
+        if (pImeDpi->CtfImeInquireExW(pImeInfo, szUIClass, dwSysInfoFlags, pImeDpi->hKL) != S_OK)
         {
             ERR("\n");
             return FALSE;
@@ -191,7 +191,7 @@ BOOL APIENTRY Imm32InquireIme(PIMEDPI pImeDpi)
         FIXME("%s: Why stub called?\n", #name); \
         return (type)0; \
     }
-#include "imetable.h"
+#include <imetable.h>
 #undef DEFINE_IME_ENTRY
 
 // Win: LoadIME
@@ -214,7 +214,7 @@ BOOL APIENTRY Imm32LoadIME(PIMEINFOEX pImeInfoEx, PIMEDPI pImeDpi)
 
     /* Populate the table by stub IME functions */
 #define DEFINE_IME_ENTRY(type, name, params, optional) pImeDpi->name = Stub##name;
-#include "imetable.h"
+#include <imetable.h>
 #undef DEFINE_IME_ENTRY
 
     /* Populate the table by real IME functions */
@@ -227,7 +227,7 @@ BOOL APIENTRY Imm32LoadIME(PIMEINFOEX pImeInfoEx, PIMEDPI pImeDpi)
             goto Failed; \
         } \
     } while (0);
-#include "imetable.h"
+#include <imetable.h>
 #undef DEFINE_IME_ENTRY
 
     if (Imm32InquireIme(pImeDpi))
@@ -297,7 +297,7 @@ PIMEDPI APIENTRY Imm32LoadImeDpi(HKL hKL, BOOL bLock)
     pImeDpiNew->hKL = hKL;
 
     lcid = LOWORD(hKL);
-    if (TranslateCharsetInfo((LPDWORD)(DWORD_PTR)lcid, &ci, TCI_SRCLOCALE))
+    if (TranslateCharsetInfo(UlongToPtr(lcid), &ci, TCI_SRCLOCALE))
         uCodePage = ci.ciACP;
     else
         uCodePage = CP_ACP;
@@ -859,7 +859,7 @@ HKL WINAPI ImmInstallIMEW(LPCWSTR lpszIMEFileName, LPCWSTR lpszLayoutText)
         if (Imm32WriteImeLayout(hNewKL, pchFilePart, lpszLayoutText))
         {
             /* Load the keyboard layout */
-            StringCchPrintfW(szImeKey, _countof(szImeKey), L"%08X", (DWORD)(DWORD_PTR)hNewKL);
+            StringCchPrintfW(szImeKey, _countof(szImeKey), L"%08X", HandleToUlong(hNewKL));
             hNewKL = LoadKeyboardLayoutW(szImeKey, KLF_REPLACELANG);
         }
         else
@@ -904,7 +904,7 @@ HWND WINAPI ImmGetDefaultIMEWnd(HWND hWnd)
 /***********************************************************************
  *		ImmNotifyIME (IMM32.@)
  */
-BOOL WINAPI ImmNotifyIME(HIMC hIMC, DWORD dwAction, DWORD dwIndex, DWORD dwValue)
+BOOL WINAPI ImmNotifyIME(HIMC hIMC, DWORD dwAction, DWORD dwIndex, DWORD_PTR dwValue)
 {
     HKL hKL;
     PIMEDPI pImeDpi;
@@ -923,15 +923,6 @@ BOOL WINAPI ImmNotifyIME(HIMC hIMC, DWORD dwAction, DWORD dwIndex, DWORD dwValue
     ret = pImeDpi->NotifyIME(hIMC, dwAction, dwIndex, dwValue);
     ImmUnlockImeDpi(pImeDpi);
     return ret;
-}
-
-/***********************************************************************
- *              ImmDisableLegacyIME(IMM32.@)
- */
-BOOL WINAPI ImmDisableLegacyIME(void)
-{
-    FIXME("stub\n");
-    return TRUE;
 }
 
 /***********************************************************************
@@ -1594,7 +1585,7 @@ BOOL WINAPI ImmSetCompositionWindow(HIMC hIMC, LPCOMPOSITIONFORM lpCompForm)
     LPINPUTCONTEXTDX pIC;
     HWND hWnd;
 
-    if (IS_CROSS_THREAD_HIMC(hIMC))
+    if (Imm32IsCrossThreadAccess(hIMC))
         return FALSE;
 
     pIC = (LPINPUTCONTEXTDX)ImmLockIMC(hIMC);

@@ -30,7 +30,6 @@ BOOLEAN
 TuiDisplayMenu(
     IN PCSTR MenuHeader,
     IN PCSTR MenuFooter OPTIONAL,
-    IN BOOLEAN ShowBootOptions,
     IN PCSTR MenuItemList[],
     IN ULONG MenuItemCount,
     IN ULONG DefaultMenuItem,
@@ -80,7 +79,6 @@ TuiDisplayMenu(
     /* Setup the MENU_INFO structure */
     MenuInformation.MenuHeader = MenuHeader;
     MenuInformation.MenuFooter = MenuFooter;
-    MenuInformation.ShowBootOptions = ShowBootOptions;
     MenuInformation.MenuItemList = MenuItemList;
     MenuInformation.MenuItemCount = MenuItemCount;
     MenuInformation.MenuTimeRemaining = MenuTimeOut;
@@ -151,7 +149,6 @@ TuiCalcMenuBoxSize(
 
     /* Height is the menu item count plus 2 (top border & bottom border) */
     Height = MenuInfo->MenuItemCount + 2;
-    Height -= 1; // Height is zero-based
 
     /* Loop every item */
     for (i = 0; i < MenuInfo->MenuItemCount; ++i)
@@ -160,20 +157,30 @@ TuiCalcMenuBoxSize(
         if (MenuInfo->MenuItemList[i])
         {
             Length = (ULONG)strlen(MenuInfo->MenuItemList[i]);
-            if (Length > Width) Width = Length;
+            Width = max(Width, Length);
         }
     }
 
-    /* Allow room for left & right borders, plus 8 spaces on each side */
-    Width += 18;
+    /* Allow room for left & right borders, plus 4 spaces on each side */
+    Width += 10;
 
     /* Check if we're drawing a centered menu */
     if (UiCenterMenu)
     {
-        /* Calculate the menu box area for a centered menu */
-        MenuInfo->Left = (UiScreenWidth - Width) / 2;
-        MenuInfo->Top = (((UiScreenHeight - TUI_TITLE_BOX_CHAR_HEIGHT) -
-                          Height) / 2) + TUI_TITLE_BOX_CHAR_HEIGHT;
+        /* Calculate the centered menu box area, also ensuring that the top-left
+         * corner is always visible if the borders are partly off-screen */
+        MenuInfo->Left = (UiScreenWidth - min(Width, UiScreenWidth)) / 2;
+        if (Height <= UiScreenHeight - TUI_TITLE_BOX_CHAR_HEIGHT - 1)
+        {
+            /* Exclude the header and the status bar */
+            // MenuInfo->Top = (UiScreenHeight - TUI_TITLE_BOX_CHAR_HEIGHT - 1 - Height) / 2
+            //                 + TUI_TITLE_BOX_CHAR_HEIGHT;
+            MenuInfo->Top = (UiScreenHeight + TUI_TITLE_BOX_CHAR_HEIGHT - 1 - Height) / 2;
+        }
+        else
+        {
+            MenuInfo->Top = (UiScreenHeight - min(Height, UiScreenHeight)) / 2;
+        }
     }
     else
     {
@@ -183,8 +190,8 @@ TuiCalcMenuBoxSize(
     }
 
     /* The other margins are the same */
-    MenuInfo->Right = MenuInfo->Left + Width;
-    MenuInfo->Bottom = MenuInfo->Top + Height;
+    MenuInfo->Right = MenuInfo->Left + Width - 1;
+    MenuInfo->Bottom = MenuInfo->Top + Height - 1;
 }
 
 VOID
@@ -209,12 +216,6 @@ TuiDrawMenu(
     // FIXME: Theme-specific
     /* Update the status bar */
     UiVtbl.DrawStatusText("Use \x18 and \x19 to select, then press ENTER.");
-
-    /* Display the boot options if needed */
-    if (MenuInfo->ShowBootOptions)
-    {
-        DisplayBootTimeOptions();
-    }
 
     VideoCopyOffScreenBufferToVRAM();
 }

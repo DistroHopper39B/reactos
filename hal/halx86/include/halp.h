@@ -10,6 +10,14 @@
 #define HAL_BUILD_TYPE ((DBG ? PRCB_BUILD_DEBUG : 0) | PRCB_BUILD_UNIPROCESSOR)
 #endif
 
+/* Don't include this in freeloader */
+#ifndef _BLDR_
+extern KIRQL HalpIrqlSynchLevel;
+
+#undef SYNCH_LEVEL
+#define SYNCH_LEVEL HalpIrqlSynchLevel
+#endif
+
 typedef struct _HAL_BIOS_FRAME
 {
     ULONG SegSs;
@@ -227,6 +235,7 @@ extern BOOLEAN HalpProfilingStopped;
 /* timer.c */
 CODE_SEG("INIT") VOID NTAPI HalpInitializeClock(VOID);
 VOID __cdecl HalpClockInterrupt(VOID);
+VOID __cdecl HalpClockIpi(VOID);
 VOID __cdecl HalpProfileInterrupt(VOID);
 
 typedef struct _HALP_ROLLOVER
@@ -505,6 +514,12 @@ KeUpdateSystemTime(
     IN KIRQL OldIrql
 );
 
+VOID
+NTAPI
+KeUpdateRunTime(
+    _In_ PKTRAP_FRAME TrapFrame,
+    _In_ KIRQL Irql);
+
 CODE_SEG("INIT")
 VOID
 NTAPI
@@ -571,9 +586,21 @@ HalInitializeBios(
 #ifdef _M_AMD64
 #define KfLowerIrql KeLowerIrql
 #define KiEnterInterruptTrap(TrapFrame) /* We do all neccessary in asm code */
-#define KiEoiHelper(TrapFrame) return /* Just return to the caller */
-#define HalBeginSystemInterrupt(Irql, Vector, OldIrql) ((*(OldIrql) = PASSIVE_LEVEL), TRUE)
 #endif // _M_AMD64
+
+#ifdef _MINIHAL_
+#if defined(_M_IX86) || defined(_M_AMD64)
+/* Use intrinsics for IA-32 and amd64 */
+#include <ioaccess.h>
+
+#define READ_PORT_BUFFER_UCHAR(port, buffer, count)   __inbytestring(H2I(port), buffer, count)
+#define READ_PORT_BUFFER_USHORT(port, buffer, count)  __inwordstring(H2I(port), buffer, count)
+#define READ_PORT_BUFFER_ULONG(port, buffer, count)   __indwordstring(H2I(port), buffer, count)
+#define WRITE_PORT_BUFFER_UCHAR(port, buffer, count)  __outbytestring(H2I(port), buffer, count)
+#define WRITE_PORT_BUFFER_USHORT(port, buffer, count) __outwordstring(H2I(port), buffer, count)
+#define WRITE_PORT_BUFFER_ULONG(port, buffer, count)  __outdwordstring(H2I(port), buffer, count)
+#endif
+#endif
 
 extern BOOLEAN HalpNMIInProgress;
 

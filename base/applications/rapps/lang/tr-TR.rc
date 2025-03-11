@@ -27,7 +27,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Yenile\tF5", ID_REFRESH
         MENUITEM SEPARATOR
-        MENUITEM "Uyg&ulama Veri Tabanını Yenile\tCtrl+F5", ID_RESETDB
+        MENUITEM "Uygulama Veri Ta&banını Yenile\tCtrl+F5", ID_RESETDB
     END
     POPUP "&Yardım"
     BEGIN
@@ -38,26 +38,10 @@ END
 
 IDR_LINKMENU MENU
 BEGIN
-    POPUP "popup"
+    POPUP ""
     BEGIN
         MENUITEM "&Bağlantıyı Tarayıcıda Aç", ID_OPEN_LINK
-        MENUITEM "&Bağlantıyı Panoya Kopyala", ID_COPY_LINK
-    END
-END
-
-IDR_APPLICATIONMENU MENU
-BEGIN
-    POPUP "popup"
-    BEGIN
-        MENUITEM "&Kur\tCtrl+Enter", ID_INSTALL
-        MENUITEM "K&aldır\tCtrl+Del", ID_UNINSTALL
-        MENUITEM "&Değiştir", ID_MODIFY
-        MENUITEM SEPARATOR
-        MENUITEM "&Girdiyi Kayıt Defteri'nden Kaldır", ID_REGREMOVE
-        MENUITEM SEPARATOR
-        MENUITEM "&Yenile\tF5", ID_REFRESH
-        MENUITEM SEPARATOR
-        MENUITEM "Uy&gulama Veri Tabanını Yenile\tCtrl+F5", ID_RESETDB
+        MENUITEM "Bağlantıyı Panoya &Kopyala", ID_COPY_LINK
     END
 END
 
@@ -67,26 +51,24 @@ CAPTION "Ayarlar"
 FONT 8, "MS Shell Dlg"
 BEGIN
     GROUPBOX "Genel", -1, 4, 2, 240, 61
-    AUTOCHECKBOX "&Pencere Konumunu Kaydet", IDC_SAVE_WINDOW_POS, 15, 12, 219, 12
-    AUTOCHECKBOX "&Başlangıçta Erişilebilir Programların Listesini Yenile", IDC_UPDATE_AVLIST, 15, 29, 222, 12
-    AUTOCHECKBOX "P&rogramların Kurulma ve Kaldırma Günlüğünü Sakla", IDC_LOG_ENABLED, 15, 46, 219, 12
+    CONTROL "", IDC_GENERALLIST, "SysListView32", WS_TABSTOP | LVCHECKSTYLES, 15, 12, 219, 46, WS_EX_STATICEDGE
     GROUPBOX "İndirme", -1, 4, 65, 240, 51
     LTEXT "İndirme Dizini:", -1, 16, 75, 100, 9
     EDITTEXT IDC_DOWNLOAD_DIR_EDIT, 15, 86, 166, 12, WS_CHILD | WS_VISIBLE | WS_GROUP | ES_AUTOHSCROLL
     PUSHBUTTON "&Seç", IDC_CHOOSE, 187, 85, 50, 14
     AUTOCHECKBOX "&Kurulumdan Sonra Programın Kurulum Dosyasını Sil", IDC_DEL_AFTER_INSTALL, 16, 100, 218, 12
     GROUPBOX "Yazılım kaynağı", -1, 4, 118, 240, 46
-    CONTROL "Varsayılanı kullan", IDC_SOURCE_DEFAULT, "Button", BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 15, 132, 74, 10
-    CONTROL "Belirtilen kaynağı kullan", IDC_USE_SOURCE, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 15, 147, 74, 10
+    AUTORADIOBUTTON "Varsayılanı kullan", IDC_SOURCE_DEFAULT, 15, 132, 74, 10, WS_GROUP | WS_TABSTOP
+    AUTORADIOBUTTON "Belirtilen kaynağı kullan", IDC_USE_SOURCE, 15, 147, 74, 10
     EDITTEXT IDC_SOURCE_URL, 97, 147, 140, 12, ES_AUTOHSCROLL | WS_DISABLED
     GROUPBOX "Vekil Sunucu", -1, 4, 166, 240, 76
-    CONTROL "Sistem Vekil Sunucu Ayarları", IDC_PROXY_DEFAULT, "Button", BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 15, 180, 210, 10
-    CONTROL "Doğrudan (Vekil sunucu yok.)", IDC_NO_PROXY, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 15, 195, 210, 10
-    CONTROL "Vekil Sunucu", IDC_USE_PROXY, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 15, 210, 74, 10
+    AUTORADIOBUTTON "Sistem Vekil Sunucu Ayarları", IDC_PROXY_DEFAULT, 15, 180, 210, 10, WS_GROUP | WS_TABSTOP
+    AUTORADIOBUTTON "Doğrudan (Vekil sunucu yok.)", IDC_NO_PROXY, 15, 195, 210, 10
+    AUTORADIOBUTTON "Vekil Sunucu", IDC_USE_PROXY, 15, 210, 74, 10
     EDITTEXT IDC_PROXY_SERVER, 90, 210, 147, 12, ES_AUTOHSCROLL | WS_DISABLED
     LTEXT "Şunun i̇çin vekil sunucu yok", -1, 26, 226, 64, 10
     EDITTEXT IDC_NO_PROXY_FOR, 90, 225, 147, 12, ES_AUTOHSCROLL | WS_DISABLED
-    PUSHBUTTON "Varsayılanlar", IDC_DEFAULT_SETTINGS, 8, 245, 60, 14
+    PUSHBUTTON "Varsayılanlar", IDC_DEFAULT_SETTINGS, 8, 245, 60, 14, WS_GROUP | WS_TABSTOP
     DEFPUSHBUTTON "Tamam", IDOK, 116, 245, 60, 14
     PUSHBUTTON "İptal", IDCANCEL, 181, 245, 60, 14
 END
@@ -108,7 +90,7 @@ STYLE DS_SHELLFONT | DS_CENTER | WS_POPUPWINDOW | WS_CAPTION | WS_VISIBLE
 CAPTION "İndiriliyor %ls…"
 FONT 8, "MS Shell Dlg"
 BEGIN
-    CONTROL "Progress1", IDC_DOWNLOAD_PROGRESS, "msctls_progress32", WS_BORDER | PBS_SMOOTH, 10, 10, 200, 12
+    CONTROL "", IDC_DOWNLOAD_PROGRESS, "msctls_progress32", WS_BORDER | PBS_SMOOTH, 10, 10, 200, 12
     EDITTEXT IDC_DOWNLOAD_STATUS, 10, 28, 200, 22, ES_CENTER | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_DISABLED | NOT WS_BORDER
     PUSHBUTTON "İptal", IDCANCEL, 85, 53, 50, 15, WS_GROUP | WS_TABSTOP
 END
@@ -190,11 +172,20 @@ STRINGTABLE
 BEGIN
     IDS_APPTITLE "ReactOS Uygulama Yöneticisi"
     IDS_APP_AUTHORS "Telif Hakkı: 2009 Dmitry Chapyshev"
-    IDS_SEARCH_TEXT "Ara"
-    IDS_APPS_COUNT "Uygulama Sayısı: %d; Seçili: %d"
-    IDS_WELCOME_TITLE "ReactOS Uygulama Yöneticisi'ne hoş geldiniz.\n\n"
+    IDS_WELCOME_TITLE "ReactOS Uygulama Yöneticisi'ne hoş geldiniz."
     IDS_WELCOME_TEXT "Solda bir kategori seçiniz, ardından kurmak ya da kaldırmak için bir uygulama seçiniz.\nReactOS'un İnternet sitesi: "
     IDS_WELCOME_URL "https://reactos.org"
+
+    IDS_APPWIZ_TITLE "Program Ekle/Kaldır"
+    IDS_APPWIZ_TEXT1 "Sisteminizde yüklü olan uygulamaların veya güncellemelerin listesini görüntülemek için ""Uygulamalar"" veya ""Güncellemeler"" öğesini seçin."
+    IDS_APPWIZ_TEXT2 "Bir programı kaldırmak veya yüklü bileşenlerini değiştirmek için listeden seçin ve ""Kaldır"" veya ""Değiştir"" üzerine tıklayın."
+END
+
+STRINGTABLE
+BEGIN
+    IDS_SEARCH_TEXT "Ara…"
+    IDS_APPS_COUNT "Uygulama Sayısı: %d"
+    IDS_APPS_SELECT_COUNT "; Seçili: %d"
     IDS_INSTALLED "Kurulanlar"
     IDS_AVAILABLEFORINST "Kurulabilir Uygulamalar"
     IDS_UPDATES "Güncelleştirmeler"
@@ -220,7 +211,11 @@ BEGIN
     IDS_APP_DISPLAY_DETAILS "Detaylar"
     IDS_APP_DISPLAY_LIST "Liste"
     IDS_APP_DISPLAY_TILE "Karo"
-    IDS_NO_SEARCH_RESULTS "No search results"
+    IDS_NO_SEARCH_RESULTS "Arama sonucu yok"
+    IDS_CFG_SAVE_WINDOW_POS "Pencere Konumunu Kaydet"
+    IDS_CFG_UPDATE_AVLIST "Başlangıçta Erişilebilir Programların Listesini Yenile"
+    IDS_CFG_LOG_ENABLED "Programların Kurulma ve Kaldırma Günlüğünü Sakla"
+    IDS_CFG_SMALL_ICONS "Küçük simgeler"
 END
 
 STRINGTABLE
@@ -269,4 +264,10 @@ BEGIN
     IDS_CMD_FIND_RESULT_FOR "%1 için sonuç bulundu:\n"
     IDS_CMD_PACKAGE_NOT_FOUND "%1 paketi bulunmadı.\n"
     IDS_CMD_PACKAGE_INFO "%1 paketi hakkındaki bilgi:\n"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_INSTGEN_CONFIRMUNINST "Kaldırmak istediğinizden emin misiniz %s?"
+    IDS_INSTGEN_CONFIRMINSTRUNAPP "Installation complete, run %s now?"
 END

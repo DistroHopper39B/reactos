@@ -75,8 +75,10 @@ Author:
 #define K0IPCR                  ((ULONG_PTR)(KIP0PCRADDRESS))
 #define PCR                     ((KPCR *)K0IPCR)
 #if defined(CONFIG_SMP) || defined(NT_BUILD)
-#undef  KeGetPcr
+//#undef  KeGetPcr
 #define KeGetPcr()              ((KPCR *)__readfsdword(FIELD_OFFSET(KPCR, SelfPcr)))
+#else
+#define KeGetPcr()              PCR
 #endif
 
 //
@@ -778,6 +780,12 @@ typedef struct _KPRCB
     UCHAR PrcbPad8[3];
     ULONG PackageProcessorSet;
     ULONG CoreProcessorSet;
+#endif
+#ifdef __REACTOS__
+#if  (NTDDI_VERSION < NTDDI_WIN10)
+    // On Win 10+ the FeatureBits field is extended to 64 bits
+    ULONG FeatureBitsHigh;
+#endif
 #endif
 } KPRCB, *PKPRCB;
 

@@ -1508,14 +1508,7 @@ static MUI_ENTRY daDKBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "Installationen kan ikke installere opstartsl\221seren p\206",
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        9,
-        "din computers harddisk.",
+        "Installatione af opstartsl\221ser.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2272,7 +2265,7 @@ MUI_STRING daDKStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Opdatere indstillinger for tastaturlauout..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   Tilf\233jrer tegntabelsinfomation til registrerinsdatabasen..."},
+    "   Tilf\233jrer tegntabelsinfomation..."},
     {STRING_DONE,
     "   Udf\233rt..."},
     {STRING_REBOOTCOMPUTER2,

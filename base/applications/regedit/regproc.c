@@ -5,20 +5,7 @@
  * Copyright 1999 Sylvain St-Germain
  * Copyright 2002 Andriy Palamarchuk
  * Copyright 2008 Alexander N. Sørnes <alex@thehandofagony.com>
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+ * LICENSE: LGPL-2.1-or-later (https://spdx.org/licenses/LGPL-2.1-or-later)
  */
 
 #ifdef __REACTOS__
@@ -339,7 +326,12 @@ static BOOL parse_data_type(struct parser *parser, WCHAR **line)
 
             /* "hex(xx):" is special */
             val = wcstoul(*line, &end, 16);
+#ifdef __REACTOS__
+            /* Up to 8 hex digits, "hex(000000002)" is invalid */
+            if (*end != ')' || *(end + 1) != ':' || (val == ~0u && errno == ERANGE) || end - *line > 8)
+#else
             if (*end != ')' || *(end + 1) != ':' || (val == ~0u && errno == ERANGE))
+#endif
                 return FALSE;
 
             parser->data_type = val;

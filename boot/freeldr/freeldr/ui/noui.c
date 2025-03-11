@@ -77,23 +77,23 @@ VOID NoUiUpdateDateTime(VOID)
 {
 }
 
-VOID NoUiMessageBox(PCSTR MessageText)
+VOID
+NoUiMessageBox(
+    _In_ PCSTR MessageText)
 {
-    // We have not yet displayed the user interface
-    // We are probably still reading the .ini file
-    // and have encountered an error. Just use printf()
-    // and return.
-    printf("%s\n", MessageText);
-    printf("Press any key\n");
-    MachConsGetCh();
+    NoUiMessageBoxCritical(MessageText);
 }
 
-VOID NoUiMessageBoxCritical(PCSTR MessageText)
+VOID
+NoUiMessageBoxCritical(
+    _In_ PCSTR MessageText)
 {
-    // We have not yet displayed the user interface
-    // We are probably still reading the .ini file
-    // and have encountered an error. Just use printf()
-    // and return.
+    /*
+     * We have not yet displayed the user interface
+     * We are probably still reading the .ini file
+     * and have encountered an error. Just use printf()
+     * and return.
+     */
     printf("%s\n", MessageText);
     printf("Press any key\n");
     MachConsGetCh();
@@ -163,7 +163,6 @@ BOOLEAN
 NoUiDisplayMenu(
     IN PCSTR MenuHeader,
     IN PCSTR MenuFooter OPTIONAL,
-    IN BOOLEAN ShowBootOptions,
     IN PCSTR MenuItemList[],
     IN ULONG MenuItemCount,
     IN ULONG DefaultMenuItem,

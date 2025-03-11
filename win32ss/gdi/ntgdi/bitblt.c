@@ -7,8 +7,6 @@
  */
 
 #include <win32k.h>
-#define NDEBUG
-#include <debug.h>
 DBG_DEFAULT_CHANNEL(GdiBlt);
 
 BOOL APIENTRY
@@ -61,7 +59,7 @@ NtGdiAlphaBlend(
     DCDest = apObj[0];
     DCSrc = apObj[1];
 
-    if (DCDest->dctype == DCTYPE_INFO || DCDest->dctype == DCTYPE_INFO)
+    if (DCSrc->dctype == DCTYPE_INFO || DCDest->dctype == DCTYPE_INFO)
     {
         GDIOBJ_vUnlockObject(&DCSrc->BaseObject);
         GDIOBJ_vUnlockObject(&DCDest->BaseObject);
@@ -239,7 +237,7 @@ NtGdiTransparentBlt(
     DCDest = apObj[0];
     DCSrc = apObj[1];
 
-    if (DCDest->dctype == DCTYPE_INFO || DCDest->dctype == DCTYPE_INFO)
+    if (DCSrc->dctype == DCTYPE_INFO || DCDest->dctype == DCTYPE_INFO)
     {
         GDIOBJ_vUnlockObject(&DCSrc->BaseObject);
         GDIOBJ_vUnlockObject(&DCDest->BaseObject);
@@ -337,17 +335,21 @@ NtGdiMaskBlt(
     BOOL Status = FALSE;
     EXLATEOBJ exlo;
     XLATEOBJ *XlateObj = NULL;
-    BOOL UsesSource;
+    BOOL UsesSource, UsesPattern;
     ROP4 rop4;
 
     rop4 = WIN32_ROP4_TO_ENG_ROP4(dwRop4);
 
-    UsesSource = ROP4_USES_SOURCE(rop4);
-    if (!hdcDest || (UsesSource && !hdcSrc))
+    if (!hdcDest)
     {
         EngSetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
+
+    UsesSource = ROP4_USES_SOURCE(rop4);
+    UsesPattern = ROP4_USES_PATTERN(rop4);
+    if (!hdcSrc && (UsesSource || UsesPattern))
+        return FALSE;
 
     /* Check if we need a mask and have a mask bitmap */
     if (ROP4_USES_MASK(rop4) && (hbmMask != NULL))
@@ -363,8 +365,8 @@ NtGdiMaskBlt(
         /* Make sure the mask bitmap is 1 BPP */
         if (gajBitsPerFormat[psurfMask->SurfObj.iBitmapFormat] != 1)
         {
-            EngSetLastError(ERROR_INVALID_PARAMETER);
             SURFACE_ShareUnlockSurface(psurfMask);
+            EngSetLastError(ERROR_INVALID_HANDLE);
             return FALSE;
         }
     }
@@ -398,6 +400,7 @@ NtGdiMaskBlt(
         if(DCSrc) DC_UnlockDc(DCSrc);
         WARN("Invalid destination dc handle (0x%p) passed to NtGdiMaskBlt\n", hdcDest);
         if(psurfMask) SURFACE_ShareUnlockSurface(psurfMask);
+        EngSetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
 
@@ -486,11 +489,11 @@ NtGdiMaskBlt(
         XlateObj = &exlo.xlo;
     }
 
-    DPRINT("DestRect: (%d,%d)-(%d,%d) and SourcePoint is (%d,%d)\n",
-        DestRect.left, DestRect.top, DestRect.right, DestRect.bottom,
-        SourcePoint.x, SourcePoint.y);
+    TRACE("DestRect: (%d,%d)-(%d,%d) and SourcePoint is (%d,%d)\n",
+          DestRect.left, DestRect.top, DestRect.right, DestRect.bottom,
+          SourcePoint.x, SourcePoint.y);
 
-    DPRINT("nWidth is '%d' and nHeight is '%d'.\n", nWidth, nHeight);
+    TRACE("nWidth is '%d' and nHeight is '%d'.\n", nWidth, nHeight);
 
     /* Fix BitBlt so that it will not flip left to right */
     if ((DestRect.left > DestRect.right) && (nWidth < 0))
@@ -532,6 +535,9 @@ cleanup:
     }
     DC_UnlockDc(DCDest);
     if(psurfMask) SURFACE_ShareUnlockSurface(psurfMask);
+
+    if (!Status)
+        EngSetLastError(ERROR_INVALID_PARAMETER);
 
     return Status;
 }
@@ -759,9 +765,9 @@ GreStretchBltMask(
         MaskPoint.y += DCMask->ptlDCOrig.y;
     }
 
-    DPRINT("Calling IntEngStrethBlt SourceRect: (%d,%d)-(%d,%d) and DestRect: (%d,%d)-(%d,%d).\n",
-           SourceRect.left, SourceRect.top, SourceRect.right, SourceRect.bottom,
-           DestRect.left, DestRect.top, DestRect.right, DestRect.bottom);
+    TRACE("Calling IntEngStrethBlt SourceRect: (%d,%d)-(%d,%d) and DestRect: (%d,%d)-(%d,%d).\n",
+          SourceRect.left, SourceRect.top, SourceRect.right, SourceRect.bottom,
+          DestRect.left, DestRect.top, DestRect.right, DestRect.bottom);
 
     /* Perform the bitblt operation */
     Status = IntEngStretchBlt(&BitmapDest->SurfObj,
@@ -858,26 +864,26 @@ IntPatBlt(
         return TRUE;
     }
 
-    if (Width > 0)
+    if (Width >= 0)
     {
         DestRect.left = XLeft;
         DestRect.right = XLeft + Width;
     }
     else
     {
-        DestRect.left = XLeft + Width + 1;
-        DestRect.right = XLeft + 1;
+        DestRect.left = XLeft + Width;
+        DestRect.right = XLeft;
     }
 
-    if (Height > 0)
+    if (Height >= 0)
     {
         DestRect.top = YLeft;
         DestRect.bottom = YLeft + Height;
     }
     else
     {
-        DestRect.top = YLeft + Height + 1;
-        DestRect.bottom = YLeft + 1;
+        DestRect.top = YLeft + Height;
+        DestRect.bottom = YLeft;
     }
 
     IntLPtoDP(pdc, (LPPOINT)&DestRect, 2);
