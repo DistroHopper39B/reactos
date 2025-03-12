@@ -99,6 +99,11 @@ GetHarddiskIdentifier(UCHAR DriveNumber); /* hwdisk.c */
 
 /* FUNCTIONS *****************************************************************/
 
+BOOLEAN IsAcpiPresent(VOID)
+{
+    return AcpiPresent;
+}
+
 static
 VOID
 __StallExecutionProcessor(ULONG Loops)
@@ -1047,7 +1052,7 @@ AppleTVHwDetect(_In_opt_ PCSTR Options)
     TRACE("MachHwDetect()\n");
     
     /* Create the 'System' key */
-    FldrCreateSystemKey(&SystemKey, FALSE, "Apple TV (1st generation)");
+    FldrCreateSystemKey(&SystemKey, "Apple TV (1st generation)");
 
     DetectPci(SystemKey, &BusNumber);
     DetectIsaBios(SystemKey, &BusNumber);

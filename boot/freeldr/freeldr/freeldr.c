@@ -30,6 +30,7 @@ CCHAR FrLdrBootPath[MAX_PATH] = "";
 
 /* FUNCTIONS ******************************************************************/
 
+#ifndef SARCH_APPLETV
 static
 BOOLEAN
 LoadRosload(
@@ -88,6 +89,8 @@ LaunchSecondStageLoader(VOID)
     return (*EntryPoint)();
 }
 
+#endif
+
 VOID __cdecl BootMain(IN PCCH CmdLine)
 {
     /* Load the default settings from the command-line */
@@ -134,12 +137,19 @@ VOID __cdecl BootMain(IN PCCH CmdLine)
         UiMessageBoxCritical("Error when detecting hardware.");
         goto Quit;
     }
-
+    
+#ifndef SARCH_APPLETV
     /* Launch second stage loader */
     if (LaunchSecondStageLoader() != ESUCCESS)
     {
         UiMessageBoxCritical("Unable to load second stage loader.");
     }
+#endif
+
+#ifdef SARCH_APPLETV
+    // We don't use rosload!
+    RunLoader();
+#endif
 
 Quit:
     /* If we reach this point, something went wrong before, therefore reboot */
