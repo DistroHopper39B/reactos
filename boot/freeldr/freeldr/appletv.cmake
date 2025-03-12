@@ -11,7 +11,7 @@ include_directories(BEFORE
                     ${REACTOS_SOURCE_DIR}/boot/freeldr/freeldr
                     ${REACTOS_SOURCE_DIR}/boot/freeldr/freeldr/include)
 
-spec2def(freeldr_pe.exe freeldr.spec)
+spec2def(freeldr.sys freeldr.spec)
 
 # PC stuff
 list(APPEND APPLETVLDR_BOOTMGR_SOURCE

@@ -114,21 +114,20 @@ list(APPEND FREELDR_BASE_SOURCE
     ntldr/ntldropts.c # Should be in rosload, but is currently needed by machpc.c, etc.
     lib/rtl/libsupp.c)
 
-#if(ARCH STREQUAL "i386" OR ARCH STREQUAL "amd64")
-#    # Must be included together with disk/scsiport.c
-#    list(APPEND FREELDR_BASE_SOURCE
-#        ${CMAKE_CURRENT_BINARY_DIR}/freeldr.def)
-#endif()
-
-if (NOT SARCH STREQUAL "appletv")
-  include(pcat.cmake)
-  include(rosload.cmake)
-endif()
-
-if(NOT ARCH STREQUAL "i386" OR NOT (SARCH STREQUAL "pc98" OR SARCH STREQUAL "xbox"))
-    include(uefi.cmake)
+if(ARCH STREQUAL "i386" OR ARCH STREQUAL "amd64")
+    # Must be included together with disk/scsiport.c
+    list(APPEND FREELDR_BASE_SOURCE
+        ${CMAKE_CURRENT_BINARY_DIR}/freeldr.def)
 endif()
 
 if(SARCH STREQUAL "appletv")
     include(appletv.cmake)
+else()
+  include(pcat.cmake)
+  include(rosload.cmake)
 endif()
+
+if(NOT ARCH STREQUAL "i386" OR NOT (SARCH STREQUAL "pc98" OR SARCH STREQUAL "xbox" OR SARCH STREQUAL "appletv"))
+    include(uefi.cmake)
+endif()
+

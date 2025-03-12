@@ -49,6 +49,38 @@ PxeInit(VOID)
     return FALSE;
 }
 
+VOID
+ChainLoadBiosBootSectorCode(UCHAR BootDrive, ULONG BootPartition)
+{
+    // Not supported
+}
+
+VOID
+DiskStopFloppyMotor()
+{
+    // Not supported
+}
+
+VOID
+DriveMapMapDrivesInSection(ULONG_PTR SectionId)
+{
+    // Not supported
+}
+
+USHORT __cdecl
+PxeCallApi(USHORT Segment, USHORT Offset, USHORT Service, void *Parameter)
+{
+    // Not supported
+    return 0;
+}
+
+VOID
+Relocator16Boot(REGS *In, USHORT StackSegment, USHORT StackPointer, USHORT CodeSegment, USHORT CodePointer)
+{
+    // Not supported
+    while (1);
+}
+
 /* VIDEO FUNCTIONS ***********************************************************/
 
 VOID

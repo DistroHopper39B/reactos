@@ -21,7 +21,7 @@
 
 extern char __ImageBase;
 #ifdef __GNUC__
-  #if defined(_M_AMD64) || defined(SARCH_APPLETV) // why?
+  #ifdef _M_AMD64
     /* .text/.data/.rdata, and .bss */
     #define FREELDR_SECTION_COUNT 2
   #else
