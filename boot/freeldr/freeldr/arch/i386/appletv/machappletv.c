@@ -58,8 +58,6 @@ VOID
 AppleTVPrepareForReactOS(VOID)
 {
     CopySmbios();
-    
-    AppleTVDiskInit(FALSE);
 
     DebugDisableScreenPort();
 }
