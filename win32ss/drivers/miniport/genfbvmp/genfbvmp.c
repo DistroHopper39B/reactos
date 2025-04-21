@@ -899,7 +899,8 @@ DriverEntry(IN PVOID Context1, IN PVOID Context2)
     VideoInitData.HwDeviceExtensionSize     = sizeof(GENFB_DEVICE_EXTENSION);
     
     // FIXME: Windows 2000/NT4 support
-    VideoInitData.HwInitDataSize            = sizeof(VIDEO_HW_INITIALIZATION_DATA);
+    //VideoInitData.HwInitDataSize            = sizeof(VIDEO_HW_INITIALIZATION_DATA);
+    VideoInitData.HwInitDataSize = SIZE_OF_W2K_VIDEO_HW_INITIALIZATION_DATA;
     
     // Ignored apparently in all but NT4
     VideoInitData.AdapterInterfaceType      = PCIBus;
