@@ -24,6 +24,8 @@ extern UCHAR PcBiosDiskCount; /* hwdisk.c */
 extern UINT32 FreeldrDescCount; /* appletvmem.c */
 extern PFREELDR_MEMORY_DESCRIPTOR FreeldrMemMap;
 
+extern USHORT WinLdrDetectVersion(VOID);
+
 BOOLEAN AcpiPresent = FALSE;
 
 EFI_SYSTEM_TABLE *GlobalSystemTable;
@@ -803,14 +805,39 @@ FindAcpiBios(VOID)
 {
     PRSDP_DESCRIPTOR    Rsdp = NULL;
     UINTN               i;
+    EFI_GUID            AcpiGuid;
+    EFI_GUID            Acpi1Guid = ACPI_10_TABLE_GUID;
     EFI_GUID            Acpi2Guid = EFI_ACPI_20_TABLE_GUID;
+    USHORT              WindowsVersion = 0;
     
+    // Detect what version of NT we are loading
+    // This command doesn't work correctly, but it works well enough to
+    // tell the difference between W2K and later versions of Windows
+    WindowsVersion = WinLdrDetectVersion();
+    ASSERT(WindowsVersion != 0);
+    
+    if (WindowsVersion >= _WIN32_WINNT_WINXP)
+    {
+        // For Windows XP and later, we use the ACPI 2.0 table
+        // This works on SP3 at least, hopefully it works on RTM too
+        TRACE("Windows XP or later detected, using ACPI 2.0\n");
+        AcpiGuid = Acpi2Guid;
+    }
+    else
+    {
+        TRACE("Windows 2000 or earlier detected, using ACPI 1.0\n");
+        // For Windows 2000 and earlier, we use the ACPI 1.0 table.
+        // Some computers might not have this, but the Apple TV does.
+        // This breaks software reboot on the Apple TV.
+        AcpiGuid = Acpi1Guid;
+    }
+        
     GlobalSystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
     
     for (i = 0; i < GlobalSystemTable->NumberOfTableEntries; i++)
     {
         if (!memcmp(&GlobalSystemTable->ConfigurationTable[i].VendorGuid,
-                    &Acpi2Guid, sizeof(Acpi2Guid)))
+                    &AcpiGuid, sizeof(AcpiGuid)))
         {
             Rsdp = (PRSDP_DESCRIPTOR) GlobalSystemTable->ConfigurationTable[i].VendorTable;
             break;
@@ -894,6 +921,11 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
         /* Increment bus number */
         (*BusNumber)++;
+    }
+    else
+    {
+        // NT will not boot without ACPI. EFI platforms like the Apple TV should never reach this.
+        UiMessageBoxCritical("Cannot find ACPI tables!");
     }
 }
 
