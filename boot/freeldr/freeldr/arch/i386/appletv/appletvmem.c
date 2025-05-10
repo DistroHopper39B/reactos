@@ -207,11 +207,11 @@ UefiConvertToFreeldrMemoryMap(EFI_MEMORY_DESCRIPTOR *EfiMemoryMapStart,
     // We don't preallocate this because the memory map can be several hundred kilobytes in theory
     for (i = 0; i < EfiNumberOfEntries; i++)
     {    
-        if (EfiMemoryMap->PhysicalStart > 0x1000 && // don't put the memory map at NULL
+        if (EfiMemoryMap->PhysicalStart != 0x0 && // don't put the memory map at NULL
             EfiMemoryMap->Type == EfiConventionalMemory &&
             (EfiMemoryMap->NumberOfPages << EFI_PAGE_SHIFT) >= FreeldrMemMapSize)
         {
-            ERR("Found enough memory! Map will be placed @ 0x%X\n", EfiMemoryMap->PhysicalStart);
+            TRACE("Found enough memory! Map will be placed @ 0x%X\n", EfiMemoryMap->PhysicalStart);
             FreeldrMemMap = (PFREELDR_MEMORY_DESCRIPTOR) ((ULONG_PTR) EfiMemoryMap->PhysicalStart);
             break;
         }
