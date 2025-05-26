@@ -2,7 +2,7 @@
  * PROJECT:     FreeLoader
  * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
  * PURPOSE:     Hardware detection routines for the original Apple TV
- * COPYRIGHT:   Copyright 2023-2025 Sylas Hollander (distrohopper39b.business@gmail.com)
+ * COPYRIGHT:   Copyright 2023 Sylas Hollander (distrohopper39b.business@gmail.com)
  */
 
 /* INCLUDES ******************************************************************/
@@ -22,7 +22,7 @@ DBG_DEFAULT_CHANNEL(WARNING);
 
 extern UCHAR PcBiosDiskCount; /* hwdisk.c */
 extern UINT32 FreeldrDescCount; /* appletvmem.c */
-extern PFREELDR_MEMORY_DESCRIPTOR FreeldrMemMap;
+extern BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS]; /* appletvmem.c */
 
 extern USHORT WinLdrDetectVersion(VOID);
 
@@ -902,7 +902,7 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         }
 
         AcpiBiosData->Count = FreeldrDescCount;
-        memcpy(AcpiBiosData->MemoryMap, (void *) BootArgs->EfiMemoryMap,
+        memcpy(AcpiBiosData->MemoryMap, (void *) BiosMap,
             FreeldrDescCount * sizeof(BIOS_MEMORY_MAP));
 
         TRACE("RSDT %p, data size %x\n", Rsdp->rsdt_physical_address, TableSize);
