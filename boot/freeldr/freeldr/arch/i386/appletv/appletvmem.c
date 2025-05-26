@@ -109,14 +109,14 @@ PcMemFinalizeMemoryMap(
     ReserveMemory(MemoryMap, STACKLOW, STACKADDR - STACKLOW, LoaderOsloaderStack, "FreeLdr stack");
     ReserveMemory(MemoryMap, FREELDR_BASE, FrLdrImageSize, LoaderLoadedProgram, "FreeLdr image");
 
-    /* Default to 1 page above freeldr for the disk read buffer */
-    DiskReadBuffer = (PUCHAR)ALIGN_UP_BY(FREELDR_BASE + FrLdrImageSize, PAGE_SIZE);
+    /* Default to 1 page above the firmware for the disk read buffer */
+    DiskReadBuffer = (PUCHAR)ALIGN_UP_BY(BootArgs->KernelBaseAddress + BootArgs->KernelSize, PAGE_SIZE);
     DiskReadBufferSize = PAGE_SIZE;
 
     /* Scan for free range above freeldr image */
     for (i = 0; i < FreeldrDescCount; i++)
     {
-        if ((MemoryMap[i].BasePage > (FREELDR_BASE / PAGE_SIZE)) &&
+        if ((MemoryMap[i].BasePage > (BootArgs->KernelBaseAddress + BootArgs->KernelSize / PAGE_SIZE)) &&
             (MemoryMap[i].MemoryType == LoaderFree))
         {
             /* Use this range for the disk read buffer */
