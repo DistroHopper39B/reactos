@@ -42,6 +42,7 @@
 #include <shlwapi_undoc.h>
 #include <shlobj_undoc.h>
 #include <shlguid_undoc.h>
+#include <shdocvw_undoc.h>
 #include <undocshell.h>
 
 #include <ui/rosctrls.h>
@@ -119,7 +120,7 @@ VOID InitRSHELL(VOID);
 HRESULT WINAPI _CStartMenu_CreateInstance(REFIID riid, void **ppv);
 HANDLE WINAPI _SHCreateDesktop(IShellDesktopTray *ShellDesk);
 BOOL WINAPI _SHDesktopMessageLoop(HANDLE hDesktop);
-DWORD WINAPI _WinList_Init(void);
+BOOL WINAPI _WinList_Init(void);
 void WINAPI _ShellDDEInit(BOOL bInit);
 HRESULT WINAPI _CBandSiteMenu_CreateInstance(REFIID riid, void **ppv);
 HRESULT WINAPI _CBandSite_CreateInstance(LPUNKNOWN pUnkOuter, REFIID riid, void **ppv);
@@ -203,7 +204,7 @@ typedef struct _TW_STUCKRECTS2
         {
             DWORD AutoHide : 1;
             DWORD AlwaysOnTop : 1;
-            DWORD SmallIcons : 1;
+            DWORD SmSmallIcons : 1; // Start menu Small Icons
             DWORD HideClock : 1;
         };
     };
@@ -252,9 +253,12 @@ HRESULT ShutdownShellServices(HDPA hdpa);
  * startup.cpp
  */
 
+VOID ReleaseStartupMutex();
+VOID ProcessRunOnceItems();
 BOOL DoStartStartupItems(ITrayWindow *Tray);
-INT ProcessStartupItems(VOID);
-BOOL DoFinishStartupItems(VOID);
+INT ProcessStartupItems(BOOL bRunOnce);
+static inline INT ProcessStartupItems() { return ProcessStartupItems(FALSE); }
+static inline VOID DoFinishStartupItems() { ReleaseStartupMutex(); }
 
 /*
  * trayprop.h
@@ -326,16 +330,23 @@ DECLARE_INTERFACE_(ITrayBandSite, IUnknown)
 HRESULT CTrayBandSite_CreateInstance(IN ITrayWindow *tray, IN IDeskBand* pTaskBand, OUT ITrayBandSite** pBandSite);
 
 /*
- * startmnu.cpp
+ * startctxmnu.cpp
  */
-
 HRESULT CStartMenuBtnCtxMenu_CreateInstance(ITrayWindow * TrayWnd, IN HWND hWndOwner, IContextMenu ** ppCtxMenu);
 
+/*
+ * startmnu.cpp
+ */
 IMenuPopup*
 CreateStartMenu(IN ITrayWindow *Tray,
                 OUT IMenuBand **ppMenuBand,
                 IN HBITMAP hbmBanner OPTIONAL,
                 IN BOOL bSmallIcons);
+HRESULT
+UpdateStartMenu(IN OUT IMenuPopup *pMenuPopup,
+                IN HBITMAP hbmBanner  OPTIONAL,
+                IN BOOL bSmallIcons,
+                IN BOOL bRefresh);
 
 /*
  * startmnucust.cpp
@@ -346,7 +357,6 @@ ShowCustomizeClassic(HINSTANCE, HWND);
 /*
 * startmnusite.cpp
 */
-
 HRESULT
 CStartMenuSite_CreateInstance(IN OUT ITrayWindow *Tray, const IID & riid, PVOID * ppv);
 
@@ -360,6 +370,7 @@ HRESULT CTrayClockWnd_CreateInstance(HWND hwndParent, REFIID riid, void **ppv);
 /* TrayNotifyWnd */
 #define TNWM_GETMINIMUMSIZE (WM_USER + 0x100)
 #define TNWM_CHANGETRAYPOS  (WM_USER + 0x104)
+#define TNWM_GETSHOWDESKTOPBUTTON (WM_USER + 0x7601)
 
 #define NTNWM_REALIGN   (0x1)
 
@@ -367,6 +378,8 @@ HRESULT CTrayNotifyWnd_CreateInstance(HWND hwndParent, REFIID riid, void **ppv);
 
 /* SysPagerWnd */
 HRESULT CSysPagerWnd_CreateInstance(HWND hwndParent, REFIID riid, void **ppv);
+
+#include "traydeskbtn.h"
 
 /*
  * taskswnd.c

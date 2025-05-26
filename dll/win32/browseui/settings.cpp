@@ -24,10 +24,9 @@ void ShellSettings::Save()
 void ShellSettings::Load()
 {
     fStatusBarVisible = SHRegGetBoolUSValueW(L"Software\\Microsoft\\Internet Explorer\\Main",
-                                             L"StatusBarOther", FALSE, FALSE);
+                                             L"StatusBarOther", FALSE, TRUE);
 
-    fShowGoButton = SHRegGetBoolUSValueW(L"Software\\Microsoft\\Internet Explorer\\Main",
-                                         L"ShowGoButton", FALSE, TRUE);
+    fShowGoButton = CAddressBand::ShouldShowGoButton();
 
     fLocked = SHRegGetBoolUSValueW(L"Software\\Microsoft\\Internet Explorer\\Toolbar",
                                    L"Locked", FALSE, TRUE);
@@ -35,6 +34,7 @@ void ShellSettings::Load()
 
 void CabinetStateSettings::Load()
 {
+    this->cLength = sizeof(CABINETSTATE);
     ReadCabinetState(this, this->cLength);
 
     /* Overrides */

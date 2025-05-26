@@ -94,12 +94,20 @@ PUBLIC RtlCaptureContext
     movaps [rcx + CxXmm14], xmm14
     movaps [rcx + CxXmm15], xmm15
 
-    /* Store legacy floating point registers */
-    fxsave [rcx + CxFltSave]
+    /* Store eflags */
+    mov [rcx + CxEFlags], eax
+
+    /* Store mxcsr */
     stmxcsr [rcx + CxMxCsr]
 
-    /* Store rflags */
-    mov [rcx + CxEFlags], eax
+    /* Check if we are in user mode */
+    test byte ptr [rcx + CxSegCs], 3
+    jz RtlCaptureContextExit
+
+    /* Store legacy floating point registers */
+    fxsave [rcx + CxFltSave]
+
+RtlCaptureContextExit:
 
     /* Cleanup stack and return */
     add rsp, 8
@@ -107,24 +115,17 @@ PUBLIC RtlCaptureContext
 .ENDP
 
 /*
- * VOID NTAPI
- * RtlRestoreContext(
- *     _In_ PCONTEXT ContextRecord@<rcx>,
- *     PEXCEPTION_RECORD *ExceptionRecord@<rdx>);
+ * VOID
+ * RtlpRestoreContextInternal(
+ *     _In_ PCONTEXT ContextRecord@<rcx>);
  */
-PUBLIC RtlRestoreContext
-.PROC RtlRestoreContext
+PUBLIC RtlpRestoreContextInternal
+.PROC RtlpRestoreContextInternal
 
     /* Allocate space */
     sub rsp, HEX(8)
     .ALLOCSTACK 8
     .ENDPROLOG
-
-    // TODO: Handle ExceptionRecord
-
-    /* Restore legacy floating point registers (It's slow, so do it first) */
-    ldmxcsr [rcx + CxMxCsr]
-    fxrstor [rcx + CxFltSave]
 
     /* Load the target stack pointer into rdx */
     mov rdx, [rcx + CxRsp]
@@ -188,6 +189,18 @@ PUBLIC RtlRestoreContext
     mov r8,  [rcx + CxR8]
     mov r9,  [rcx + CxR9]
 
+    /* Restore MXCSR */
+    ldmxcsr [rcx + CxMxCsr]
+
+    /* Check if we go to user mode */
+    test byte ptr [rcx + CxSegCs], 3
+    jz Exit
+
+    /* Restore legacy floating point registers */
+    fxrstor [rcx + CxFltSave]
+
+Exit:
+
     /* Check if we go to a different cs */
     mov ax, cs
     cmp [rcx + CxSegCs], ax
@@ -210,6 +223,9 @@ PUBLIC RtlRestoreContext
     ret 8
 
 ReturnFar:
+
+    // We should never need this path
+    int HEX(2c)
 
     /* Put cs on the stack for the far return */
     mov ax, [rcx + CxSegCs]
@@ -235,6 +251,82 @@ ReturnFar:
     retf
 
 .ENDP
+
+EXTERN RtlpCheckForActiveDebugger:PROC
+EXTERN RtlDispatchException:PROC
+EXTERN ZwContinue:PROC
+EXTERN ZwRaiseException:PROC
+EXTERN RtlRaiseStatus:PROC
+
+/*
+ * VOID
+ * RtlRaiseException (
+ *     _In_ PEXCEPTION_RECORD ExceptionRecord);
+ */
+PUBLIC RtlRaiseException
+.PROC RtlRaiseException
+
+    /* Allocate stack space for a CONTEXT record */
+    sub rsp, CONTEXT_FRAME_LENGTH + 8
+    .allocstack CONTEXT_FRAME_LENGTH + 8
+
+    /* Save the ExceptionRecord pointer */
+    mov [rsp + CONTEXT_FRAME_LENGTH + 8 + P1Home], rcx
+
+    .endprolog
+
+    /* Save the return address in EXCEPTION_RECORD.ExceptionAddress */
+    mov rdx, [rsp + CONTEXT_FRAME_LENGTH + 8]
+    mov [rcx + ErExceptionAddress], rdx
+
+    /* Capture the current context */
+    mov rcx, rsp
+    call RtlCaptureContext
+
+    /* Fix up CONTEXT.Rip for the caller (RtlCaptureContext doesn't change rdx!) */
+    mov [rsp + CxRip], rdx
+
+    /* Fix up CONTEXT.Rsp for the caller (+8 for the return address) */
+    lea rdx, [rsp + CONTEXT_FRAME_LENGTH + 8 + 8]
+    mov [rsp + CxRsp], rdx
+
+    /* Check if a user mode debugger is active */
+    call RtlpCheckForActiveDebugger
+    test al, al
+    mov r8b, 1
+    jnz RaiseException
+
+    /* Dispatch the exception */
+    mov rcx, [rsp + CONTEXT_FRAME_LENGTH + 8 + P1Home]
+    mov rdx, rsp
+    call RtlDispatchException
+
+    /* Check if it was handled */
+    test al, al
+    mov r8b, 0
+    jz RaiseException
+
+    /* It was handled, continue with the updated context */
+    mov rcx, rsp
+    mov dl, 0
+    call  ZwContinue
+    jmp RaiseStatus
+
+RaiseException:
+
+    mov rcx, [rsp + CONTEXT_FRAME_LENGTH + 8 + P1Home]
+    mov rdx, rsp
+    call ZwRaiseException
+
+RaiseStatus:
+
+    mov rcx, rax
+    mov rdx, rsp
+    call RtlRaiseStatus
+
+    int HEX(2c)
+.ENDP
+
 
 END
 

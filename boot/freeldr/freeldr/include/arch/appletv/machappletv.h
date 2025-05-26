@@ -38,7 +38,7 @@ VOID AppleTVMemInit(VOID);
 PFREELDR_MEMORY_DESCRIPTOR AppleTVMemGetMemoryMap(ULONG *MemoryMapSize);
 
 BOOLEAN AppleTVInitializeBootDevices(VOID);
-VOID AppleTVDiskInit(BOOLEAN Init);
+VOID AppleTVDiskInit();
 BOOLEAN AppleTVDiskReadLogicalSectors(UCHAR DriveNumber, ULONGLONG SectorNumber, ULONG SectorCount, PVOID Buffer);
 BOOLEAN AppleTVDiskGetDriveGeometry(UCHAR DriveNumber, PGEOMETRY DriveGeometry);
 ULONG AppleTVDiskGetCacheableBlockCount(UCHAR DriveNumber);

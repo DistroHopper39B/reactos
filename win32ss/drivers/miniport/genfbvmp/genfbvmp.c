@@ -282,6 +282,26 @@ GenFbVmpSetupCurrentMode(
     return TRUE;
 }
 
+static ULONG
+GenFbVmpGetHwInitDataSize(
+    VOID
+)
+{
+    ULONG MajorVersion, MinorVersion;
+    
+    // Query version info.
+    PsGetVersion(&MajorVersion, &MinorVersion, NULL, NULL);
+    
+    if (MajorVersion == 5)
+        return (MinorVersion >= 1)
+            ? SIZE_OF_WXP_VIDEO_HW_INITIALIZATION_DATA // Windows NT 5.1+ (XP/2003)
+            : SIZE_OF_W2K_VIDEO_HW_INITIALIZATION_DATA; // Windows NT 5.0 (2000)
+    else if (MajorVersion == 4) // Windows NT 4.x (probably unsupported)
+        return SIZE_OF_NT4_VIDEO_HW_INITIALIZATION_DATA;
+    else
+        return SIZE_OF_WXP_VIDEO_HW_INITIALIZATION_DATA; // Vista?
+}
+
 
 /*********************************** Public ***********************************/
 
@@ -872,6 +892,8 @@ GenFbVmpGetVideoChildDescriptor(
     return NO_ERROR; // FIXME: Should return VIDEO_ENUM_NO_MORE_DEVICES;
 }
 
+
+
 CODE_SEG("INIT")
 ULONG NTAPI
 DriverEntry(IN PVOID Context1, IN PVOID Context2)
@@ -898,8 +920,7 @@ DriverEntry(IN PVOID Context1, IN PVOID Context2)
     // Set up storage space
     VideoInitData.HwDeviceExtensionSize     = sizeof(GENFB_DEVICE_EXTENSION);
     
-    // FIXME: Windows 2000/NT4 support
-    VideoInitData.HwInitDataSize            = sizeof(VIDEO_HW_INITIALIZATION_DATA);
+    VideoInitData.HwInitDataSize            = GenFbVmpGetHwInitDataSize();
     
     // Ignored apparently in all but NT4
     VideoInitData.AdapterInterfaceType      = PCIBus;

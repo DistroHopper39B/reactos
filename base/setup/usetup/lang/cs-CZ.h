@@ -1514,7 +1514,7 @@ static MUI_ENTRY csCZBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "Instala\237n\241 aplikace nedok\240\247e nainstalovat zavad\330\237 na tento disk.",
+        "Instalace nyn\241 nainstaluje zavad\330\237.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2270,7 +2270,7 @@ MUI_STRING csCZStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Aktualizuji nastaven\241 rozlo\247en\241 kl\240ves..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   P\375id\240v\240m do registru informaci o znakov\202 str\240nce..."},
+    "   P\375id\240v\240m informaci o znakov\202 str\240nce..."},
     {STRING_DONE,
     "   Hotovo..."},
     {STRING_REBOOTCOMPUTER2,

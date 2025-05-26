@@ -10,7 +10,7 @@
 DBG_DEFAULT_CHANNEL(UserMisc);
 
 //
-// Works like BitBlt, http://msdn.microsoft.com/en-us/library/ms532278(VS.85).aspx
+// Works like BitBlt, https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-bitblt
 //
 BOOL
 APIENTRY
@@ -947,15 +947,6 @@ BOOL APIENTRY NtUserGetUpdatedClipboardFormats(
 {
     STUB;
     return FALSE;
-}
-
-LONG_PTR
-APIENTRY
-NtUserSetClassLongPtr(
-    VOID)
-{
-    STUB;
-    return 0;
 }
 
 // Yes, I know, these do not belong here, just tell me where to put them

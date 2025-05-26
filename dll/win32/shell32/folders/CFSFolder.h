@@ -33,6 +33,14 @@ class CFSFolder :
         HRESULT _CreateExtensionUIObject(LPCITEMIDLIST pidl, REFIID riid, LPVOID *ppvOut);
         HRESULT _GetDropTarget(LPCITEMIDLIST pidl, LPVOID *ppvOut);
         HRESULT _GetIconHandler(LPCITEMIDLIST pidl, REFIID riid, LPVOID *ppvOut);
+
+        HRESULT _ParseSimple(
+            _In_ LPOLESTR lpszDisplayName,
+            _Inout_ WIN32_FIND_DATAW *pFind,
+            _Out_ LPITEMIDLIST *ppidl);
+        BOOL _GetFindDataFromName(_In_ LPCWSTR pszName, _Out_ WIN32_FIND_DATAW *pFind);
+        HRESULT _CreateIDListFromName(LPCWSTR pszName, DWORD attrs, IBindCtx *pbc, LPITEMIDLIST *ppidl);
+
     public:
         CFSFolder();
         ~CFSFolder();
@@ -117,6 +125,18 @@ class CFSFolder :
 
     protected:
         HRESULT WINAPI GetCustomViewInfo(ULONG unknown, SFVM_CUSTOMVIEWINFO_DATA *data);
+
+    public:
+        // Helper functions shared with CDesktopFolder
+        static HRESULT GetFSColumnDetails(UINT iColumn, SHELLDETAILS &sd);
+        static HRESULT GetDefaultFSColumnState(UINT iColumn, SHCOLSTATEF &csFlags);
+        static HRESULT FormatDateTime(const FILETIME &ft, LPWSTR Buf, UINT cchBuf);
+        static HRESULT FormatSize(UINT64 size, LPWSTR Buf, UINT cchBuf);
+        static HRESULT CompareSortFoldersFirst(LPCITEMIDLIST pidl1, LPCITEMIDLIST pidl2);
+        static inline int CompareUiStrings(LPCWSTR a, LPCWSTR b)
+        {
+            return StrCmpLogicalW(a, b);
+        }
 };
 
 #endif /* _CFSFOLDER_H_ */

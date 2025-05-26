@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <windef.h>
 #include <winbase.h>
+#include <stdio.h> // In the future: replace by <wine/debug.h>
 
 #ifdef __WINE_CONFIG_H
 #error config.h should not be used in Wine tests
@@ -86,6 +87,8 @@ extern const char *wine_dbgstr_longlong( ULONGLONG ll );
 #endif
 static inline const char *debugstr_a( const char *s )  { return wine_dbgstr_an( s, -1 ); }
 static inline const char *debugstr_an( const CHAR *s, intptr_t n ) { return wine_dbgstr_an( s, n ); }
+static inline const char *debugstr_w( const WCHAR *s ) { return wine_dbgstr_wn( s, -1 ); }
+static inline const char *debugstr_wn( const WCHAR *s, int n ) { return wine_dbgstr_wn( s, n ); }
 static inline const char *wine_dbgstr_a( const char *s )  { return wine_dbgstr_an( s, -1 ); }
 static inline const char *wine_dbgstr_w( const WCHAR *s ) { return wine_dbgstr_wn( s, -1 ); }
 
@@ -153,12 +156,14 @@ extern void winetest_pop_context(void);
 #define skip_(file, line)     (winetest_set_location(file, line), 0) ? (void)0 : winetest_skip
 #define win_skip_(file, line) (winetest_set_location(file, line), 0) ? (void)0 : winetest_win_skip
 #define trace_(file, line)    (winetest_set_location(file, line), 0) ? (void)0 : winetest_trace
+#define wait_child_process_(file, line) (winetest_set_location(file, line), 0) ? (void)0 : winetest_wait_child_process
 
 #define subtest  subtest_(__FILE__, __LINE__)
 #define ok       ok_(__FILE__, __LINE__)
 #define skip     skip_(__FILE__, __LINE__)
 #define win_skip win_skip_(__FILE__, __LINE__)
 #define trace    trace_(__FILE__, __LINE__)
+#define wait_child_process wait_child_process_(__FILE__, __LINE__)
 
 #define todo_if(is_todo) for (winetest_start_todo(is_todo); \
                               winetest_loop_todo(); \
@@ -181,6 +186,9 @@ extern void winetest_pop_context(void);
 #define disable_success_count   for (winetest_start_nocount(1); \
                                      winetest_loop_nocount(); \
                                      winetest_end_nocount())
+
+#define skip_2k3_crash if (_winver < 0x600) skip("Test skipped, because it crashes on win 2003\n"); else
+#define skip_2k3_fail if (_winver < 0x600) skip("Test skipped, because it fails on win 2003\n"); else
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -744,7 +752,7 @@ const char *wine_dbgstr_wn( const WCHAR *str, intptr_t n )
     }
     *dst = 0;
 
-    res = get_temp_buffer(strlen(buffer + 1));
+    res = get_temp_buffer(strlen(buffer) + 1);
     strcpy(res, buffer);
     return res;
 }

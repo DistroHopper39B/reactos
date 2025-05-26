@@ -2,6 +2,7 @@
 spec2def(shell32_apitest.exe shell32_apitest.spec)
 
 list(APPEND SOURCE
+    closewnd.cpp
     AddCommas.cpp
     CFSFolder.cpp
     CheckEscapes.cpp
@@ -16,27 +17,40 @@ list(APPEND SOURCE
     ExtractIconEx.cpp
     FindExecutable.cpp
     GetDisplayNameOf.cpp
+    GUIDFromString.cpp
     Int64ToString.cpp
     IShellFolderViewCB.cpp
+    ItemIDList.cpp
     OpenAs_RunDLL.cpp
     PathIsEqualOrSubFolder.cpp
     PathIsTemporary.cpp
     PathResolve.cpp
+    RealShellExecuteEx.cpp
     SHAppBarMessage.cpp
     SHChangeNotify.cpp
     SHCreateDataObject.cpp
     SHCreateFileDataObject.cpp
     SHCreateFileExtractIconW.cpp
+    SHGetComputerDisplayNameW.cpp
+    SHGetUnreadMailCountW.cpp
+    SHIsBadInterfacePtr.cpp
     SHParseDisplayName.cpp
     SHRestricted.cpp
+    SHShouldShowWizards.cpp
+    SHEnumerateUnreadMailAccountsW.cpp
     She.cpp
+    ShellExec_RunDLL.cpp
     ShellExecCmdLine.cpp
     ShellExecuteEx.cpp
     ShellExecuteW.cpp
     ShellHook.cpp
+    ShellInfo.cpp
     ShellState.cpp
     SHGetAttributesFromDataObject.cpp
+    SHGetUserDisplayName.cpp
     SHLimitInputEdit.cpp
+    SHSetUnreadMailCountW.cpp
+    StrRStr.cpp
     menu.cpp
     shelltest.cpp)
 

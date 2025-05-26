@@ -18,8 +18,7 @@
 #include <gdiplus.h>
 #include <math.h>
 
-
-#define LISTVIEW_ICON_SIZE 32
+extern HICON g_hDefaultPackageIcon;
 
 // default broken-image icon size
 #define BROKENIMG_ICON_SIZE 96
@@ -40,6 +39,7 @@
 #define WM_RAPPS_DOWNLOAD_COMPLETE                                                                                     \
     (WM_USER + 1) // notify download complete. wParam is error code, and lParam is a pointer to ScrnshotDownloadParam
 #define WM_RAPPS_RESIZE_CHILDREN (WM_USER + 2) // ask parent window to resize children.
+#define WM_RAPPSLIST_ASYNCICON (WM_APP + 0)
 
 enum SCRNSHOT_STATUS
 {
@@ -89,8 +89,6 @@ class CAppRichEdit : public CUiWindow<CRichEdit>
     LoadAndInsertText(UINT uStringID, DWORD StringFlags);
     VOID
     InsertTextWithString(UINT StringID, const CStringW &Text, DWORD TextFlags);
-    VOID
-    SetWelcomeText();
 };
 
 int
@@ -177,9 +175,9 @@ class CAppInfoDisplay : public CUiWindow<CWindowImpl<CAppInfoDisplay>>
     Create(HWND hwndParent);
 
     VOID
-    ShowAppInfo(CAppInfo *Info);
-    VOID
-    SetWelcomeText();
+    ShowAppInfo(CAppInfo &Info, bool OnlyUpdateText = false);
+    void
+    SetWelcomeText(bool bAppwiz);
     VOID
     OnCommand(WPARAM wParam, LPARAM lParam);
 
@@ -195,7 +193,7 @@ class CAppsListView : public CUiWindow<CWindowImpl<CAppsListView, CListView>>
     };
 
     BOOL bIsAscending = TRUE;
-    BOOL bHasCheckboxes = FALSE;
+    bool bHasCheckboxes = false;
 
     INT ItemCount = 0;
     INT CheckedItemCount = 0;
@@ -210,10 +208,13 @@ class CAppsListView : public CUiWindow<CWindowImpl<CAppsListView, CListView>>
 
     BEGIN_MSG_MAP(CAppsListView)
     MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
+    MESSAGE_HANDLER(WM_RAPPSLIST_ASYNCICON, OnAsyncIcon)
     END_MSG_MAP()
 
     LRESULT
     OnEraseBackground(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
+    LRESULT
+    OnAsyncIcon(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 
   public:
     CAppsListView();
@@ -221,8 +222,9 @@ class CAppsListView : public CUiWindow<CWindowImpl<CAppsListView, CListView>>
 
     VOID
     SetWatermark(const CStringW &Text);
-    VOID
-    SetCheckboxesVisible(BOOL bIsVisible);
+
+    void
+    ShowCheckboxes(bool bShow);
 
     VOID
     ColumnClick(LPNMLISTVIEW pnmv);
@@ -290,10 +292,11 @@ class CMainToolbar : public CUiWindow<CToolbar<>>
     HWND
     Create(HWND hwndParent);
 
-    VOID
-    HideButtonCaption();
-    VOID
-    ShowButtonCaption();
+    void
+    ShowButtonCaption(bool bShow);
+
+    void
+    UpdateMaxButtonsWidth();
 
     DWORD
     GetMaxButtonsWidth() const;
@@ -385,6 +388,8 @@ class CApplicationView : public CUiWindow<CWindowImpl<CApplicationView>>
     void
     SetRedraw(BOOL bRedraw);
     void
+    RefreshAvailableItem(PCWSTR PackageName);
+    void
     SetFocusOnSearchBar();
     BOOL
     SetDisplayAppType(APPLICATION_VIEW_TYPE AppType);
@@ -402,6 +407,18 @@ class CApplicationView : public CUiWindow<CWindowImpl<CApplicationView>>
     GetItemCount();
     VOID
     AppendTabOrderWindow(int Direction, ATL::CSimpleArray<HWND> &TabOrderList);
+
+    struct RESTORELISTSELECTION {
+        LVITEMW Item;
+        WCHAR Name[MAX_PATH];
+    };
+    VOID
+    GetRestoreListSelectionData(RESTORELISTSELECTION &Restore);
+    VOID
+    RestoreListSelection(const RESTORELISTSELECTION &Restore);
+
+    VOID
+    RefreshDetailsPane(CAppInfo &Info, bool OnlyUpdateText = false);
 
     // this function is called when a item of listview get focus.
     // CallbackParam is the param passed to listview when adding the item (the one getting focus now).

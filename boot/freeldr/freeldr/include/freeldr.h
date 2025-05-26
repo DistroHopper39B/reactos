@@ -20,6 +20,10 @@
 #ifndef __FREELDR_H
 #define __FREELDR_H
 
+/* Enabled for supporting the deprecated boot options
+ * that will be removed in a future FreeLdr version */
+#define HAS_DEPRECATED_OPTIONS
+
 #define UINT64_C(val) val##ULL
 #define RVA(m, b) ((PVOID)((ULONG_PTR)(b) + (ULONG_PTR)(m)))
 
@@ -59,7 +63,6 @@
 #include <arcsupp.h>
 #include <bytesex.h>
 #include <cache.h>
-#include <cmdline.h>
 #include <comm.h>
 #include <disk.h>
 #include <fs.h>
@@ -75,6 +78,7 @@
 #include <options.h>
 #include <oslist.h>
 #include <ramdisk.h>
+#include <settings.h>
 #include <ver.h>
 
 /* NTOS loader */
@@ -83,7 +87,7 @@
 #include <peloader.h>
 
 /* File system headers */
-#include <fs/ext2.h>
+#include <fs/ext.h>
 #include <fs/fat.h>
 #include <fs/ntfs.h>
 #include <fs/iso.h>
@@ -128,6 +132,13 @@
 #endif
 
 VOID __cdecl BootMain(IN PCCH CmdLine);
+
+#ifdef HAS_DEPRECATED_OPTIONS
+VOID
+WarnDeprecated(
+    _In_ PCSTR MsgFmt,
+    ...);
+#endif
 
 VOID
 LoadOperatingSystem(

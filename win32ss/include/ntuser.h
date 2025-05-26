@@ -1670,7 +1670,7 @@ enum SimpleCallRoutines
     TWOPARAM_ROUTINE_WOWCLEANUP
 };
 
-DWORD
+DWORD_PTR
 NTAPI
 NtUserCallHwnd(
     HWND hWnd,
@@ -2485,7 +2485,7 @@ enum ThreadStateRoutines
     THREADSTATE_IMECOMPATFLAGS,
     THREADSTATE_OLDKEYBOARDLAYOUT,
     THREADSTATE_ISWINLOGON,
-    THREADSTATE_ISWINLOGON2,
+    THREADSTATE_UNKNOWN_0x10,
     THREADSTATE_CHECKCONIME,
     THREADSTATE_GETTHREADINFO,
     THREADSTATE_PROGMANWINDOW, /* FIXME: Delete this HACK */
@@ -3015,11 +3015,22 @@ NtUserSetCapture(
 ULONG_PTR
 NTAPI
 NtUserSetClassLong(
-    HWND hWnd,
-    INT Offset,
-    ULONG_PTR dwNewLong,
-    BOOL Ansi);
+    _In_ HWND hWnd,
+    _In_ INT Offset,
+    _In_ ULONG dwNewLong,
+    _In_ BOOL Ansi);
 
+#ifdef _WIN64
+
+ULONG_PTR
+APIENTRY
+NtUserSetClassLongPtr(
+    _In_ HWND hWnd,
+    _In_ INT Offset,
+    _In_ ULONG_PTR dwNewLong,
+    _In_ BOOL Ansi);
+
+#endif // _WIN64
 WORD
 NTAPI
 NtUserSetClassWord(
@@ -3084,11 +3095,6 @@ NtUserFindExistingCursorIcon(
     _In_ PUNICODE_STRING pustrModule,
     _In_ PUNICODE_STRING pustrRsrc,
     _In_ FINDEXISTINGCURICONPARAM *param);
-
-LONG_PTR
-APIENTRY
-NtUserSetClassLongPtr(
-    VOID);
 
 DWORD
 NTAPI
@@ -3627,6 +3633,9 @@ NtUserSetScrollBarInfo(
     HWND hwnd,
     LONG idObject,
     SETSCROLLBARINFO *info);
+
+ULONG
+RtlGetExpWinVer(_In_ PVOID BaseAddress);
 
 #endif /* __WIN32K_NTUSER_H */
 

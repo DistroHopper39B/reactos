@@ -1,10 +1,11 @@
 
 #include <asm.inc>
+#include <ksamd64.inc>
 #include <arch/pc/x86common.h>
 #include <arch/pc/pcbios.h>
 
 EXTERN BootMain:PROC
-// EXTERN cmdline:DWORD
+EXTERN cmdline:DWORD
 
 EXTERN DiskStopFloppyMotor:PROC
 
@@ -38,6 +39,18 @@ ContinueAddress:
 
 FrldrStartup:
 
+    /* Set up CR0 for SSE */
+    mov rax, cr0
+    and eax, not CR0_EM // Clear coprocessor emulation CR0.EM CR0.EM (bit 2)
+    or rax, CR0_MP // Set coprocessor monitoring CR0.MP (bit 1)
+    mov cr0, rax
+
+    /* Set up CR4 for SSE */
+    mov rax, cr4
+    or eax, CR4_FXSR // Enable fx save/restore CR4.OSFXSR (bit 9)
+    or eax, CR4_XMMEXCPT // Enable XMMI exceptions CR4.OSXMMEXCPT (bit 10)
+    mov cr4, rax
+
     /* Store BootDrive and BootPartition */
     mov al, byte ptr [BSS_BootDrive]
     mov byte ptr [FrldrBootDrive], al
@@ -58,8 +71,7 @@ FrldrStartup:
     rep stosq
 
     /* Pass the command line to BootMain */
-    // mov rcx, offset cmdline
-    xor rcx, rcx
+    mov rcx, offset cmdline
 
     /* GO! */
     call BootMain

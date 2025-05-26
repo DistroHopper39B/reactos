@@ -39,6 +39,18 @@ extern "C" {
 //
 // List Functions
 //
+
+DECLSPEC_NORETURN
+FORCEINLINE
+VOID
+RtlFailFast(
+    _In_ ULONG Code)
+{
+    __fastfail(Code);
+}
+
+#define RTL_STATIC_LIST_HEAD(x) LIST_ENTRY x = { &x, &x }
+
 FORCEINLINE
 VOID
 InitializeListHead(
@@ -209,6 +221,18 @@ RtlConvertUlongToLuid(
     TempLuid.HighPart = 0;
     return TempLuid;
 }
+
+_Must_inspect_result_
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUTF8ToUnicodeN(
+    _Out_writes_bytes_to_(UnicodeStringMaxByteCount, *UnicodeStringActualByteCount)
+        PWSTR UnicodeStringDestination,
+    _In_ ULONG UnicodeStringMaxByteCount,
+    _Out_ PULONG UnicodeStringActualByteCount,
+    _In_reads_bytes_(UTF8StringByteCount) PCCH UTF8StringSource,
+    _In_ ULONG UTF8StringByteCount);
 
 //
 // ASSERT Macros
@@ -4436,7 +4460,7 @@ ULONG
 NTAPI
 RtlComputeCrc32(
     _In_ ULONG InitialCrc,
-    _In_ PUCHAR Buffer,
+    _In_ const UCHAR *Buffer,
     _In_ ULONG Length
 );
 
@@ -4692,6 +4716,99 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlGetNtProductType(_Out_ PNT_PRODUCT_TYPE ProductType);
+
+#if (_WIN32_WINNT >= _WIN32_WINNT_VISTA)
+//
+// Synchronization functions
+//
+NTSYSAPI
+VOID
+NTAPI
+RtlInitializeConditionVariable(
+    _Out_ PRTL_CONDITION_VARIABLE ConditionVariable);
+
+NTSYSAPI
+VOID
+NTAPI
+RtlWakeConditionVariable(
+    _Inout_ PRTL_CONDITION_VARIABLE ConditionVariable);
+
+NTSYSAPI
+VOID
+NTAPI
+RtlWakeAllConditionVariable(
+    _Inout_ PRTL_CONDITION_VARIABLE ConditionVariable);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSleepConditionVariableCS(
+    _Inout_ PRTL_CONDITION_VARIABLE ConditionVariable,
+    _Inout_ PRTL_CRITICAL_SECTION CriticalSection,
+    _In_opt_ PLARGE_INTEGER TimeOut);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSleepConditionVariableSRW(
+    _Inout_ PRTL_CONDITION_VARIABLE ConditionVariable,
+    _Inout_ PRTL_SRWLOCK SRWLock,
+    _In_opt_ PLARGE_INTEGER TimeOut,
+    _In_ ULONG Flags);
+#endif
+
+//
+// Synchronization functions
+//
+NTSYSAPI
+VOID
+NTAPI
+RtlInitializeConditionVariable(OUT PRTL_CONDITION_VARIABLE ConditionVariable);
+
+NTSYSAPI
+VOID
+NTAPI
+RtlWakeConditionVariable(IN OUT PRTL_CONDITION_VARIABLE ConditionVariable);
+
+NTSYSAPI
+VOID
+NTAPI
+RtlWakeAllConditionVariable(IN OUT PRTL_CONDITION_VARIABLE ConditionVariable);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSleepConditionVariableCS(IN OUT PRTL_CONDITION_VARIABLE ConditionVariable,
+                            IN OUT PRTL_CRITICAL_SECTION CriticalSection,
+                            IN const PLARGE_INTEGER TimeOut OPTIONAL);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSleepConditionVariableSRW(IN OUT PRTL_CONDITION_VARIABLE ConditionVariable,
+                             IN OUT PRTL_SRWLOCK SRWLock,
+                             IN PLARGE_INTEGER TimeOut OPTIONAL,
+                             IN ULONG Flags);
+
+VOID
+NTAPI
+RtlInitializeSRWLock(OUT PRTL_SRWLOCK SRWLock);
+
+VOID
+NTAPI
+RtlAcquireSRWLockShared(IN OUT PRTL_SRWLOCK SRWLock);
+
+VOID
+NTAPI
+RtlReleaseSRWLockShared(IN OUT PRTL_SRWLOCK SRWLock);
+
+VOID
+NTAPI
+RtlAcquireSRWLockExclusive(IN OUT PRTL_SRWLOCK SRWLock);
+
+VOID
+NTAPI
+RtlReleaseSRWLockExclusive(IN OUT PRTL_SRWLOCK SRWLock);
 
 //
 // Secure Memory Functions

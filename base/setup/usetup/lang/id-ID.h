@@ -1506,14 +1506,7 @@ static MUI_ENTRY idIDBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "Penyetelan tidak dapat menasang bootloader pada komputer Anda",
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        9,
-        "harddisk.",
+        "Penyetelan sedang memasang the bootloader.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2269,7 +2262,7 @@ MUI_STRING idIDStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Memperbarui pengaturan tata letak papan ketik..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   Menambahkan informasi halaman kode pada registri..."},
+    "   Menambahkan informasi halaman kode..."},
     {STRING_DONE,
     "   Selesai..."},
     {STRING_REBOOTCOMPUTER2,

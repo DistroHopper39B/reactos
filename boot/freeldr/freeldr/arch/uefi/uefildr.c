@@ -26,17 +26,19 @@ EfiEntry(
     _In_ EFI_HANDLE ImageHandle,
     _In_ EFI_SYSTEM_TABLE *SystemTable)
 {
+    PCSTR CmdLine = ""; // FIXME: Determine a command-line from UEFI boot options
+
     SystemTable->ConOut->OutputString(SystemTable->ConOut, L"UEFI EntryPoint: Starting freeldr from UEFI");
     GlobalImageHandle = ImageHandle;
     GlobalSystemTable = SystemTable;
 
-    /* Needed for default settings */
-    CmdLineParse("");
+    /* Load the default settings from the command-line */
+    LoadSettings(CmdLine);
 
     /* Debugger pre-initialization */
-    DebugInit(0);
+    DebugInit(BootMgrInfo.DebugString);
 
-    MachInit("");
+    MachInit(CmdLine);
 
     /* UI pre-initialization */
     if (!UiInitialize(FALSE))
@@ -78,6 +80,7 @@ ExecuteLoaderCleanly(PVOID PreviousStack)
 }
 
 #ifndef _M_ARM
+DECLSPEC_NORETURN
 VOID __cdecl Reboot(VOID)
 {
     //TODO: Replace with a true firmware reboot eventually

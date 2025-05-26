@@ -77,6 +77,11 @@ BOOLEAN AcpiPresent = FALSE;
 
 /* FUNCTIONS *****************************************************************/
 
+BOOLEAN IsAcpiPresent(VOID)
+{
+    return AcpiPresent;
+}
+
 static
 PRSDP_DESCRIPTOR
 FindAcpiBios(VOID)

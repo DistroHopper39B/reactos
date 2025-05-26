@@ -261,10 +261,10 @@
 262 stdcall PrintersGetCommand_RunDLL(ptr ptr wstr long)
 263 stdcall PrintersGetCommand_RunDLLA(ptr ptr str long)
 264 stdcall PrintersGetCommand_RunDLLW(ptr ptr wstr long)
-265 stdcall RealShellExecuteA(ptr str str str str str str str long ptr)
-266 stdcall RealShellExecuteExA(ptr str str str str str str str long ptr long)
-267 stdcall RealShellExecuteExW(ptr str str str str str str str long ptr long)
-268 stdcall RealShellExecuteW(ptr wstr wstr wstr wstr wstr wstr wstr long ptr)
+265 stdcall RealShellExecuteA(ptr str str str str ptr str ptr long ptr)
+266 stdcall RealShellExecuteExA(ptr str str str str ptr str ptr long ptr long)
+267 stdcall RealShellExecuteExW(ptr wstr wstr wstr wstr ptr wstr ptr long ptr long)
+268 stdcall RealShellExecuteW(ptr wstr wstr wstr wstr ptr wstr ptr long ptr)
 269 stdcall RegenerateUserEnvironment(ptr long)
 270 stdcall SHAddToRecentDocs(long ptr)
 271 stdcall SHAppBarMessage(long ptr)
@@ -280,6 +280,7 @@
 281 stdcall SHCreateProcessAsUserW(ptr)
 282 stdcall SHCreateQueryCancelAutoPlayMoniker(ptr)
 283 stdcall SHCreateShellItem(ptr ptr ptr ptr)
+@ stdcall -version=0x600+ SHCreateShellItemArrayFromDataObject(ptr ptr ptr)
 284 stdcall SHEmptyRecycleBinA(long str long)
 285 stdcall SHEmptyRecycleBinW(long wstr long)
 286 stub SHEnableServiceObject
@@ -316,7 +317,7 @@
 317 stdcall SHGetSpecialFolderLocation(long long ptr)
 318 stdcall SHGetSpecialFolderPathA(long ptr long long)
 319 stdcall SHGetSpecialFolderPathW(long ptr long long)
-320 stdcall SHGetUnreadMailCountW (long wstr long ptr wstr long)
+320 stdcall SHGetUnreadMailCountW(ptr wstr ptr ptr ptr long)
 321 stdcall SHHelpShortcuts_RunDLL(long long long long) SHHelpShortcuts_RunDLLA
 322 stdcall SHHelpShortcuts_RunDLLA(long long long long)
 323 stdcall SHHelpShortcuts_RunDLLW(long long long long)
@@ -353,7 +354,7 @@
 354 stdcall SheShortenPathW(wstr long)
 355 stdcall ShellAboutA(long str str long)
 356 stdcall ShellAboutW(long wstr wstr long)
-357 stdcall ShellExec_RunDLL(ptr ptr wstr long)
+357 stdcall ShellExec_RunDLL(ptr ptr str long) ShellExec_RunDLLA
 358 stdcall ShellExec_RunDLLA(ptr ptr str long)
 359 stdcall ShellExec_RunDLLW(ptr ptr wstr long)
 360 stdcall ShellExecuteA(long str str str str long)
@@ -459,7 +460,7 @@
 749 stdcall -noname -version=0x501-0x502 SHGetShellStyleHInstance()
 750 stdcall -noname SHGetAttributesFromDataObject(ptr long ptr ptr)
 751 stub -noname SHSimulateDropOnClsid
-752 stdcall -noname SHGetComputerDisplayNameW(long long long long)
+752 stdcall -noname SHGetComputerDisplayNameW(wstr long ptr long)
 753 stdcall -noname CheckStagingArea()
 754 stub -noname SHLimitInputEditWithFlags
 755 stdcall -noname PathIsEqualOrSubFolder(wstr wstr)

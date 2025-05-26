@@ -287,7 +287,6 @@ public:
 
         // HACK & FIXME: CORE-18016
         HWND toolbar = CToolbar::Create(hWndParent, styles);
-        SetDrawTextFlags(DT_NOPREFIX, DT_NOPREFIX);
         m_hWnd = NULL;
         return SubclassWindow(toolbar);
     }
@@ -1602,7 +1601,8 @@ public:
 
             if (!bIsMinimized && bIsActive)
             {
-                ::ShowWindowAsync(TaskItem->hWnd, SW_MINIMIZE);
+                if (!::IsHungAppWindow(TaskItem->hWnd))
+                    ::ShowWindowAsync(TaskItem->hWnd, SW_MINIMIZE);
                 TRACE("Valid button clicked. App window Minimized.\n");
             }
             else
@@ -1979,7 +1979,10 @@ public:
         return S_OK;
     }
 
-    HRESULT WINAPI GetWindow(HWND* phwnd)
+    // *** IOleWindow methods ***
+
+    STDMETHODIMP
+    GetWindow(HWND* phwnd) override
     {
         if (!phwnd)
             return E_INVALIDARG;
@@ -1987,7 +1990,8 @@ public:
         return S_OK;
     }
 
-    HRESULT WINAPI ContextSensitiveHelp(BOOL fEnterMode)
+    STDMETHODIMP
+    ContextSensitiveHelp(BOOL fEnterMode) override
     {
         return E_NOTIMPL;
     }

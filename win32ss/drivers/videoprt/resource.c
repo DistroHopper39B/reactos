@@ -24,9 +24,19 @@
 #define NDEBUG
 #include <debug.h>
 
+extern BOOLEAN VpBaseVideo;
+
 /* PRIVATE FUNCTIONS **********************************************************/
 
-static NTSTATUS
+static BOOLEAN
+IntIsVgaSaveDriver(
+    IN PVIDEO_PORT_DEVICE_EXTENSION DeviceExtension)
+{
+    UNICODE_STRING VgaSave = RTL_CONSTANT_STRING(L"\\Driver\\VgaSave");
+    return RtlEqualUnicodeString(&VgaSave, &DeviceExtension->DriverObject->DriverName, TRUE);
+}
+
+NTSTATUS NTAPI
 IntVideoPortGetLegacyResources(
     IN PVIDEO_PORT_DRIVER_EXTENSION DriverExtension,
     IN PVIDEO_PORT_DEVICE_EXTENSION DeviceExtension,
@@ -1259,6 +1269,16 @@ VideoPortVerifyAccessRanges(
                 &ConflictDetected);
 
     ExFreePoolWithTag(ResourceList, TAG_VIDEO_PORT);
+
+    /* If VgaSave driver is conflicting and we don't explicitely want
+     * to use it, ignore the problem (because win32k will try to use
+     * this driver only if all other ones are failing). */
+    if (Status == STATUS_CONFLICTING_ADDRESSES &&
+        IntIsVgaSaveDriver(DeviceExtension) &&
+        !VpBaseVideo)
+    {
+        return NO_ERROR;
+    }
 
     if (!NT_SUCCESS(Status) || ConflictDetected)
         return ERROR_INVALID_PARAMETER;

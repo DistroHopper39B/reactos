@@ -75,40 +75,37 @@ AppleTVIdeUpdateProgIf(VOID)
 }
 
 VOID
-AppleTVDiskInit(BOOLEAN Init)
+AppleTVDiskInit(VOID)
 {
     UCHAR DetectedCount;
     UCHAR UnitNumber;
     PDEVICE_UNIT DeviceUnit = NULL;
 
-    if (Init & !AtaInitialized)
+    ASSERT(!AtaInitialized);
+
+    AtaInitialized = TRUE;
+    
+    // Fixup IDE controller
+    AppleTVIdeUpdateProgIf();
+
+    /* Find first HDD and CD */
+    AtaInit(&DetectedCount);
+    for (UnitNumber = 0; UnitNumber <= DetectedCount; UnitNumber++)
     {
-        // Fixup IDE contoller
-        AppleTVIdeUpdateProgIf();
-        /* Find first HDD and CD */
-        AtaInit(&DetectedCount);
-        for (UnitNumber = 0; UnitNumber <= DetectedCount; UnitNumber++)
+        DeviceUnit = AtaGetDevice(UnitNumber);
+        if (DeviceUnit)
         {
-            DeviceUnit = AtaGetDevice(UnitNumber);
-            if (DeviceUnit)
+            if (DeviceUnit->Flags & ATA_DEVICE_ATAPI)
             {
-                if (DeviceUnit->Flags & ATA_DEVICE_ATAPI)
-                {
-                    if (!CdDrive)
-                        CdDrive = DeviceUnit; // should not happen on real appletv
-                }
-                else
-                {
+                if (!CdDrive)
+                    CdDrive = DeviceUnit; // should not happen on real apple tv
+            }
+            else
+            {
                 if (!HardDrive)
                     HardDrive = DeviceUnit;
-                }
             }
         }
-        AtaInitialized = TRUE;
-    }
-    else
-    {
-        AtaFree();
     }
 }
 
@@ -121,7 +118,7 @@ AppleTVDiskDriveNumberToDeviceUnit(UCHAR DriveNumber)
         return NULL;
 
     if (!AtaInitialized)
-        AppleTVDiskInit(TRUE);
+        AppleTVDiskInit();
 
     /* HDD */
     if ((DriveNumber == 0x80) && HardDrive)
@@ -150,7 +147,7 @@ AppleTVDiskReadLogicalSectors(
     if (!DeviceUnit)
         return FALSE;
 
-    return AtaAtapiReadLogicalSectorsLBA(DeviceUnit, SectorNumber, SectorCount, Buffer);
+    return AtaReadLogicalSectors(DeviceUnit, SectorNumber, SectorCount, Buffer);
 }
 
 BOOLEAN
@@ -166,7 +163,7 @@ AppleTVDiskGetDriveGeometry(UCHAR DriveNumber, PGEOMETRY Geometry)
 
     Geometry->Cylinders = DeviceUnit->Cylinders;
     Geometry->Heads = DeviceUnit->Heads;
-    Geometry->Sectors = DeviceUnit->Sectors;
+    Geometry->Sectors = DeviceUnit->SectorsPerTrack;
     Geometry->BytesPerSector = DeviceUnit->SectorSize;
 
     return TRUE;
@@ -188,7 +185,7 @@ AppleTVDiskGetCacheableBlockCount(UCHAR DriveNumber)
     if (DeviceUnit->Flags & ATA_DEVICE_LBA)
         return 64;
     else
-        return DeviceUnit->Sectors;
+        return DeviceUnit->SectorsPerTrack;
 }
 
 static LONG lReportError = 0; // >= 0: display errors; < 0: hide errors.

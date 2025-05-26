@@ -206,8 +206,8 @@ KeGetTrapFrameFrameRegister(PKTRAP_FRAME TrapFrame)
 // Macro to get trap and exception frame from a thread stack
 //
 #define KeGetTrapFrame(Thread) \
-    (PKTRAP_FRAME)((ULONG_PTR)((Thread)->InitialStack) - \
-                   sizeof(KTRAP_FRAME))
+    ((PKTRAP_FRAME)((ULONG_PTR)((Thread)->InitialStack) - \
+                   sizeof(KTRAP_FRAME)))
 
 //
 // Macro to get context switches from the PRCB
@@ -356,7 +356,10 @@ KiEndInterrupt(IN KIRQL Irql,
 {
     /* Make sure this is from the clock handler */
     ASSERT(TrapFrame->ErrorCode == 0xc10c4);
-    //KeLowerIrql(Irql);
+
+    /* Disable interrupts and end the interrupt */
+    _disable();
+    HalEndSystemInterrupt(Irql, TrapFrame);
 }
 
 FORCEINLINE
@@ -473,6 +476,23 @@ KiSetTrapContext(
     _Out_ PKTRAP_FRAME TrapFrame,
     _In_ PCONTEXT Context,
     _In_ KPROCESSOR_MODE RequestorMode);
+
+// Exits to user mode, only restores the trap frame, zeroes the non-volatile registers
+DECLSPEC_NORETURN
+VOID
+KiUserCallbackExit(
+    _In_ PKTRAP_FRAME TrapFrame);
+
+DECLSPEC_NORETURN
+VOID
+KiExceptionExit(
+    _In_ PKTRAP_FRAME TrapFrame,
+    _In_ PKEXCEPTION_FRAME ExceptionFrame);
+
+BOOLEAN
+KiProcessorFreezeHandler(
+    _In_ PKTRAP_FRAME TrapFrame,
+    _In_ PKEXCEPTION_FRAME ExceptionFrame);
 
 #ifdef __cplusplus
 } // extern "C"

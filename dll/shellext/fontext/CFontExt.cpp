@@ -285,7 +285,7 @@ STDMETHODIMP CFontExt::CompareIDs(LPARAM lParam, PCUIDLIST_RELATIVE pidl1, PCUID
             result = (int)fontEntry1->Index - (int)fontEntry2->Index;
             break;
         case FONTEXT_COL_FILENAME:
-            result = wcsicmp(PathFindFileNameW(info1->File()), PathFindFileNameW(info2->File()));
+            result = _wcsicmp(PathFindFileNameW(info1->File()), PathFindFileNameW(info2->File()));
             break;
         case FONTEXT_COL_SIZE:
             result = (int)info1->FileSize().HighPart - info2->FileSize().HighPart;
@@ -426,7 +426,7 @@ STDMETHODIMP CFontExt::GetDisplayNameOf(PCUITEMID_CHILD pidl, DWORD dwFlags, LPS
     if (!fontEntry)
         return E_FAIL;
 
-    if (dwFlags == SHGDN_FORPARSING)
+    if (dwFlags & SHGDN_FORPARSING)
     {
         CStringW File = g_FontCache->Filename(g_FontCache->Find(fontEntry), true);
         if (!File.IsEmpty())

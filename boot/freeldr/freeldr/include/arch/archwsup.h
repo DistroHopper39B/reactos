@@ -41,7 +41,6 @@ FldrSetConfigurationData(
 VOID
 FldrCreateSystemKey(
     _Out_ PCONFIGURATION_COMPONENT_DATA* SystemNode,
-    _In_ BOOLEAN IsARCSystem,
     _In_ PCSTR IdentifierString);
 
 VOID

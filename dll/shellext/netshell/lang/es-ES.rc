@@ -84,6 +84,16 @@ BEGIN
     PUSHBUTTON "&Cerrar", IDC_CLOSE, 120, 155, 60, 14
 END
 
+IDD_NETWORKINITPAGE DIALOGEX 0, 0, 317, 143
+STYLE DS_SHELLFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "ReactOS Setup"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    ICON IDI_NET_SETUP, IDC_STATIC, 21, 10, 20, 20
+    LTEXT "Please wait while ReactOS installs networking components.", IDC_STATIC, 53, 7, 240, 20
+    CONTROL "", IDC_INSTALL_PROGRESS, "msctls_progress32", PBS_SMOOTH | WS_CHILD | WS_VISIBLE | WS_BORDER, 21, 58, 275, 11
+END
+
 IDD_NETWORKSETTINGSPAGE DIALOGEX 0, 0, 317, 143
 STYLE DS_SHELLFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 CAPTION "Instalador de ReactOS"
@@ -123,7 +133,7 @@ BEGIN
     AUTORADIOBUTTON "Sí, este equipo será parte de un dominio.", IDC_SELECT_DOMAIN, 33, 47, 253, 20, WS_TABSTOP
     LTEXT "Nombre del dominio o grupo de trabajo:", IDC_STATIC, 33, 72, 152, 20
     EDITTEXT IDC_DOMAIN_NAME, 33, 82, 126, 14, WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL
-    LTEXT "NOTE: Si este equipo no va a ser parte de una red, usted no tiene suficientes privilegios para unirse a un dominio, o si simplemente no sabe qué elejir, entonces seleccione ""Grupo de trabajo"" por ahora. Éstas opciones pueden ser cambiadas después.", IDC_STATIC, 33, 107, 263, 50
+    LTEXT "NOTA: Si este equipo no va a formar parte de una red, o no se tienen los suficientes privilegios como para unirse a un dominio, o ante cualquier duda, lo mejor es elegir «Grupo de trabajo». Se puede cambiar la elección en cualquier momento.", IDC_STATIC, 33, 107, 263, 50
 END
 
 STRINGTABLE
@@ -173,6 +183,8 @@ END
 
 STRINGTABLE
 BEGIN
+    IDS_NETWORKINITTITLE "Network Install"
+    IDS_NETWORKINITSUBTITLE "Installs reqired networking components."
     IDS_NETWORKSETTINGSTITLE "Configuración de red"
     IDS_NETWORKSETTINGSSUBTITLE "Instala aplicaciones de red necesarias para conectarse a otras redes, equipos, y la Internet."
     IDS_NETWORKCOMPONENTTITLE "Componetes de red"

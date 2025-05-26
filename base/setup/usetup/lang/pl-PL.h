@@ -1518,14 +1518,7 @@ static MUI_ENTRY plPLBootLoaderRemovableDiskPageEntries[] =
     {
         6,
         8,
-        "Instalator systemu ReactOS nie mo\276e zainstalowa\206",
-        TEXT_STYLE_NORMAL,
-        TEXT_ID_STATIC
-    },
-    {
-        6,
-        9,
-        "mened\276era rozruchu na dysku twardym.",
+        "Instalator musi teraz zainstalowa\206 mened\276er rozruchu.",
         TEXT_STYLE_NORMAL,
         TEXT_ID_STATIC
     },
@@ -2281,7 +2274,7 @@ MUI_STRING plPLStrings[] =
     {STRING_KEYBOARDSETTINGSUPDATE,
     "   Zmiana uk\210adu klawiatury..."},
     {STRING_CODEPAGEINFOUPDATE,
-    "   Dodawanie informacji o stronie kodowej do rejestru..."},
+    "   Dodawanie informacji o stronie kodowej..."},
     {STRING_DONE,
     "   Uko\344czone..."},
     {STRING_REBOOTCOMPUTER2,

@@ -290,34 +290,6 @@ SH_FormatFileSizeWithBytes(const PULARGE_INTEGER lpQwSize, LPWSTR pwszResult, UI
     return pwszResult;
 }
 
-/*************************************************************************
- *
- * SH_CreatePropertySheetPage [Internal]
- *
- * creates a property sheet page from a resource id
- *
- */
-
-HPROPSHEETPAGE
-SH_CreatePropertySheetPage(WORD wDialogId, DLGPROC pfnDlgProc, LPARAM lParam, LPCWSTR pwszTitle)
-{
-    PROPSHEETPAGEW Page;
-
-    memset(&Page, 0x0, sizeof(PROPSHEETPAGEW));
-    Page.dwSize = sizeof(PROPSHEETPAGEW);
-    Page.dwFlags = PSP_DEFAULT;
-    Page.hInstance = shell32_hInstance;
-    Page.pszTemplate = MAKEINTRESOURCE(wDialogId);
-    Page.pfnDlgProc = pfnDlgProc;
-    Page.lParam = lParam;
-    Page.pszTitle = pwszTitle;
-
-    if (pwszTitle)
-        Page.dwFlags |= PSP_USETITLE;
-
-    return CreatePropertySheetPageW(&Page);
-}
-
 VOID
 CFileDefExt::InitOpensWithField(HWND hwndDlg)
 {
@@ -327,17 +299,23 @@ CFileDefExt::InitOpensWithField(HWND hwndDlg)
     BOOL bUnknownApp = TRUE;
     LPCWSTR pwszExt = PathFindExtensionW(m_wszPath);
 
+    // TODO: Use ASSOCSTR_EXECUTABLE with ASSOCF_REMAPRUNDLL | ASSOCF_IGNOREBASECLASS
     if (RegGetValueW(HKEY_CLASSES_ROOT, pwszExt, L"", RRF_RT_REG_SZ, NULL, wszBuf, &dwSize) == ERROR_SUCCESS)
     {
         bUnknownApp = FALSE;
         StringCbCatW(wszBuf, sizeof(wszBuf), L"\\shell\\open\\command");
         dwSize = sizeof(wszPath);
+        // FIXME: Missing FileExt check, see COpenWithList::SetDefaultHandler for details
+        // FIXME: Use HCR_GetDefaultVerbW to find the default verb
         if (RegGetValueW(HKEY_CLASSES_ROOT, wszBuf, L"", RRF_RT_REG_SZ, NULL, wszPath, &dwSize) == ERROR_SUCCESS)
         {
             /* Get path from command line */
             ExpandEnvironmentStringsW(wszPath, wszBuf, _countof(wszBuf));
-            PathRemoveArgs(wszBuf);
-            PathUnquoteSpacesW(wszBuf);
+            if (SHELL32_GetDllFromRundll32CommandLine(wszBuf, wszBuf, _countof(wszBuf)) != S_OK)
+            {
+                PathRemoveArgs(wszBuf);
+                PathUnquoteSpacesW(wszBuf);
+            }
             PathSearchAndQualify(wszBuf, wszPath, _countof(wszPath));
 
             HICON hIcon;
@@ -742,8 +720,13 @@ CFileDefExt::GeneralPageProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
                 OPENASINFO oainfo;
                 oainfo.pcszFile = pFileDefExt->m_wszPath;
                 oainfo.pcszClass = NULL;
-                oainfo.oaifInFlags = OAIF_REGISTER_EXT|OAIF_FORCE_REGISTRATION;
-                return SUCCEEDED(SHOpenWithDialog(hwndDlg, &oainfo));
+                oainfo.oaifInFlags = OAIF_REGISTER_EXT | OAIF_FORCE_REGISTRATION;
+                if (SHOpenWithDialog(hwndDlg, &oainfo) == S_OK)
+                {
+                    pFileDefExt->InitGeneralPage(hwndDlg);
+                    PropSheet_Changed(GetParent(hwndDlg), hwndDlg);
+                }
+                break;
             }
             else if (LOWORD(wParam) == 14021 || LOWORD(wParam) == 14022 || LOWORD(wParam) == 14023) /* checkboxes */
                 PropSheet_Changed(GetParent(hwndDlg), hwndDlg);
@@ -1316,12 +1299,13 @@ CFileDefExt::AddPages(LPFNADDPROPSHEETPAGE pfnAddPage, LPARAM lParam)
     HPROPSHEETPAGE hPage;
     WORD wResId = m_bDir ? IDD_FOLDER_PROPERTIES : IDD_FILE_PROPERTIES;
 
-    hPage = SH_CreatePropertySheetPage(wResId,
-                                       GeneralPageProc,
-                                       (LPARAM)this,
-                                       NULL);
-    if (hPage)
-        pfnAddPage(hPage, lParam);
+    hPage = SH_CreatePropertySheetPageEx(wResId, GeneralPageProc, (LPARAM)this, NULL,
+                                         &PropSheetPageLifetimeCallback<CFileDefExt>);
+    HRESULT hr = AddPropSheetPage(hPage, pfnAddPage, lParam);
+    if (FAILED_UNEXPECTEDLY(hr))
+        return hr;
+    else
+        AddRef(); // For PropSheetPageLifetimeCallback
 
     if (!m_bDir && GetFileVersionInfoSizeW(m_wszPath, NULL))
     {
@@ -1329,8 +1313,7 @@ CFileDefExt::AddPages(LPFNADDPROPSHEETPAGE pfnAddPage, LPARAM lParam)
                                             VersionPageProc,
                                             (LPARAM)this,
                                             NULL);
-        if (hPage)
-            pfnAddPage(hPage, lParam);
+        AddPropSheetPage(hPage, pfnAddPage, lParam);
     }
 
     if (m_bDir)
@@ -1339,8 +1322,7 @@ CFileDefExt::AddPages(LPFNADDPROPSHEETPAGE pfnAddPage, LPARAM lParam)
                                            FolderCustomizePageProc,
                                            (LPARAM)this,
                                            NULL);
-        if (hPage)
-            pfnAddPage(hPage, lParam);
+        AddPropSheetPage(hPage, pfnAddPage, lParam);
     }
 
     return S_OK;

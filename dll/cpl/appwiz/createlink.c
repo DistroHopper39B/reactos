@@ -31,7 +31,7 @@ IsShortcut(HKEY hKey)
     if (Type != REG_SZ)
         return FALSE;
 
-    return (wcsicmp(Value, L"yes") == 0);
+    return (_wcsicmp(Value, L"yes") == 0);
 }
 
 BOOL
@@ -489,6 +489,9 @@ FinishDlgProc(HWND hwndDlg,
                     PathRemoveExtensionW(pContext->szLinkName);
                     PathAddExtensionW(pContext->szLinkName, L".lnk");
 
+                    /* Don't set a comment */
+                    pContext->szDescription[0] = UNICODE_NULL;
+
                     if (!CreateShortcut(pContext))
                     {
                         WCHAR szMessage[128];
@@ -635,7 +638,7 @@ CALLBACK
 NewLinkHereW(HWND hwndCPl, UINT uMsg, LPARAM lParam1, LPARAM lParam2)
 {
     InitCommonControls();
-    return ShowCreateShortcutWizard(hwndCPl, (LPWSTR)lParam1);
+    return ShowCreateShortcutWizard(hwndCPl, (LPCWSTR)lParam1);
 }
 
 LONG
@@ -644,10 +647,7 @@ NewLinkHereA(HWND hwndCPl, UINT uMsg, LPARAM lParam1, LPARAM lParam2)
 {
     WCHAR szFile[MAX_PATH];
 
-    if (MultiByteToWideChar(CP_ACP, 0, (LPSTR)lParam1, -1, szFile, _countof(szFile)))
-    {
-        InitCommonControls();
-        return ShowCreateShortcutWizard(hwndCPl, szFile);
-    }
+    if (MultiByteToWideChar(CP_ACP, 0, (LPCSTR)lParam1, -1, szFile, _countof(szFile)))
+        return NewLinkHereW(hwndCPl, uMsg, (LPARAM)szFile, lParam2);
     return -1;
 }

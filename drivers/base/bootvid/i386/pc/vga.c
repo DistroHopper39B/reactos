@@ -1,3 +1,13 @@
+/*
+ * PROJECT:     ReactOS Boot Video Driver for VGA-compatible cards
+ * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
+ * PURPOSE:     VGA helper functions
+ * COPYRIGHT:   Copyright 2007 Alex Ionescu <alex.ionescu@reactos.org>
+ *              Copyright 2013 Timo Kreuzer <timo.kreuzer@reactos.org>
+ *              Copyright 2019 Hermès Bélusca-Maïto <hermes.belusca-maito@reactos.org>
+ *              Copyright 2020 Stanislav Motylkov <x86corez@gmail.com>
+ */
+
 #include "precomp.h"
 
 /* GLOBALS *******************************************************************/
@@ -100,7 +110,6 @@ do {                                                        \
 } while (0);
 
 VOID
-NTAPI
 DisplayCharacter(
     _In_ CHAR Character,
     _In_ ULONG Left,
@@ -191,7 +200,6 @@ DisplayCharacter(
 }
 
 static VOID
-NTAPI
 SetPaletteEntryRGB(
     _In_ ULONG Id,
     _In_ RGBQUAD Rgb)
@@ -206,7 +214,6 @@ SetPaletteEntryRGB(
 }
 
 VOID
-NTAPI
 InitPaletteWithTable(
     _In_ PULONG Table,
     _In_ ULONG Count)
@@ -221,7 +228,6 @@ InitPaletteWithTable(
 }
 
 VOID
-NTAPI
 DoScroll(
     _In_ ULONG Scroll)
 {
@@ -261,7 +267,6 @@ DoScroll(
 }
 
 VOID
-NTAPI
 PreserveRow(
     _In_ ULONG CurrentTop,
     _In_ ULONG TopDelta,
@@ -312,9 +317,6 @@ PreserveRow(
 
 /* PUBLIC FUNCTIONS **********************************************************/
 
-/*
- * @implemented
- */
 VOID
 NTAPI
 VidCleanUp(VOID)
@@ -324,9 +326,6 @@ VidCleanUp(VOID)
     __outpb(VGA_BASE_IO_PORT + GRAPH_DATA_PORT, BIT_MASK_DEFAULT);
 }
 
-/*
- * @implemented
- */
 VOID
 NTAPI
 VidScreenToBufferBlt(
@@ -424,9 +423,6 @@ VidScreenToBufferBlt(
     }
 }
 
-/*
- * @implemented
- */
 VOID
 NTAPI
 VidSolidColorFill(

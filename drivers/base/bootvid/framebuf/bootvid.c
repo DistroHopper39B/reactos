@@ -19,10 +19,10 @@
 
 // FIXME: Those have been copied from xbox.h
 #define BB_OFFSET(x, y)    ((y) * SCREEN_WIDTH + (x))
-#define FB_OFFSET(x, y)    (((PanV + (y)) * FrameBufferWidth + PanH + (x)) * BytesPerPixel)
+#define FB_OFFSET(x, y)    (((PanV + (y)) * FrameBufferPixelsPerScanLine + PanH + (x)) * BytesPerPixel)
 
 static ULONG_PTR FrameBufferStart = 0;
-static ULONG FrameBufferWidth, FrameBufferHeight, PanH, PanV;
+static ULONG FrameBufferWidth, FrameBufferHeight, FrameBufferPixelsPerScanLine, PanH, PanV;
 static UCHAR BytesPerPixel;
 static RGBQUAD CachedPalette[BV_MAX_COLORS];
 static PUCHAR BackBuffer = NULL;
@@ -50,7 +50,7 @@ ApplyPalette(VOID)
     ULONG x, y;
 
     /* Top panning */
-    for (x = 0; x < PanV * FrameBufferWidth; x++)
+    for (x = 0; x < PanV * FrameBufferPixelsPerScanLine; x++)
     {
         *Frame++ = CachedPalette[BV_COLOR_BLACK];
     }
@@ -91,7 +91,7 @@ ApplyPalette(VOID)
 
     /* Bottom panning */
     Frame = (PULONG)(FrameBufferStart + FB_OFFSET(-PanH, SCREEN_HEIGHT));
-    for (x = 0; x < PanV * FrameBufferWidth; x++)
+    for (x = 0; x < PanV * FrameBufferPixelsPerScanLine; x++)
     {
         *Frame++ = CachedPalette[BV_COLOR_BLACK];
     }
@@ -125,6 +125,7 @@ VidInitialize(
     PHYSICAL_ADDRESS FrameBuffer = gBootDisp.BaseAddress;
     FrameBufferWidth  = gBootDisp.VideoConfigData.ScreenWidth;
     FrameBufferHeight = gBootDisp.VideoConfigData.ScreenHeight;
+    FrameBufferPixelsPerScanLine = gBootDisp.VideoConfigData.PixelsPerScanLine;
 
     /* Verify that the framebuffer address is page-aligned */
     ASSERT(FrameBuffer.QuadPart % PAGE_SIZE == 0);
@@ -149,7 +150,7 @@ VidInitialize(
     PanV = (FrameBufferHeight - SCREEN_HEIGHT) / 2;
 
     /* Verify that screen fits framebuffer size */
-    ULONG FrameBufferSize = FrameBufferWidth * FrameBufferHeight * BytesPerPixel;
+    ULONG FrameBufferSize = FrameBufferPixelsPerScanLine * FrameBufferHeight * BytesPerPixel;
     if (FrameBufferSize > gBootDisp.BufferSize)
     {
         DPRINT1("Current screen resolution exceeds video memory bounds!\n");

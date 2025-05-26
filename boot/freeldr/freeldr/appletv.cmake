@@ -11,7 +11,7 @@ include_directories(BEFORE
                     ${REACTOS_SOURCE_DIR}/boot/freeldr/freeldr
                     ${REACTOS_SOURCE_DIR}/boot/freeldr/freeldr/include)
 
-spec2def(freeldr_pe.exe freeldr.spec)
+spec2def(freeldr.sys freeldr.spec)
 
 # PC stuff
 list(APPEND APPLETVLDR_BOOTMGR_SOURCE
@@ -42,6 +42,30 @@ list(APPEND APPLETVLDR_ARC_SOURCE
     arch/drivers/hwide.c
     arch/i386/hwdisk.c
     arch/i386/i386idt.c)
+
+# We don't use rosload, we just bundle everything
+list(APPEND FREELDR_NTLDR_SOURCE
+    include/freeldr.h
+    bootmgr.c
+    custom.c
+    miscboot.c
+    options.c
+    oslist.c
+    lib/rtl/libsupp.c
+    ${REACTOS_SOURCE_DIR}/ntoskrnl/config/cmboot.c
+    ntldr/conversion.c
+    ntldr/inffile.c
+    ntldr/registry.c
+    ntldr/setupldr.c
+    ntldr/winldr.c
+    ntldr/wlmemory.c
+    ntldr/wlregistry.c
+    arch/i386/halstub.c
+    arch/i386/ntoskrnl.c
+    disk/scsiport.c
+    ntldr/arch/i386/winldr.c
+    ntldr/headless.c
+)
 
 add_asm_files(freeldr_common_asm ${FREELDR_COMMON_ASM_SOURCE} ${APPLETVLDR_COMMON_ASM_SOURCE})
 

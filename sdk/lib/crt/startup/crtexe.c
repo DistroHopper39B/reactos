@@ -116,7 +116,7 @@ pre_c_init (void)
     {
       __setusermatherr (_matherr);
     }
-#ifndef __clang__ /* FIXME: CORE-14042 */
+#if !defined(__clang__) && (!defined(_M_ARM64) || (_MSC_VER < 1930)) /* FIXME: CORE-14042 */
   if (__globallocalestatus == -1)
     {
     }
@@ -211,7 +211,7 @@ __tmainCRTStartup (void)
   /* We need to make sure that this function is build with frame-pointer
      and that we align the stack to 16 bytes for the sake of SSE ops in main
      or in functions inlined into main.  */
-  lpszCommandLine = (_TCHAR *) alloca (32);
+  lpszCommandLine = (_TCHAR *) _alloca (32);
   memset (lpszCommandLine, 0xcc, 32);
 #ifdef __GNUC__
   asm  __volatile__  ("andl $-16, %%esp" : : : "%esp");

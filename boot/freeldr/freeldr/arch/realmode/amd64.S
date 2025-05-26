@@ -67,11 +67,7 @@ Msg_LongModeSupported:
     call writestr
 
     /* Load the GDT */
-#ifdef _USE_ML
-    lgdt fword ptr [gdtptr]
-#else
-    lgdt cs:[gdtptr]
-#endif
+    lgdt lXdtPrefix ds:[gdtptr]
 
     /* Build the startup page tables */
     call BuildPageTables
@@ -120,11 +116,7 @@ gdt:
 /* GDT table pointer */
 gdtptr:
     .word HEX(37)       /* Limit */
-#ifdef _USE_ML
-    .long offset gdt    /* Base Address */
-#else
-    .long gdt           /* Base Address */
-#endif
+    .long OFF(gdt)      /* Base Address */
 
 
 CheckFor64BitSupport:
@@ -322,9 +314,8 @@ ExitToLongMode:
     mov word ptr ds:[stack16], sp
 
     /* Set PAE and PGE: 10100000b */
-    // mov eax, cr4
-    // or eax, HEX(00A0)
-    mov eax, HEX(00A0)
+    mov eax, cr4
+    or eax, HEX(00A0)
     mov cr4, eax
 
     /* Point cr3 at the PML4 */

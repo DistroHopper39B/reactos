@@ -22,6 +22,56 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(shell);
 
+EXTERN_C HRESULT SHELL32_AssocGetFSDirectoryDescription(PWSTR Buf, UINT cchBuf)
+{
+    static WCHAR cache[33] = {};
+    if (!*cache)
+        LoadStringW(shell32_hInstance, IDS_DIRECTORY, cache, _countof(cache));
+    return StringCchCopyW(Buf, cchBuf, cache);
+}
+
+static HRESULT GetExtensionDefaultDescription(PCWSTR DotExt, PWSTR Buf, UINT cchBuf)
+{
+    static WCHAR fmt[33] = {};
+    if (!*fmt)
+        LoadStringW(shell32_hInstance, IDS_ANY_FILE, fmt, _countof(fmt));
+    return StringCchPrintfW(Buf, cchBuf, fmt, DotExt);
+}
+
+static HRESULT SHELL32_AssocGetExtensionDescription(PCWSTR DotExt, PWSTR Buf, UINT cchBuf)
+{
+    HRESULT hr;
+    if (!DotExt[0] || (!DotExt[1] && DotExt[0] == '.'))
+    {
+        if (SUCCEEDED(hr = GetExtensionDefaultDescription(L"", Buf, cchBuf)))
+            StrTrimW(Buf, L" -"); // Remove the empty %s so we are left with "File"
+        return hr;
+    }
+    HKEY hKey;
+    if (SUCCEEDED(hr = HCR_GetProgIdKeyOfExtension(DotExt, &hKey, TRUE)))
+    {
+        DWORD err = RegLoadMUIStringW(hKey, L"FriendlyTypeName", Buf, cchBuf, NULL, 0, NULL);
+        if (err && hr == S_OK) // ProgId default value fallback (but not if we only have a .ext key)
+        {
+            DWORD cb = cchBuf * sizeof(*Buf);
+            err = RegGetValueW(hKey, NULL, NULL, RRF_RT_REG_SZ, NULL, Buf, &cb);
+        }
+        RegCloseKey(hKey);
+        if (!err)
+            return err;
+    }
+    // No information in the registry, default to "UPPERCASEEXT File"
+    WCHAR ext[MAX_PATH + 33];
+    if (LCMapStringW(LOCALE_USER_DEFAULT, LCMAP_UPPERCASE, ++DotExt, -1, ext, _countof(ext)))
+        DotExt = ext;
+    return GetExtensionDefaultDescription(DotExt, Buf, cchBuf);
+}
+
+EXTERN_C HRESULT SHELL32_AssocGetFileDescription(PCWSTR Name, PWSTR Buf, UINT cchBuf)
+{
+    return SHELL32_AssocGetExtensionDescription(PathFindExtensionW(Name), Buf, cchBuf);
+}
+
 /**************************************************************************
  *  IQueryAssociations
  *
@@ -96,6 +146,14 @@ HRESULT STDMETHODCALLTYPE CQueryAssociations::Init(
     {
         WCHAR *progId;
         HRESULT hr;
+        LPCWSTR pchDotExt;
+
+        if (StrChrW(pszAssoc, L'\\'))
+        {
+            pchDotExt = PathFindExtensionW(pszAssoc);
+            if (pchDotExt && *pchDotExt)
+                pszAssoc = pchDotExt;
+        }
 
         LONG ret = RegOpenKeyExW(HKEY_CLASSES_ROOT,
                             pszAssoc,
@@ -216,7 +274,7 @@ HRESULT STDMETHODCALLTYPE CQueryAssociations::GetString(
         case ASSOCSTR_EXECUTABLE:
         {
             hr = this->GetExecutable(pszExtra, path, MAX_PATH, &len);
-            if (FAILED(hr))
+            if (FAILED_UNEXPECTEDLY(hr))
             {
                 return hr;
             }
@@ -535,28 +593,25 @@ HRESULT CQueryAssociations::GetValue(HKEY hkey, const WCHAR *name, void **data, 
 
     ret = RegQueryValueExW(hkey, name, 0, NULL, NULL, &size);
     if (ret != ERROR_SUCCESS)
-    {
         return HRESULT_FROM_WIN32(ret);
-    }
+
     if (!size)
-    {
         return E_FAIL;
-    }
+
     *data = HeapAlloc(GetProcessHeap(), 0, size);
     if (!*data)
-    {
         return E_OUTOFMEMORY;
-    }
+
     ret = RegQueryValueExW(hkey, name, 0, NULL, (LPBYTE)*data, &size);
     if (ret != ERROR_SUCCESS)
     {
         HeapFree(GetProcessHeap(), 0, *data);
         return HRESULT_FROM_WIN32(ret);
     }
-    if(data_size)
-    {
+
+    if (data_size)
         *data_size = size;
-    }
+
     return S_OK;
 }
 
@@ -604,6 +659,8 @@ HRESULT CQueryAssociations::GetCommand(const WCHAR *extra, WCHAR **command)
     {
         /* check for default verb */
         hr = this->GetValue(hkeyShell, NULL, (void**)&extra_from_reg, NULL);
+        if (FAILED(hr))
+            hr = this->GetValue(hkeyShell, L"open", (void**)&extra_from_reg, NULL);
         if (FAILED(hr))
         {
             /* no default verb, try first subkey */
@@ -662,7 +719,7 @@ HRESULT CQueryAssociations::GetExecutable(LPCWSTR pszExtra, LPWSTR path, DWORD p
     WCHAR *pszEnd;
 
     HRESULT hr = this->GetCommand(pszExtra, &pszCommand);
-    if (FAILED(hr))
+    if (FAILED_UNEXPECTEDLY(hr))
     {
         return hr;
     }
@@ -765,7 +822,7 @@ HRESULT CQueryAssociations::ReturnString(ASSOCF flags, LPWSTR out, DWORD *outlen
     }
     else
     {
-        len = datalen;
+        *outlen = len = datalen;
     }
 
     if (len)

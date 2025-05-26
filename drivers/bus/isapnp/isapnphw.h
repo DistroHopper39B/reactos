@@ -13,13 +13,11 @@
 extern "C" {
 #endif
 
-#if defined(SARCH_PC98)
-#define ISAPNP_ADDRESS 0x259
-#define ISAPNP_WRITE_DATA 0xA59
-#else
-#define ISAPNP_ADDRESS 0x279
-#define ISAPNP_WRITE_DATA 0xA79
-#endif
+#define ISAPNP_ADDRESS_PCAT    0x279
+#define ISAPNP_WRITE_DATA_PCAT 0xA79
+
+#define ISAPNP_ADDRESS_PC98    0x259
+#define ISAPNP_WRITE_DATA_PC98 0xA59
 
 #define ISAPNP_READPORT 0x00
 #define ISAPNP_SERIALISOLATION 0x01
@@ -46,6 +44,7 @@ extern "C" {
 #define    IRQTYPE_LOW_LEVEL 0x01
 #define    IRQTYPE_HIGH_EDGE 0x02
 #define ISAPNP_DMACHANNEL(n) (0x74 + (n))
+#define    DMACHANNEL_NONE 4
 #define ISAPNP_MEMBASE32(n) ((n) == 0 ? 0x76 : (0x70 + (n) * 16))
 #define ISAPNP_MEMCONTROL32(n) ((n) == 0 ? 0x7A : (0x74 + (n) * 16))
 #define ISAPNP_MEMLIMIT32(n) ((n) == 0 ? 0x7B : (0x75 + (n) * 16))

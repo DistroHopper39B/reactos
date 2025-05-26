@@ -1,8 +1,10 @@
 /*
  * PROJECT:     ReactOS Boot Video Driver
  * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
- * PURPOSE:     Common ??
- * COPYRIGHT:   ??
+ * PURPOSE:     Platform-independent common helpers and defines
+ * COPYRIGHT:   Copyright 2010 Gregor Schneider <gregor.schneider@reactos.org>
+ *              Copyright 2011 Rafal Harabien <rafalh@reactos.org>
+ *              Copyright 2020 Stanislav Motylkov <x86corez@gmail.com>
  */
 
 #include "precomp.h"
@@ -52,7 +54,6 @@ static BOOLEAN ClearRow = FALSE;
 /* PRIVATE FUNCTIONS **********************************************************/
 
 static VOID
-NTAPI
 BitBlt(
     _In_ ULONG Left,
     _In_ ULONG Top,
@@ -115,7 +116,6 @@ BitBlt(
 }
 
 static VOID
-NTAPI
 RleBitBlt(
     _In_ ULONG Left,
     _In_ ULONG Top,
@@ -310,9 +310,6 @@ RleBitBlt(
 
 /* PUBLIC FUNCTIONS ***********************************************************/
 
-/*
- * @implemented
- */
 ULONG
 NTAPI
 VidSetTextColor(
@@ -373,9 +370,6 @@ VidSetScrollRegion(
     VidpCurrentY = Top;
 }
 
-/*
- * @implemented
- */
 VOID
 NTAPI
 VidDisplayString(
