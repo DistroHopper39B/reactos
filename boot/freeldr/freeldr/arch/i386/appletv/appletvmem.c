@@ -300,6 +300,5 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
         sizeof(MACH_BOOTARGS),
         LoaderFirmwareTemporary);
     
-    //while (1);
     return FreeldrMemMap;
 }
