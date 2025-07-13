@@ -801,20 +801,17 @@ DetectIsaBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 }
 
 PRSDP_DESCRIPTOR
-FindAcpiBios(VOID)
+FindAcpiBios(USHORT WindowsVersion)
 {
     PRSDP_DESCRIPTOR    Rsdp = NULL;
     UINTN               i;
     EFI_GUID            AcpiGuid;
     EFI_GUID            Acpi1Guid = ACPI_10_TABLE_GUID;
     EFI_GUID            Acpi2Guid = EFI_ACPI_20_TABLE_GUID;
-    USHORT              WindowsVersion = 0;
     
     // Detect what version of NT we are loading
     // This command doesn't work correctly, but it works well enough to
     // tell the difference between W2K and later versions of Windows
-    WindowsVersion = WinLdrDetectVersion();
-    ASSERT(WindowsVersion != 0);
     
     if (WindowsVersion >= _WIN32_WINNT_WINXP)
     {
@@ -856,8 +853,12 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     PRSDP_DESCRIPTOR Rsdp;
     PACPI_BIOS_DATA AcpiBiosData;
     ULONG TableSize;
+    USHORT WindowsVersion = 0;
+    
+    WindowsVersion = WinLdrDetectVersion();
+    ASSERT(WindowsVersion != 0);
 
-    Rsdp = FindAcpiBios();
+    Rsdp = FindAcpiBios(WindowsVersion);
 
     if (Rsdp)
     {

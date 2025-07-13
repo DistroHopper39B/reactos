@@ -33,8 +33,9 @@ PLINUX_E820_ENTRY   E820Table = NULL;
 
 extern BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS];
 extern UINT32 BiosMapNumberOfEntries;
+extern VOID CopySmbios(VOID);
 
-PRSDP_DESCRIPTOR FindAcpiBios(VOID);
+PRSDP_DESCRIPTOR FindAcpiBios(USHORT WindowsVersion);
 
 /* FUNCTIONS *****************************************************************/
 
@@ -512,10 +513,10 @@ LoadAndBootLinux(
     
     ScreenInfo->OrigVideoIsVGA      = VIDEO_TYPE_EFI;
     // ACPI
-    BootParams->Rsdp    = (UINT_PTR) FindAcpiBios();
+    BootParams->Rsdp    = (UINT_PTR) FindAcpiBios(_WIN32_WINNT_WINXP); // Use ACPI 2.0
     
     // EFI
-    RtlCopyMemory(&BootParams->EfiInfo.EfiLoaderSignature, "EL32", 4);
+    //RtlCopyMemory(&BootParams->EfiInfo.EfiLoaderSignature, "EL32", 4);
     
     BootParams->EfiInfo.EfiSystemTable              = (UINT32) (UINT64) (UINT_PTR) BootArgs->EfiSystemTable;
     BootParams->EfiInfo.EfiSystemTableHigh          = (UINT32) ((UINT64) (UINT_PTR) BootArgs->EfiSystemTable >> 32);
@@ -526,7 +527,7 @@ LoadAndBootLinux(
     BootParams->EfiInfo.EfiMemoryDescriptorVersion  = BootArgs->EfiMemoryDescriptorVersion;
     
     // E820 memory map
-    E820Table = MmAllocateMemoryWithType(LINUX_E820_MAX * sizeof(LINUX_E820_ENTRY), LoaderSystemCode);
+    E820Table = BootParams->E820Table;
     
     for (SIZE_T i = 0, j = 0; i < BiosMapNumberOfEntries; i++)
     {
@@ -541,10 +542,8 @@ LoadAndBootLinux(
         BootParams->E820Entries = j;
     }
     
-    RtlCopyMemory(&BootParams->E820Table, E820Table, LINUX_E820_MAX * sizeof(LINUX_E820_ENTRY));
+    CopySmbios();
     
-    MmFreeMemory(E820Table);
-        
     UiUpdateProgressBar(100, "Starting kernel...");
     
     // Hack start until we have something better.
