@@ -16,7 +16,6 @@ spec2def(freeldr.sys freeldr.spec)
 # PC stuff
 list(APPEND APPLETVLDR_BOOTMGR_SOURCE
     ${FREELDR_BOOTMGR_SOURCE}
-    linuxboot_new.c
     )
     
 # Apple TV stuff

@@ -63,8 +63,8 @@ OSLoadingMethods[] =
     {"Drive"       , EditCustomBootDisk      , LoadAndBootDevice},
     {"Partition"   , EditCustomBootPartition , LoadAndBootDevice},
     {"BootSector"  , EditCustomBootSectorFile, LoadAndBootDevice},
-#endif /* SARCH_APPLETV */
     {"Linux"       , EditCustomBootLinux, LoadAndBootLinux  },
+#endif /* SARCH_APPLETV */
 #endif /* UEFIBOOT */
 
 #endif
