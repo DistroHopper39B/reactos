@@ -11,7 +11,7 @@
 #include <freeldr.h>
 
 #include <debug.h>
-DBG_DEFAULT_CHANNEL(HWDETECT);
+DBG_DEFAULT_CHANNEL(WARNING);
 
 // We also need some UNIX-style types.
 #include <stdint.h>
@@ -55,9 +55,9 @@ static inline __attribute__((always_inline)) uint32_t read32(const volatile void
 #define inw __inword
 #define inl __indword
 
-#define outb __outbyte
-#define outw __outword
-#define outl __outdword
+#define outb(data, port) __outbyte(port, data)
+#define outw(data, port) __outword(port, data)
+#define outl(data, port) __outdword(port, data)
 
 
 
@@ -104,10 +104,7 @@ static inline void delay(unsigned int s)
 
 #define TAG_USB 'DBSU'
 #define TAG_USB_DMA 'MADD'
-/*
-#define malloc(size) FrLdrTempAlloc(size, TAG_USB)
-#define free(ptr) FrLdrTempFree(ptr, TAG_USB)
-*/
+
 #define memalign(align, size) FrLdrTempAlloc(ALIGN_UP_BY(size, align), TAG_USB)
 
 #define dma_initialized() 1
@@ -126,14 +123,6 @@ static inline void *xmalloc(size_t size)
     
     return ptr;
 }
-/*
-static inline void *calloc(size_t num, size_t size)
-{
-    void *ptr = malloc(size * num);
-    RtlZeroMemory(ptr, size);
-    return ptr;
-}
-    */
 
 #define zalloc(size) calloc(1, size)
 

@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-//#define USB_DEBUG
+#define USB_DEBUG
 
 #include <inttypes.h>
 #include <usb/usb.h>
@@ -590,7 +590,7 @@ set_address(hci_t *controller, usb_speed speed, int hubport, int hubaddr)
 		break;
 	case msc_device:
 		usb_debug("MSC\n");
-#if CONFIG(LP_USB_MSC)
+#if 0
 		dev->init = usb_msc_init;
 		return dev->address;
 #else

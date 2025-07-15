@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-//#define USB_DEBUG
+#define USB_DEBUG
 
 #include <stdint.h>
 #include <stdbool.h>

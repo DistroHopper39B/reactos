@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-//#define USB_DEBUG
+#define USB_DEBUG
 #include <usb/usb.h>
 #include "uhci.h"
 #include "ohci.h"
@@ -57,7 +57,7 @@ static int usb_controller_initialize(int bus, int dev, int func)
 
 	devclass = class >> 16;
 	prog_if = (class >> 8) & 0xff;
-
+	
 	/* enable busmaster */
 	if (devclass == 0xc03) {
 		u16 pci_command;
@@ -79,7 +79,7 @@ static int usb_controller_initialize(int bus, int dev, int func)
 			break;
 
 		case 0x10:
-#if CONFIG(LP_USB_OHCI)
+#if 1
 			usb_debug("OHCI controller\n");
 			ohci_pci_init(pci_device);
 #else
@@ -125,7 +125,8 @@ static void usb_scan_pci_bus(int bus)
 		/* Check if there's a device here at all. */
 		if (pci_read_config32(pci_device, REG_VENDOR_ID) == 0xffffffff)
 			continue;
-
+		
+			
 		/*
 		 * EHCI is defined by standards to be at a higher function
 		 * than the USB1 controllers. We don't want to init USB1 +

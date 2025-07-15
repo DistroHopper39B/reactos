@@ -22,7 +22,9 @@
 #include <freeldr.h>
 
 #include <debug.h>
-DBG_DEFAULT_CHANNEL(WARNING);
+//DBG_DEFAULT_CHANNEL(WARNING);
+
+#include <usb/usb.h>
 
 /* GLOBALS ********************************************************************/
 
@@ -147,6 +149,15 @@ VOID __cdecl BootMain(IN PCCH CmdLine)
 #endif
 
 #ifdef SARCH_APPLETV
+    int usb_initialize(void);
+    usb_initialize();
+    
+    
+    usb_poll();
+    
+    
+    while (1);
+
     // We don't use rosload!
     RunLoader();
 #endif

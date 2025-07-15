@@ -125,6 +125,8 @@ MachInit(const char *CmdLine)
         DebugEnableScreenPort();
     }
     
+    
+    
     HalpCalibrateStallExecution();
 }
 

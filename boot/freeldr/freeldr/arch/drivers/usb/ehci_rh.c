@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-//#define USB_DEBUG
+#define USB_DEBUG
 
 #include "ehci.h"
 #include "ehci_private.h"
@@ -90,7 +90,7 @@ static void
 ehci_rh_scanport(usbdev_t *dev, int port)
 {
 	usb_speed port_speed;
-
+	
 	if (RH_INST(dev)->devices[port] !=  -1) {
 		usb_debug("Unregister device at port %x\n", port+1);
 		usb_detach_device(dev->controller, RH_INST(dev)->devices[port]);
@@ -118,7 +118,7 @@ ehci_rh_scanport(usbdev_t *dev, int port)
 		RH_INST(dev)->ports[port] &= ~P_PORT_RESET;
 
 		/* Wait max. 2ms (ehci spec 2.3.9) for flag change to finish. */
-		int timeout = 20; /* time out after 20 * 100us == 2ms */
+		int timeout = 200; /* time out after 20 * 100us == 2ms */
 		while ((RH_INST(dev)->ports[port] & P_PORT_RESET) && timeout--)
 			udelay(100);
 		if (RH_INST(dev)->ports[port] & P_PORT_RESET) {
@@ -181,7 +181,7 @@ ehci_rh_init(usbdev_t *dev)
 	RH_INST(dev)->ports = EHCI_INST(dev->controller)->operation->portsc;
 	RH_INST(dev)->devices = xmalloc(RH_INST(dev)->n_ports * sizeof(int));
 
-	usb_debug("root hub has %x ports\n", RH_INST(dev)->n_ports);
+	usb_debug("root hub has %d ports\n", RH_INST(dev)->n_ports);
 
 	/* If the host controller has port power control, enable power on
 	 * all ports and wait 20ms.

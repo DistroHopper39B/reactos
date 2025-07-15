@@ -57,6 +57,7 @@ list(APPEND APPLETVLDR_ARC_SOURCE
     arch/drivers/usb/usbhid.c
     arch/drivers/usb/usbhub.c
     arch/drivers/usb/usbinit.c
+    arch/drivers/usb/usb_glue.c
     # arch/drivers/usb/usbmsc.c
     )
 

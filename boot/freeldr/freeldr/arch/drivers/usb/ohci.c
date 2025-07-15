@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-//#define USB_DEBUG
+#define USB_DEBUG
 
 #include <inttypes.h>
 #include <usb/usb.h>
@@ -105,10 +105,10 @@ dump_ed(ed_t *cur)
 	tmp_td = (td_t *)phys_to_virt((cur->head_pointer & ~0xFUL));
 	if ((cur->head_pointer & ~0xFUL) != (cur->tail_pointer & ~0xFUL)) {
 		usb_debug("|:::::::::::::::::: OHCI TD CHAIN ::::::::::::::::::|\n");
-		while (virt_to_phys(tmp_td) != (cur->tail_pointer & ~0xFUL))
+		while ((unsigned long)tmp_td != (cur->tail_pointer & ~0xFUL))
 		{
 			dump_td(tmp_td);
-			tmp_td = (td_t *)phys_to_virt((tmp_td->next_td & ~0xFUL));
+			tmp_td = (td_t *)(tmp_td->next_td & ~0xFUL);
 		}
 		usb_debug("|:::::::::::::::: EOF OHCI TD CHAIN ::::::::::::::::|\n");
 		usb_debug("+---------------------------------------------------+\n");
