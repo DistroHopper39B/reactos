@@ -40,7 +40,25 @@ list(APPEND APPLETVLDR_ARC_SOURCE
     arch/vgafont.c
     arch/drivers/hwide.c
     arch/i386/hwdisk.c
-    arch/i386/i386idt.c)
+    arch/i386/i386idt.c
+    arch/drivers/usb/dwc2_rh.c
+    arch/drivers/usb/dwc2.c
+    arch/drivers/usb/ehci_rh.c
+    arch/drivers/usb/ehci.c
+    arch/drivers/usb/generic_hub.c
+    arch/drivers/usb/ohci_rh.c
+    arch/drivers/usb/ohci.c
+    arch/drivers/usb/pci.c
+    arch/drivers/usb/quirks.c
+    arch/drivers/usb/uhci_rh.c
+    arch/drivers/usb/uhci.c
+    arch/drivers/usb/usb_dev.c
+    arch/drivers/usb/usb.c
+    arch/drivers/usb/usbhid.c
+    arch/drivers/usb/usbhub.c
+    arch/drivers/usb/usbinit.c
+    arch/drivers/usb/usbmsc.c
+    )
 
 # We don't use rosload, we just bundle everything
 list(APPEND FREELDR_NTLDR_SOURCE
