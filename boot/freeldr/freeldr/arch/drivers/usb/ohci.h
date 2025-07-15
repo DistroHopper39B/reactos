@@ -29,7 +29,7 @@
 #ifndef __OHCI_H
 #define __OHCI_H
 
-#include <pci.h>
+#include <usb/pci.h>
 #include <usb/usb.h>
 
 hci_t *ohci_pci_init(pcidev_t addr);

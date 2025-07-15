@@ -134,7 +134,7 @@ set_feature(usbdev_t *dev, int endp, int feature, int rtype)
 	dr.wIndex = endp;
 	dr.wLength = 0;
 
-	return dev->controller->control(dev, OUT, sizeof(dr), &dr, 0, 0);
+	return dev->controller->control(dev, DIRECTION_OUT, sizeof(dr), &dr, 0, 0);
 }
 
 int
@@ -149,7 +149,7 @@ get_status(usbdev_t *dev, int intf, int rtype, int len, void *data)
 	dr.wIndex = intf;
 	dr.wLength = len;
 
-	return dev->controller->control(dev, IN, sizeof(dr), &dr, len, data);
+	return dev->controller->control(dev, DIRECTION_IN, sizeof(dr), &dr, len, data);
 }
 
 /*
@@ -174,7 +174,7 @@ get_descriptor(usbdev_t *dev, int rtype, int desc_type, int desc_idx,
 		dr.wIndex = 0;
 		dr.wLength = len;
 
-		ret = dev->controller->control(dev, IN,
+		ret = dev->controller->control(dev, DIRECTION_IN,
 				sizeof(dr), &dr, len, data);
 
 		if (ret == len)
@@ -195,7 +195,7 @@ set_configuration(usbdev_t *dev)
 	dr.wIndex = 0;
 	dr.wLength = 0;
 
-	return dev->controller->control(dev, OUT, sizeof(dr), &dr, 0, 0);
+	return dev->controller->control(dev, DIRECTION_OUT, sizeof(dr), &dr, 0, 0);
 }
 
 int
@@ -210,7 +210,7 @@ clear_feature(usbdev_t *dev, int endp, int feature, int rtype)
 	dr.wIndex = endp;
 	dr.wLength = 0;
 
-	return dev->controller->control(dev, OUT, sizeof(dr), &dr, 0, 0) < 0;
+	return dev->controller->control(dev, DIRECTION_OUT, sizeof(dr), &dr, 0, 0) < 0;
 }
 
 int
@@ -228,7 +228,7 @@ get_free_address(hci_t *controller)
 {
 	int i = controller->latest_address + 1;
 	for (; i != controller->latest_address; i++) {
-		if (i >= ARRAY_SIZE(controller->devices) || i < 1) {
+		if (i >= ARRAYSIZE(controller->devices) || i < 1) {
 			usb_debug("WARNING: Device addresses for controller %#" PRIxPTR
 				  " wrapped around!\n", controller->reg_base);
 			i = 0;
@@ -373,7 +373,7 @@ generic_set_address(hci_t *controller, usb_speed speed,
 	dev->endpoints[0].toggle = 0;
 	dev->endpoints[0].direction = SETUP;
 	dev->endpoints[0].type = CONTROL;
-	if (dev->controller->control(dev, OUT, sizeof(dr), &dr, 0, 0) < 0) {
+	if (dev->controller->control(dev, DIRECTION_OUT, sizeof(dr), &dr, 0, 0) < 0) {
 		usb_debug("set_address failed\n");
 		usb_detach_device(controller, adr);
 		return NULL;
@@ -475,12 +475,12 @@ set_address(hci_t *controller, usb_speed speed, int hubport, int hubaddr)
 			   "coreboot@coreboot.org to have the device added to\n"
 			   "the list of well-known quirks.\n");
 
-	u8 *end = (void *)dev->configuration + cd->wTotalLength;
+	u8 *end = (uint8_t *)dev->configuration + cd->wTotalLength;
 	interface_descriptor_t *intf;
 	u8 *ptr;
 
 	/* Find our interface (or the first good one if we don't know) */
-	for (ptr = (void *)dev->configuration + sizeof(*cd); ; ptr += ptr[0]) {
+	for (ptr = (uint8_t *)dev->configuration + sizeof(*cd); ; ptr += ptr[0]) {
 		if (ptr + 2 > end || !ptr[0] || ptr + ptr[0] > end) {
 			usb_debug("Couldn't find usable DT_INTF\n");
 			usb_detach_device(controller, dev->address);
@@ -506,7 +506,7 @@ set_address(hci_t *controller, usb_speed speed, int hubport, int hubaddr)
 	dev->num_endp = 1;
 	for (; ptr + 2 <= end && ptr[0] && ptr + ptr[0] <= end; ptr += ptr[0]) {
 		if (ptr[1] == DT_INTF || ptr[1] == DT_CFG ||
-				dev->num_endp >= ARRAY_SIZE(dev->endpoints))
+				dev->num_endp >= ARRAYSIZE(dev->endpoints))
 			break;
 		if (ptr[1] != DT_ENDP)
 			continue;
@@ -526,7 +526,7 @@ set_address(hci_t *controller, usb_speed speed, int hubport, int hubaddr)
 		ep->endpoint = desc->bEndpointAddress;
 		ep->toggle = 0;
 		ep->maxpacketsize = desc->wMaxPacketSize;
-		ep->direction = (desc->bEndpointAddress & 0x80) ? IN : OUT;
+		ep->direction = (desc->bEndpointAddress & 0x80) ? DIRECTION_IN : DIRECTION_OUT;
 		ep->type = desc->bmAttributes & 0x3;
 		ep->interval = usb_decode_interval(dev->speed, ep->type,
 						    desc->bInterval);

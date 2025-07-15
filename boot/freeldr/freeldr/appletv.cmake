@@ -57,7 +57,7 @@ list(APPEND APPLETVLDR_ARC_SOURCE
     arch/drivers/usb/usbhid.c
     arch/drivers/usb/usbhub.c
     arch/drivers/usb/usbinit.c
-    arch/drivers/usb/usbmsc.c
+    # arch/drivers/usb/usbmsc.c
     )
 
 # We don't use rosload, we just bundle everything

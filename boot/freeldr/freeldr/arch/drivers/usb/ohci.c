@@ -363,7 +363,7 @@ ohci_control(usbdev_t *dev, direction_t dir, int drlen, void *setup, int dalen,
 		memcpy(devreq, setup, drlen);
 	}
 	if (dalen > 0 && !dma_coherent(src)) {
-		data = OHCI_INST(dev->controller)->dma_buffer + drlen;
+		data = (uint8_t *) (OHCI_INST(dev->controller)->dma_buffer) + drlen;
 		if (drlen + dalen > DMA_SIZE) {
 			usb_debug("OHCI control transfer too large for DMA buffer: %d\n", drlen + dalen);
 			return -1;

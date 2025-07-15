@@ -27,12 +27,11 @@
  */
 
 //#define USB_DEBUG
-#include <libpayload-config.h>
 #include <usb/usb.h>
 #include "uhci.h"
 #include "ohci.h"
 #include "ehci.h"
-#include "xhci.h"
+//#include "xhci.h"
 #include "dwc2.h"
 #include <usb/usbdisk.h>
 
@@ -98,7 +97,7 @@ static int usb_controller_initialize(int bus, int dev, int func)
 			break;
 
 		case 0x30:
-#if CONFIG(LP_USB_XHCI)
+#if 0
 			usb_debug("xHCI controller\n");
 			xhci_pci_init(pci_device);
 #else
@@ -186,7 +185,7 @@ hci_t *usb_add_mmio_hc(hc_type type, void *bar)
 	case DWC2:
 		return dwc2_init(bar);
 #endif
-#if CONFIG(LP_USB_XHCI)
+#if 0
 	case XHCI:
 		return xhci_init((unsigned long)bar);
 #endif

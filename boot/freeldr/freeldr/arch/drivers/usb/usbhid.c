@@ -31,6 +31,10 @@
 #include <usb/keycodes.h>
 #include <usb/usb.h>
 
+#ifdef interface
+#undef interface
+#endif
+
 enum { hid_subclass_none = 0, hid_subclass_boot = 1 };
 typedef enum { hid_proto_boot = 0, hid_proto_report = 1 } hid_proto;
 enum { hid_boot_proto_none = 0, hid_boot_proto_keyboard =
@@ -71,7 +75,7 @@ usb_hid_destroy(usbdev_t *dev)
 				continue;
 			if (dev->endpoints[i].type != INTERRUPT)
 				continue;
-			if (dev->endpoints[i].direction != IN)
+			if (dev->endpoints[i].direction != DIRECTION_IN)
 				continue;
 			break;
 		}
@@ -152,15 +156,15 @@ static const struct layout_maps keyboard_layouts[] = {
 	'\n', '\e', '\b', '\t', ' ', '-', '=', '[',
 	/* 0x30 */
 	']', '\\', -1, ';', '\'', '`', ',', '.',
-	'/', -1 /* CapsLk */, KEY_F(1), KEY_F(2), KEY_F(3), KEY_F(4), KEY_F(5), KEY_F(6),
+	'/', -1 /* CapsLk */, USB_KEY_F(1), USB_KEY_F(2), USB_KEY_F(3), USB_KEY_F(4), USB_KEY_F(5), USB_KEY_F(6),
 	/* 0x40 */
-	KEY_F(7), KEY_F(8), KEY_F(9), KEY_F(10), KEY_F(11), KEY_F(12), KEY_PRINT, -1 /* ScrLk */,
-	KEY_BREAK, KEY_IC, KEY_HOME, KEY_PPAGE, KEY_DC, KEY_END, KEY_NPAGE, KEY_RIGHT,
+	USB_KEY_F(7), USB_KEY_F(8), USB_KEY_F(9), USB_KEY_F(10), USB_KEY_F(11), USB_KEY_F(12), USB_KEY_PRINT, -1 /* ScrLk */,
+	USB_KEY_BREAK, USB_KEY_IC, USB_KEY_HOME, USB_KEY_PPAGE, USB_KEY_DC, USB_KEY_END, USB_KEY_NPAGE, USB_KEY_RIGHT,
 	/* 50 */
-	KEY_LEFT, KEY_DOWN, KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
-	KEY_ENTER, KEY_END, KEY_DOWN, KEY_NPAGE, KEY_LEFT, -1, KEY_RIGHT, KEY_HOME,
+	USB_KEY_LEFT, USB_KEY_DOWN, USB_KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
+	USB_KEY_ENTER, USB_KEY_END, USB_KEY_DOWN, USB_KEY_NPAGE, USB_KEY_LEFT, -1, USB_KEY_RIGHT, USB_KEY_HOME,
 	/* 60 */
-	KEY_UP, KEY_PPAGE, -1, KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
+	USB_KEY_UP, USB_KEY_PPAGE, -1, USB_KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
 	-1, -1, -1, -1, -1, -1, -1, -1,
 	/* 70 */
 	-1, -1, -1, -1, -1, -1, -1, -1,
@@ -177,15 +181,15 @@ static const struct layout_maps keyboard_layouts[] = {
 	'\n', '\e', '\b', '\t', ' ', '_', '+', '[',
 	/* 0x30 */
 	']', '\\', -1, ':', '\'', '`', ',', '.',
-	'/', -1 /* CapsLk */, KEY_F(1), KEY_F(2), KEY_F(3), KEY_F(4), KEY_F(5), KEY_F(6),
+	'/', -1 /* CapsLk */, USB_KEY_F(1), USB_KEY_F(2), USB_KEY_F(3), USB_KEY_F(4), USB_KEY_F(5), USB_KEY_F(6),
 	/* 0x40 */
-	KEY_F(7), KEY_F(8), KEY_F(9), KEY_F(10), KEY_F(11), KEY_F(12), KEY_PRINT, -1 /* ScrLk */,
-	KEY_BREAK, KEY_IC, KEY_HOME, KEY_PPAGE, KEY_DC, KEY_END, KEY_NPAGE, KEY_RIGHT,
+	USB_KEY_F(7), USB_KEY_F(8), USB_KEY_F(9), USB_KEY_F(10), USB_KEY_F(11), USB_KEY_F(12), USB_KEY_PRINT, -1 /* ScrLk */,
+	USB_KEY_BREAK, USB_KEY_IC, USB_KEY_HOME, USB_KEY_PPAGE, USB_KEY_DC, USB_KEY_END, USB_KEY_NPAGE, USB_KEY_RIGHT,
 	/* 50 */
-	KEY_LEFT, KEY_DOWN, KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
-	KEY_ENTER, KEY_END, KEY_DOWN, KEY_NPAGE, KEY_LEFT, -1, KEY_RIGHT, KEY_HOME,
+	USB_KEY_LEFT, USB_KEY_DOWN, USB_KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
+	USB_KEY_ENTER, USB_KEY_END, USB_KEY_DOWN, USB_KEY_NPAGE, USB_KEY_LEFT, -1, USB_KEY_RIGHT, USB_KEY_HOME,
 	/* 60 */
-	KEY_UP, KEY_PPAGE, -1, KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
+	USB_KEY_UP, USB_KEY_PPAGE, -1, USB_KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
 	-1, -1, -1, -1, -1, -1, -1, -1,
 	/* 70 */
 	-1, -1, -1, -1, -1, -1, -1, -1,
@@ -202,15 +206,15 @@ static const struct layout_maps keyboard_layouts[] = {
 	'\n', '\e', '\b', '\t', ' ', '-', '=', '[',
 	/* 0x30 */
 	']', '\\', -1, ';', '\'', '`', ',', '.',
-	'/', -1 /* CapsLk */, KEY_F(1), KEY_F(2), KEY_F(3), KEY_F(4), KEY_F(5), KEY_F(6),
+	'/', -1 /* CapsLk */, USB_KEY_F(1), USB_KEY_F(2), USB_KEY_F(3), USB_KEY_F(4), USB_KEY_F(5), USB_KEY_F(6),
 	/* 0x40 */
-	KEY_F(7), KEY_F(8), KEY_F(9), KEY_F(10), KEY_F(11), KEY_F(12), KEY_PRINT, -1 /* ScrLk */,
-	KEY_BREAK, KEY_IC, KEY_HOME, KEY_PPAGE, KEY_DC, KEY_END, KEY_NPAGE, KEY_RIGHT,
+	USB_KEY_F(7), USB_KEY_F(8), USB_KEY_F(9), USB_KEY_F(10), USB_KEY_F(11), USB_KEY_F(12), USB_KEY_PRINT, -1 /* ScrLk */,
+	USB_KEY_BREAK, USB_KEY_IC, USB_KEY_HOME, USB_KEY_PPAGE, USB_KEY_DC, USB_KEY_END, USB_KEY_NPAGE, USB_KEY_RIGHT,
 	/* 50 */
-	KEY_LEFT, KEY_DOWN, KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
-	KEY_ENTER, KEY_END, KEY_DOWN, KEY_NPAGE, KEY_LEFT, -1, KEY_RIGHT, KEY_HOME,
+	USB_KEY_LEFT, USB_KEY_DOWN, USB_KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
+	USB_KEY_ENTER, USB_KEY_END, USB_KEY_DOWN, USB_KEY_NPAGE, USB_KEY_LEFT, -1, USB_KEY_RIGHT, USB_KEY_HOME,
 	/* 60 */
-	KEY_UP, KEY_PPAGE, -1, KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
+	USB_KEY_UP, USB_KEY_PPAGE, -1, USB_KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
 	-1, -1, -1, -1, -1, -1, -1, -1,
 	/* 70 */
 	-1, -1, -1, -1, -1, -1, -1, -1,
@@ -227,15 +231,15 @@ static const struct layout_maps keyboard_layouts[] = {
 	'\n', '\e', '\b', '\t', ' ', '-', '=', '[',
 	/* 0x30 */
 	']', '\\', -1, ':', '\'', '`', ',', '.',
-	'/', -1 /* CapsLk */, KEY_F(1), KEY_F(2), KEY_F(3), KEY_F(4), KEY_F(5), KEY_F(6),
+	'/', -1 /* CapsLk */, USB_KEY_F(1), USB_KEY_F(2), USB_KEY_F(3), USB_KEY_F(4), USB_KEY_F(5), USB_KEY_F(6),
 	/* 0x40 */
-	KEY_F(7), KEY_F(8), KEY_F(9), KEY_F(10), KEY_F(11), KEY_F(12), KEY_PRINT, -1 /* ScrLk */,
-	KEY_BREAK, KEY_IC, KEY_HOME, KEY_PPAGE, KEY_DC, KEY_END, KEY_NPAGE, KEY_RIGHT,
+	USB_KEY_F(7), USB_KEY_F(8), USB_KEY_F(9), USB_KEY_F(10), USB_KEY_F(11), USB_KEY_F(12), USB_KEY_PRINT, -1 /* ScrLk */,
+	USB_KEY_BREAK, USB_KEY_IC, USB_KEY_HOME, USB_KEY_PPAGE, USB_KEY_DC, USB_KEY_END, USB_KEY_NPAGE, USB_KEY_RIGHT,
 	/* 50 */
-	KEY_LEFT, KEY_DOWN, KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
-	KEY_ENTER, KEY_END, KEY_DOWN, KEY_NPAGE, KEY_LEFT, -1, KEY_RIGHT, KEY_HOME,
+	USB_KEY_LEFT, USB_KEY_DOWN, USB_KEY_UP, -1 /*NumLck*/, '/', '*', '-' /* = ? */, '+',
+	USB_KEY_ENTER, USB_KEY_END, USB_KEY_DOWN, USB_KEY_NPAGE, USB_KEY_LEFT, -1, USB_KEY_RIGHT, USB_KEY_HOME,
 	/* 60 */
-	KEY_UP, KEY_PPAGE, -1, KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
+	USB_KEY_UP, USB_KEY_PPAGE, -1, USB_KEY_DC, -1 /* < > | */, -1 /* Win Key Right */, -1, -1,
 	-1, -1, -1, -1, -1, -1, -1, -1,
 	/* 70 */
 	-1, -1, -1, -1, -1, -1, -1, -1,
@@ -285,8 +289,8 @@ usb_hid_process_keyboard_event(usbhid_inst_t *const inst,
 	if ((current->modifiers & 0x05) && ((current->keys[0] == 0x4c) ||
 				(current->keys[0] == 0x63))) {
 		/* vulcan nerve pinch */
-		if (reset_handler)
-			reset_handler();
+		//if (reset_handler)
+		//	reset_handler();
 	}
 
 	/* Did the event change at all? */
@@ -378,7 +382,7 @@ usb_hid_set_idle(usbdev_t *dev, interface_descriptor_t *interface, u16 duration)
 	dr.wValue = (duration >> 2) << 8;
 	dr.wIndex = interface->bInterfaceNumber;
 	dr.wLength = 0;
-	dev->controller->control(dev, OUT, sizeof(dev_req_t), &dr, 0, 0);
+	dev->controller->control(dev, DIRECTION_OUT, sizeof(dev_req_t), &dr, 0, 0);
 }
 
 static void
@@ -392,21 +396,15 @@ usb_hid_set_protocol(usbdev_t *dev, interface_descriptor_t *interface, hid_proto
 	dr.wValue = proto;
 	dr.wIndex = interface->bInterfaceNumber;
 	dr.wLength = 0;
-	dev->controller->control(dev, OUT, sizeof(dev_req_t), &dr, 0, 0);
+	dev->controller->control(dev, DIRECTION_OUT, sizeof(dev_req_t), &dr, 0, 0);
 }
-
-static struct console_input_driver cons = {
-	.havekey = usbhid_havechar,
-	.getchar = usbhid_getchar,
-	.input_type = CONSOLE_INPUT_TYPE_USB,
-};
 
 static int usb_hid_set_layout(const char *country)
 {
 	/* FIXME should be per keyboard */
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(keyboard_layouts); i++) {
+	for (i = 0; i < ARRAYSIZE(keyboard_layouts); i++) {
 		if (strncmp(keyboard_layouts[i].country, country,
 					strlen(keyboard_layouts[i].country)))
 			continue;
@@ -431,7 +429,7 @@ usb_hid_init(usbdev_t *dev)
 	static int installed = 0;
 	if (!installed) {
 		installed = 1;
-		console_add_input_driver(&cons);
+		//console_add_input_driver(&cons);
 	}
 
 	configuration_descriptor_t *cd = (configuration_descriptor_t*)dev->configuration;
@@ -461,7 +459,7 @@ usb_hid_init(usbdev_t *dev)
 			HID_INST(dev)->descriptor = desc;
 			countrycode = desc->bCountryCode;
 			/* 35 countries defined: */
-			if (countrycode >= ARRAY_SIZE(countries))
+			if (countrycode >= ARRAYSIZE(countries))
 				countrycode = 0;
 			usb_debug("  Keyboard has %s layout (country code %02x)\n",
 					countries[countrycode][0], countrycode);
@@ -476,7 +474,7 @@ usb_hid_init(usbdev_t *dev)
 			for (i = 1; i < dev->num_endp; i++) {
 				if (dev->endpoints[i].type != INTERRUPT)
 					continue;
-				if (dev->endpoints[i].direction != IN)
+				if (dev->endpoints[i].direction != DIRECTION_IN)
 					continue;
 				break;
 			}

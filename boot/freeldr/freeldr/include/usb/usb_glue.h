@@ -16,9 +16,13 @@ DBG_DEFAULT_CHANNEL(HWDETECT);
 // We also need some UNIX-style types.
 #include <stdint.h>
 
+typedef int8_t s8;
 typedef uint8_t u8;
+typedef int16_t s16;
 typedef uint16_t u16;
+typedef int32_t s32;
 typedef uint32_t u32;
+typedef int64_t s64;
 typedef uint64_t u64;
 
 #define __packed __attribute__((packed))
@@ -91,8 +95,8 @@ static inline void delay(unsigned int s)
 #define CONFIG(x) TRUE
 
 // we only have physical memory
-#define phys_to_virt(x) (void *) (volatile u32) (x)
-#define virt_to_phys(x) (volatile u32) (x)
+#define phys_to_virt(x) ((void *) (unsigned long) (x))
+#define virt_to_phys(x) ((unsigned long) (x))
 #define bus_to_virt phys_to_virt
 #define virt_to_bus virt_to_phys
 
@@ -100,13 +104,13 @@ static inline void delay(unsigned int s)
 
 #define TAG_USB 'DBSU'
 #define TAG_USB_DMA 'MADD'
-
+/*
 #define malloc(size) FrLdrTempAlloc(size, TAG_USB)
 #define free(ptr) FrLdrTempFree(ptr, TAG_USB)
-
+*/
 #define memalign(align, size) FrLdrTempAlloc(ALIGN_UP_BY(size, align), TAG_USB)
 
-#define dma_initialized 1
+#define dma_initialized() 1
 #define dma_coherent(ptr) 1
 #define dma_malloc(size) FrLdrTempAlloc(size, TAG_USB_DMA)
 #define dma_memalign(align, size) FrLdrTempAlloc(ALIGN_UP_BY(size, align), TAG_USB_DMA)
@@ -122,13 +126,14 @@ static inline void *xmalloc(size_t size)
     
     return ptr;
 }
-
+/*
 static inline void *calloc(size_t num, size_t size)
 {
     void *ptr = malloc(size * num);
     RtlZeroMemory(ptr, size);
     return ptr;
 }
+    */
 
 #define zalloc(size) calloc(1, size)
 
@@ -138,3 +143,10 @@ static inline void *xzalloc(size_t size)
     RtlZeroMemory(ptr, size);
     return ptr;
 }
+
+enum KEYBOARD_MODIFIERS {
+	KB_MOD_SHIFT = (1 << 0),
+	KB_MOD_ALT = (1 << 1),
+	KB_MOD_CTRL = (1 << 2),
+	KB_MOD_CAPSLOCK = (1 << 3),
+};

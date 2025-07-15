@@ -166,7 +166,7 @@ reset_transport(usbdev_t *dev)
 		return MSC_COMMAND_FAIL;
 
 	/* if any of these fails, detach device, as we are lost */
-	if (dev->controller->control(dev, OUT, sizeof(dr), &dr, 0, 0) < 0 ||
+	if (dev->controller->control(dev, DIRECTION_OUT, sizeof(dr), &dr, 0, 0) < 0 ||
 			clear_stall(MSC_INST(dev)->bulk_in) ||
 			clear_stall(MSC_INST(dev)->bulk_out)) {
 		usb_debug("Detaching unresponsive device.\n");
@@ -194,7 +194,7 @@ initialize_luns(usbdev_t *dev)
 	dr.wIndex = 0;
 	dr.wLength = 1;
 	if (MSC_INST(dev)->quirks & USB_MSC_QUIRK_NO_LUNS ||
-	    dev->controller->control(dev, IN, sizeof(dr), &dr,
+	    dev->controller->control(dev, DIRECTION_IN, sizeof(dr), &dr,
 			sizeof(msc->num_luns), &msc->num_luns) < 0)
 		msc->num_luns = 0;	/* assume only 1 lun if req fails */
 	msc->num_luns++;	/* Get Max LUN returns number of last LUN */
@@ -524,7 +524,7 @@ read_capacity(usbdev_t *dev)
 		MSC_INST(dev)->numblocks = 0xffffffff;
 		MSC_INST(dev)->blocksize = 512;
 	} else {
-		MSC_INST(dev)->numblocks = MIN(ntohl(buf[0]), UINT_MAX - 1) + 1;
+		MSC_INST(dev)->numblocks = min(ntohl(buf[0]), UINT_MAX - 1) + 1;
 		MSC_INST(dev)->blocksize = ntohl(buf[1]);
 	}
 	usb_debug("  %d %d-byte sectors (%d MB)\n", MSC_INST(dev)->numblocks,
@@ -661,10 +661,10 @@ void usb_msc_force_init(usbdev_t *dev, u32 quirks)
 			continue;
 		if (dev->endpoints[i].type != BULK)
 			continue;
-		if ((dev->endpoints[i].direction == IN)
+		if ((dev->endpoints[i].direction == DIRECTION_IN)
 		    && (MSC_INST(dev)->bulk_in == 0))
 			MSC_INST(dev)->bulk_in = &dev->endpoints[i];
-		if ((dev->endpoints[i].direction == OUT)
+		if ((dev->endpoints[i].direction == DIRECTION_OUT)
 		    && (MSC_INST(dev)->bulk_out == 0))
 			MSC_INST(dev)->bulk_out = &dev->endpoints[i];
 	}

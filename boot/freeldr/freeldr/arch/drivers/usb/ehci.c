@@ -293,7 +293,7 @@ static int ehci_set_async_schedule(ehci_t *ehcic, int enable)
 	 * arm64, that netboot and USB stuff resulted in lots of errors possibly
 	 * due to CPU reordering. Hence, enforcing strict CPU ordering.
 	 */
-	mb();
+	//mb();
 
 	/* Set async schedule status. */
 	if (enable)
@@ -344,7 +344,7 @@ static int ehci_bulk(endpoint_t *ep, int size, u8 *src, int finalize)
 	u8 *end = src + size;
 	int remaining = size;
 	int endp = ep->endpoint & 0xf;
-	int pid = (ep->direction == IN)?EHCI_IN:EHCI_OUT;
+	int pid = (ep->direction == DIRECTION_IN)?EHCI_IN:EHCI_OUT;
 
 	int hubaddr = 0, hubport = 0;
 	if (ep->dev->speed < 2) {
@@ -354,7 +354,7 @@ static int ehci_bulk(endpoint_t *ep, int size, u8 *src, int finalize)
 	}
 
 	if (!dma_coherent(src)) {
-		end = EHCI_INST(ep->dev->controller)->dma_buffer + size;
+		end = (uint8_t *) (EHCI_INST(ep->dev->controller)->dma_buffer) + size;
 		if (size > DMA_SIZE) {
 			usb_debug("EHCI bulk transfer too large for DMA buffer: %d\n", size);
 			return -1;
@@ -450,7 +450,7 @@ static int ehci_control(usbdev_t *dev, direction_t dir, int drlen, void *setup,
 		memcpy(devreq, setup, drlen);
 	}
 	if (dalen > 0 && !dma_coherent(src)) {
-		data = EHCI_INST(dev->controller)->dma_buffer + drlen;
+		data = (uint8_t *) (EHCI_INST(dev->controller)->dma_buffer) + drlen;
 		if (drlen + dalen > DMA_SIZE) {
 			usb_debug("EHCI control transfer too large for DMA buffer: %d\n", drlen + dalen);
 			return -1;
@@ -530,7 +530,7 @@ static int ehci_control(usbdev_t *dev, direction_t dir, int drlen, void *setup,
 			EHCI_INST(dev->controller), qh, head);
 	if (result >= 0) {
 		result = dalen - result;
-		if (dir == IN && data != src)
+		if (dir == DIRECTION_IN && data != src)
 			memcpy(src, data, result);
 	}
 
@@ -566,7 +566,7 @@ static void fill_intr_queue_td(
 		intr_qtd_t *const intr_qtd,
 		u8 *const data)
 {
-	const int pid = (intrq->endp->direction == IN) ? EHCI_IN
+	const int pid = (intrq->endp->direction == DIRECTION_IN) ? EHCI_IN
 		: (intrq->endp->direction == DIRECTION_OUT) ? EHCI_OUT
 		: EHCI_SETUP;
 	const int cerr = (intrq->endp->dev->speed < 2) ? 1 : 0;
@@ -791,7 +791,7 @@ ehci_init(unsigned long physical_bar)
 	init_device_entry(controller, 0);
 
 	EHCI_INST(controller)->capabilities = phys_to_virt(physical_bar);
-	EHCI_INST(controller)->operation = (hc_op_t *)(phys_to_virt(physical_bar) + EHCI_INST(controller)->capabilities->caplength);
+	EHCI_INST(controller)->operation = (hc_op_t *)((uint8_t *) phys_to_virt(physical_bar) + EHCI_INST(controller)->capabilities->caplength);
 
 	/* Set the high address word (aka segment) if controller is 64-bit */
 	if (EHCI_INST(controller)->capabilities->hccparams & 1)

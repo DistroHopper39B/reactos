@@ -62,7 +62,7 @@ usb_hub_interrupt_ep(usbdev_t *const dev)
 	int i;
 	for (i = 0; i < dev->num_endp; ++i) {
 		if (dev->endpoints[i].type == INTERRUPT &&
-				dev->endpoints[i].direction == IN)
+				dev->endpoints[i].direction == DIRECTION_IN)
 			return &dev->endpoints[i];
 	}
 	return NULL;
@@ -162,7 +162,7 @@ static void usb_hub_set_hub_depth(usbdev_t *const dev)
 		parent = dev->controller->devices[parent->hub];
 		dr.wValue++;
 	}
-	int ret = dev->controller->control(dev, OUT, sizeof(dr), &dr, 0, NULL);
+	int ret = dev->controller->control(dev, DIRECTION_OUT, sizeof(dr), &dr, 0, NULL);
 	if (ret < 0)
 		usb_debug("Failed SET_HUB_DEPTH(%d) on hub %d: %d\n",
 			  dr.wValue, dev->address, ret);
@@ -227,7 +227,7 @@ usb_hub_handle_port_change(usbdev_t *const dev, const int port)
 	 * Second word holds the change bits. The interrupt transfer shows
 	 * a logical or of these bits, so we have to clear them all.
 	 */
-	for (i = 0; i < ARRAY_SIZE(change_bits); ++i) {
+	for (i = 0; i < ARRAYSIZE(change_bits); ++i) {
 		if (buf[1] & change_bits[i].change_bit)
 			clear_feature(dev, port, change_bits[i].clear_sel, DR_PORT);
 		checked_bits |= change_bits[i].change_bit;
@@ -251,8 +251,8 @@ usb_hub_poll(usbdev_t *const dev)
 	const u8 *ibuf;
 
 	/* First, gather all change bits from finished interrupt transfers. */
-	const size_t port_bytes = MIN(ARRAY_SIZE(buf),
-			div_round_up(GEN_HUB(dev)->num_ports + 1, 8));
+	const size_t port_bytes = min(ARRAYSIZE(buf),
+			ROUND_UP(GEN_HUB(dev)->num_ports + 1, 8));
 	while ((ibuf = dev->controller->poll_intr_queue(GEN_HUB(dev)->data))) {
 		for (i = 0; i < port_bytes; ++i)
 			buf[i] |= ibuf[i];
@@ -316,7 +316,7 @@ usb_hub_init(usbdev_t *const dev)
 	 * but prevents a potential overflow in usb_hub_poll().
 	 */
 	const unsigned int num_ports =
-		MIN(desc.bNbrPorts, intr_ep->maxpacketsize * 8 - 1);
+		min(desc.bNbrPorts, intr_ep->maxpacketsize * 8 - 1);
 	if (generic_hub_init(dev, num_ports, &usb_hub_ops)) {
 		dev->controller->destroy_intr_queue(intr_ep, intrq);
 		usb_detach_device(dev->controller, dev->address);
