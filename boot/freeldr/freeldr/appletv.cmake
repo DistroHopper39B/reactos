@@ -128,7 +128,7 @@ else()
                     COMMAND ${CMAKE_STRIP} --strip-all $<TARGET_FILE:freeldr_pe>)
 endif()
 
-set_image_base(freeldr_pe 0x200000)
+set_image_base(freeldr_pe 0x10000)
 set_subsystem(freeldr_pe native)
 set_entrypoint(freeldr_pe AppleTVEntry)
 
