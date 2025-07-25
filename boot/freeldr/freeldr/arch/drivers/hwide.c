@@ -746,6 +746,8 @@ AtapIsDevicePresent(
         if (!AtapPerformSoftwareReset(DeviceUnit))
             return FALSE;
     }
+
+    return TRUE;
 }
 
 static
