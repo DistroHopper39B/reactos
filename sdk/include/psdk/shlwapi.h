@@ -25,6 +25,15 @@
 #include <objbase.h>
 #include <shtypes.h>
 
+#ifndef _SHLWAPI_
+#define LWSTDAPI_(type)  EXTERN_C DECLSPEC_IMPORT type WINAPI
+#define LWSTDAPIV_(type) EXTERN_C DECLSPEC_IMPORT type STDAPIVCALLTYPE
+#else
+#define LWSTDAPI_(type)  type WINAPI
+#define LWSTDAPIV_(type) type STDAPIVCALLTYPE
+#endif
+#define LWSTDAPI         LWSTDAPI_(HRESULT)
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* defined(__cplusplus) */
@@ -834,6 +843,14 @@ BOOL WINAPI PathCanonicalizeA(_Out_writes_(MAX_PATH) LPSTR, _In_ LPCSTR);
 BOOL WINAPI PathCanonicalizeW(_Out_writes_(MAX_PATH) LPWSTR, _In_ LPCWSTR);
 #define PathCanonicalize WINELIB_NAME_AW(PathCanonicalize)
 
+HRESULT WINAPI PathMatchSpecExA(LPCSTR,LPCSTR,DWORD);
+HRESULT WINAPI PathMatchSpecExW(LPCWSTR,LPCWSTR,DWORD);
+#define PathMatchSpecEx WINELIB_NAME_AW(PathMatchSpecEx)
+
+HRESULT WINAPI PathMatchSpecExA(LPCSTR,LPCSTR,DWORD);
+HRESULT WINAPI PathMatchSpecExW(LPCWSTR,LPCWSTR,DWORD);
+#define PathMatchSpecEx WINELIB_NAME_AW(PathMatchSpecEx)
+
 LPSTR
 WINAPI
 PathCombineA(
@@ -1252,6 +1269,9 @@ typedef enum {
 #define URL_FILE_USE_PATHURL         0x00010000
 #define URL_ESCAPE_AS_UTF8           0x00040000
 
+#define URL_UNESCAPE_AS_UTF8           URL_ESCAPE_AS_UTF8
+#define URL_UNESCAPE_URI_COMPONENT     URL_UNESCAPE_AS_UTF8
+
 #define URL_ESCAPE_SEGMENT_ONLY      0x00002000
 #define URL_ESCAPE_PERCENT           0x00001000
 
@@ -1558,8 +1578,8 @@ LPSTR WINAPI StrDupA(_In_ LPCSTR);
 LPWSTR WINAPI StrDupW(_In_ LPCWSTR);
 #define StrDup WINELIB_NAME_AW(StrDup)
 
-HRESULT WINAPI SHStrDupA(_In_ LPCSTR, _Outptr_ WCHAR**);
-HRESULT WINAPI SHStrDupW(_In_ LPCWSTR, _Outptr_ WCHAR**);
+HRESULT WINAPI SHStrDupA(_In_ LPCSTR psz, _Outptr_ WCHAR** ppwsz);
+HRESULT WINAPI SHStrDupW(_In_ LPCWSTR psz, _Outptr_ WCHAR** ppwsz);
 #define SHStrDup WINELIB_NAME_AW(SHStrDup)
 
 LPSTR
@@ -1896,6 +1916,14 @@ SHCreateStreamOnFileEx(
   _Outptr_ struct IStream**);
 
 HRESULT WINAPI SHCreateStreamWrapper(LPBYTE,DWORD,DWORD,struct IStream**);
+
+#ifndef _SHLWAPI_
+LWSTDAPI IStream_Reset(_In_ struct IStream*);
+#if !defined(IStream_Read) && defined(__cplusplus)
+LWSTDAPI IStream_Read(_In_ struct IStream*, _Out_ void*, _In_ ULONG);
+LWSTDAPI IStream_Write(_In_ struct IStream*, _In_ const void*, _In_ ULONG);
+#endif
+#endif
 
 #endif /* NO_SHLWAPI_STREAM */
 

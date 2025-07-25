@@ -1,6 +1,6 @@
 /*
  * PROJECT:     FreeLoader
- * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
+ * LICENSE:     MIT (https://spdx.org/licenses/MIT)
  * PURPOSE:     ATA/ATAPI programmed I/O driver.
  * COPYRIGHT:   Copyright 2019-2025 Dmitry Borisov (di.sean@protonmail.com)
  */
@@ -160,8 +160,8 @@ AtapSendCdb(
 
         for (i = 0; i < ATA_TIME_PHASE_CHANGE; ++i)
         {
-            UCHAR Ir = ATA_READ(DeviceUnit->Registers.InterruptReason);
-            if (Ir != ATAPI_INT_REASON_COD)
+            UCHAR InterruptReason = ATA_READ(DeviceUnit->Registers.InterruptReason);
+            if (InterruptReason != ATAPI_INT_REASON_COD)
                 break;
 
             StallExecutionProcessor(10);
@@ -512,9 +512,9 @@ AtapIssueCommand(
     _In_ PHW_DEVICE_UNIT DeviceUnit,
     _In_ PATA_DEVICE_REQUEST Request)
 {
-    ULONG Retry;
+    ULONG RetryCount;
 
-    for (Retry = 0; Retry < 3; ++Retry)
+    for (RetryCount = 0; RetryCount < 3; ++RetryCount)
     {
         UCHAR AtaStatus;
 
@@ -683,7 +683,7 @@ AtapBuildReadPacketCommand(
 
     RtlZeroMemory(Request->Cdb, sizeof(Request->Cdb));
 
-    if (Lba > ULONG_MAX)
+    if (Lba > MAXULONG)
     {
         /* READ (16) */
         Request->Cdb[0] = SCSIOP_READ16;
@@ -746,8 +746,6 @@ AtapIsDevicePresent(
         if (!AtapPerformSoftwareReset(DeviceUnit))
             return FALSE;
     }
-
-    return TRUE;
 }
 
 static
@@ -793,38 +791,82 @@ AtapIdentifyDevice(
 }
 
 static
-VOID
-AtapAtapiCapacityDetect(
+BOOLEAN
+AtapAtapiReadCapacity16(
     _In_ PHW_DEVICE_UNIT DeviceUnit,
-    _Out_ PULONG64 TotalSectors,
-    _Out_ PULONG SectorSize)
+    _Out_ PREAD_CAPACITY16_DATA CapacityData)
 {
-    READ_CAPACITY_DATA CapacityData;
+    ATA_DEVICE_REQUEST Request = { 0 };
+
+    /* Send the SCSI READ CAPACITY(16) command */
+    Request.Flags = REQUEST_FLAG_PACKET_COMMAND;
+    Request.DataBuffer = CapacityData;
+    Request.DataTransferLength = sizeof(*CapacityData);
+    Request.Cdb[0] = SCSIOP_SERVICE_ACTION_IN16;
+    Request.Cdb[1] = SERVICE_ACTION_READ_CAPACITY16;
+    Request.Cdb[13] = sizeof(*CapacityData);
+
+    return AtapIssueCommand(DeviceUnit, &Request);
+}
+
+static
+BOOLEAN
+AtapAtapiReadCapacity10(
+    _In_ PHW_DEVICE_UNIT DeviceUnit,
+    _Out_ PREAD_CAPACITY_DATA CapacityData)
+{
     ATA_DEVICE_REQUEST Request = { 0 };
 
     /* Send the SCSI READ CAPACITY(10) command */
     Request.Flags = REQUEST_FLAG_PACKET_COMMAND;
-    Request.DataBuffer = &CapacityData;
-    Request.DataTransferLength = sizeof(CapacityData);
+    Request.DataBuffer = CapacityData;
+    Request.DataTransferLength = sizeof(*CapacityData);
     Request.Cdb[0] = SCSIOP_READ_CAPACITY;
 
-    if (AtapIssueCommand(DeviceUnit, &Request))
-    {
-        *TotalSectors = RtlUlongByteSwap(CapacityData.LogicalBlockAddress) + 1;
-        *SectorSize = RtlUlongByteSwap(CapacityData.BytesPerBlock);
+    return AtapIssueCommand(DeviceUnit, &Request);
+}
 
-        /*
-         * If device reports a non-zero block length, reset to defaults
-         * (we use a READ command instead of READ CD).
-         */
-        if (*SectorSize != 0)
-            *SectorSize = 2048;
+static
+VOID
+AtapAtapiDetectCapacity(
+    _In_ PHW_DEVICE_UNIT DeviceUnit,
+    _Out_ PULONG64 TotalSectors,
+    _Out_ PULONG SectorSize)
+{
+    union
+    {
+        READ_CAPACITY_DATA Cmd10;
+        READ_CAPACITY16_DATA Cmd16;
+    } CapacityData;
+    ULONG LastLba;
+
+    *TotalSectors = 0;
+    *SectorSize = 0;
+
+    if (!AtapAtapiReadCapacity10(DeviceUnit, &CapacityData.Cmd10))
+        return;
+
+    LastLba = RtlUlongByteSwap(CapacityData.Cmd10.LogicalBlockAddress);
+    if (LastLba == MAXULONG)
+    {
+        if (!AtapAtapiReadCapacity16(DeviceUnit, &CapacityData.Cmd16))
+            return;
+
+        *TotalSectors = RtlUlonglongByteSwap(CapacityData.Cmd16.LogicalBlockAddress.QuadPart) + 1;
+        *SectorSize = RtlUlongByteSwap(CapacityData.Cmd16.BytesPerBlock);
     }
     else
     {
-        *TotalSectors = 0;
-        *SectorSize = 0;
+        *TotalSectors = LastLba + 1;
+        *SectorSize = RtlUlongByteSwap(CapacityData.Cmd10.BytesPerBlock);
     }
+
+    /*
+     * If device reports a non-zero block length, reset to defaults
+     * (we use a READ command instead of READ CD).
+     */
+    if (*SectorSize != 0)
+        *SectorSize = 2048;
 }
 
 static
@@ -897,7 +939,7 @@ AtapAtapiReadyCheck(
             {
                 case SCSI_SENSEQ_BECOMING_READY:
                     /* Wait until the CD is spun up */
-                    StallExecutionProcessor(4e6);
+                    StallExecutionProcessor(2e6);
                     return FALSE;
 
                 case SCSI_SENSEQ_INIT_COMMAND_REQUIRED:
@@ -949,7 +991,7 @@ AtapAtapiInitDevice(
     AtapAtapiClearUnitAttention(DeviceUnit);
 
     /* Make the device ready */
-    for (i = 4; i > 0; --i)
+    for (i = 4; i > 0; i--)
     {
         if (AtapAtapiReadyCheck(DeviceUnit))
             break;
@@ -961,7 +1003,7 @@ AtapAtapiInitDevice(
     }
 
     /* Detect a medium's capacity */
-    AtapAtapiCapacityDetect(DeviceUnit,
+    AtapAtapiDetectCapacity(DeviceUnit,
                             &DeviceUnit->P.TotalSectors,
                             &DeviceUnit->P.SectorSize);
     if (DeviceUnit->P.SectorSize == 0 || DeviceUnit->P.TotalSectors == 0)
@@ -970,9 +1012,9 @@ AtapAtapiInitDevice(
         return FALSE;
     }
 
-    DeviceUnit->P.Cylinders = 0xFFFFFFFF;
-    DeviceUnit->P.Heads = 0xFFFFFFFF;
-    DeviceUnit->P.SectorsPerTrack = 0xFFFFFFFF;
+    DeviceUnit->P.Cylinders = MAXULONG;
+    DeviceUnit->P.Heads = MAXULONG;
+    DeviceUnit->P.SectorsPerTrack = MAXULONG;
 
     DeviceUnit->MaximumTransferLength = 0xFFFF;
 
@@ -1172,7 +1214,7 @@ AtaReadLogicalSectors(
     _In_ PDEVICE_UNIT DeviceUnit,
     _In_ ULONG64 SectorNumber,
     _In_ ULONG SectorCount,
-    _Out_writes_bytes_all_(SectorCount * DeviceUnit->P.SectorSize) PVOID Buffer)
+    _Out_writes_bytes_all_(SectorCount * DeviceUnit->SectorSize) PVOID Buffer)
 {
     PHW_DEVICE_UNIT Unit = (PHW_DEVICE_UNIT)DeviceUnit;
     ATA_DEVICE_REQUEST Request = { 0 };
@@ -1187,7 +1229,7 @@ AtaReadLogicalSectors(
         BlockCount = min(SectorCount, Unit->MaximumTransferLength);
 
         Request.DataBuffer = Buffer;
-        Request.DataTransferLength = BlockCount * DeviceUnit->SectorSize;
+        Request.DataTransferLength = BlockCount * Unit->P.SectorSize;
 
         if (Unit->P.Flags & ATA_DEVICE_ATAPI)
             AtapBuildReadPacketCommand(&Request, SectorNumber, BlockCount);
@@ -1220,17 +1262,17 @@ BOOLEAN
 AtaInit(
     _Out_ PUCHAR DetectedCount)
 {
-    ULONG Channel;
+    ULONG ChannelNumber;
 
     *DetectedCount = 0;
 
     /* Enumerate IDE channels */
-    for (Channel = 0; Channel < CHANNEL_MAX_CHANNELS; ++Channel)
+    for (ChannelNumber = 0; ChannelNumber < CHANNEL_MAX_CHANNELS; ++ChannelNumber)
     {
         UCHAR DeviceNumber;
         IDE_REGISTERS Registers;
 
-        if (!AtapIdentifyChannel(Channel, &Registers))
+        if (!AtapIdentifyChannel(ChannelNumber, &Registers))
             continue;
 
         /* Check for devices attached to the bus */

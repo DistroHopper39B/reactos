@@ -1,6 +1,6 @@
 /*
  * PROJECT:     FreeLoader
- * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
+ * LICENSE:     MIT (https://spdx.org/licenses/MIT)
  * PURPOSE:     ATA/ATAPI programmed I/O driver header file.
  * COPYRIGHT:   Copyright 2019-2025 Dmitry Borisov (di.sean@protonmail.com)
  */
@@ -49,4 +49,4 @@ AtaReadLogicalSectors(
     _In_ PDEVICE_UNIT DeviceUnit,
     _In_ ULONG64 SectorNumber,
     _In_ ULONG SectorCount,
-    _Out_writes_bytes_all_(SectorCount * DeviceUnit->P.SectorSize) PVOID Buffer);
+    _Out_writes_bytes_all_(SectorCount * DeviceUnit->SectorSize) PVOID Buffer);

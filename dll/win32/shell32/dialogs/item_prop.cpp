@@ -17,6 +17,9 @@ SHELL_GetCaptionFromDataObject(IDataObject *pDO, LPWSTR Buf, UINT cchBuf)
     {
         hr = SHGetNameAndFlagsW(pidl, SHGDN_INFOLDER, Buf, cchBuf, NULL);
         ILFree(pidl);
+
+        if (SUCCEEDED(hr) && DataObject_GetHIDACount(pDO) > 1)
+            StringCchCatW(Buf, cchBuf, L", ...");
     }
     return hr;
 }
@@ -130,7 +133,15 @@ FSFolderItemPropDialogInitCallback(LPCWSTR InitString, IDataObject *pDO, HKEY *h
     CDataObjectHIDA cida(pDO);
     if (SUCCEEDED(cida.hr()) && cida->cidl)
     {
+#if 0
+        CCidaChildArrayHelper items(cida);
+        if (FAILED(hr = items.hr()))
+            return hr;
+#else
+        // Note: Since we are only passing a single item to AddFSClassKeysToArray,
+        // we don't need the rest of the array to be valid.
         PCUITEMID_CHILD pidl = HIDA_GetPIDLItem(cida, 0);
+#endif
         AddFSClassKeysToArray(1, &pidl, hKeys, cKeys); // Add file-type specific pages
     }
 }
@@ -154,7 +165,7 @@ SHELL32_ShowFilesystemItemPropertiesDialogAsync(IDataObject *pDO)
     ShellPropSheetDialog::PFNINITIALIZE InitFunc = NULL;
     LPCWSTR InitString = NULL;
 
-    if (_ILIsDrive(HIDA_GetPIDLItem(cida, 0)))
+    if (cida->cidl && _ILIsDrive(HIDA_GetPIDLItem(cida, 0)))
     {
         pClsid = &CLSID_ShellDrvDefExt;
         InitFunc = ClassPropDialogInitCallback;
@@ -165,8 +176,15 @@ SHELL32_ShowFilesystemItemPropertiesDialogAsync(IDataObject *pDO)
         pClsid = &CLSID_ShellFileDefExt;
         InitFunc = FSFolderItemPropDialogInitCallback;
     }
-    ShellPropSheetDialog Dialog;
-    return Dialog.ShowAsync(pClsid, pDO, InitFunc, InitString);
+    return ShellPropSheetDialog().ShowAsync(pClsid, pDO, InitFunc, InitString);
+}
+
+HRESULT
+SHELL32_ShowFilesystemItemsPropertiesDialogAsync(HWND hOwner, IDataObject *pDO)
+{
+    if (DataObject_GetHIDACount(pDO) == 1)
+        return SHELL32_ShowFilesystemItemPropertiesDialogAsync(pDO);
+    return SHMultiFileProperties(pDO, 0);
 }
 
 HRESULT
@@ -174,8 +192,7 @@ SHELL32_ShowShellExtensionProperties(const CLSID *pClsid, IDataObject *pDO)
 {
     WCHAR ClassBuf[6 + 38 + 1] = L"CLSID\\";
     StringFromGUID2(*pClsid, ClassBuf + 6, 38 + 1);
-    ShellPropSheetDialog Dialog;
-    return Dialog.ShowAsync(NULL, pDO, ClassPropDialogInitCallback, ClassBuf);
+    return ShellPropSheetDialog().ShowAsync(NULL, pDO, ClassPropDialogInitCallback, ClassBuf);
 }
 
 HRESULT
@@ -196,4 +213,17 @@ SHELL_ShowItemIDListProperties(LPCITEMIDLIST pidl)
         NULL, NULL, NULL, SW_SHOWNORMAL, NULL, const_cast<LPITEMIDLIST>(pidl)
     };
     return ShellExecuteExA(&sei) ? S_OK : HResultFromWin32(GetLastError());
+}
+
+/*
+ * SHMultiFileProperties                [SHELL32.716]
+ */
+EXTERN_C HRESULT
+WINAPI
+SHMultiFileProperties(IDataObject *pDataObject, DWORD dwFlags)
+{
+    if (DataObject_GetHIDACount(pDataObject) == 1)
+        return SHELL32_ShowFilesystemItemPropertiesDialogAsync(pDataObject);
+
+    return ShellPropSheetDialog().ShowAsync(&CLSID_ShellFileDefExt, pDataObject, NULL, NULL);
 }

@@ -18,6 +18,7 @@ add_subdirectory(gdi/gdi32)
 add_subdirectory(gdi/gdi32_vista)
 add_subdirectory(printing)
 add_subdirectory(reactx)
+add_subdirectory(user/imm32)
 add_subdirectory(user/user32)
 add_subdirectory(user/user32_vista)
 add_subdirectory(user/winsrv)
@@ -173,6 +174,7 @@ list(APPEND SOURCE
     gdi/ntgdi/bitmaps.c
     gdi/ntgdi/cliprgn.c
     gdi/ntgdi/coord.c
+    gdi/ntgdi/d3dkmt.c
     gdi/ntgdi/dcattr.c
     gdi/ntgdi/dclife.c
     gdi/ntgdi/dcobjs.c

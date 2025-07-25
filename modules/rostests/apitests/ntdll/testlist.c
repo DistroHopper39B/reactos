@@ -3,6 +3,22 @@
 #define STANDALONE
 #include <apitest.h>
 
+extern void func__snprintf(void);
+extern void func__snwprintf(void);
+extern void func__vscwprintf(void);
+extern void func__vsnprintf(void);
+extern void func__vsnwprintf(void);
+extern void func_mbstowcs(void);
+extern void func_mbtowc(void);
+extern void func_setjmp(void);
+extern void func_sprintf(void);
+extern void func_strcpy(void);
+extern void func_strlen(void);
+extern void func_strtoul(void);
+extern void func_wcstoul(void);
+extern void func_wctomb(void);
+extern void func_wcstombs(void);
+
 extern void func_DllLoadNotification(void);
 extern void func_LdrEnumResources(void);
 extern void func_LdrLoadDll(void);
@@ -19,6 +35,7 @@ extern void func_NtCompareTokens(void);
 extern void func_NtContinue(void);
 extern void func_NtCreateFile(void);
 extern void func_NtCreateKey(void);
+extern void func_NtCreateProfile(void);
 extern void func_NtCreateThread(void);
 extern void func_NtDeleteKey(void);
 extern void func_NtDuplicateObject(void);
@@ -40,6 +57,7 @@ extern void func_NtQueryInformationToken(void);
 extern void func_NtQueryKey(void);
 extern void func_NtQueryObject(void);
 extern void func_NtQueryOpenSubKeys(void);
+extern void func_NtQuerySection(void);
 extern void func_NtQuerySystemEnvironmentValue(void);
 extern void func_NtQuerySystemInformation(void);
 extern void func_NtQueryValueKey(void);
@@ -53,6 +71,7 @@ extern void func_NtSetInformationThread(void);
 extern void func_NtSetInformationToken(void);
 extern void func_NtSetValueKey(void);
 extern void func_NtSetVolumeInformationFile(void);
+extern void func_NtStartProfile(void);
 extern void func_NtSystemInformation(void);
 extern void func_NtUnloadDriver(void);
 extern void func_NtWriteFile(void);
@@ -86,6 +105,7 @@ extern void func_RtlImageDirectoryEntryToData(void);
 extern void func_RtlImageRvaToVa(void);
 extern void func_RtlIntSafe(void);
 extern void func_RtlIsNameLegalDOS8Dot3(void);
+extern void func_RtlLocale(void);
 extern void func_RtlMemoryStream(void);
 extern void func_RtlMultipleAllocateHeap(void);
 extern void func_RtlNtPathNameToDosPathName(void);
@@ -108,6 +128,23 @@ extern void func_UserModeException(void);
 
 const struct test winetest_testlist[] =
 {
+    // CRT tests from ../crt
+    { "_snprintf", func__snprintf },
+    { "_snwprintf", func__snwprintf },
+    { "_vscwprintf", func__vscwprintf },
+    { "_vsnprintf", func__vsnprintf },
+    { "_vsnwprintf", func__vsnwprintf },
+    { "mbstowcs", func_mbstowcs },
+    { "mbtowc", func_mbtowc },
+    { "setjmp", func_setjmp },
+    { "sprintf", func_sprintf },
+    { "strcpy", func_strcpy },
+    { "strlen", func_strlen },
+    { "strtoul", func_strtoul },
+    { "wcstoul", func_wcstoul },
+    { "wctomb", func_wctomb },
+    { "wcstombs", func_wcstombs },
+
     { "DllLoadNotification",            func_DllLoadNotification },
     { "LdrEnumResources",               func_LdrEnumResources },
     { "LdrLoadDll",                     func_LdrLoadDll },
@@ -124,6 +161,7 @@ const struct test winetest_testlist[] =
     { "NtContinue",                     func_NtContinue },
     { "NtCreateFile",                   func_NtCreateFile },
     { "NtCreateKey",                    func_NtCreateKey },
+    { "NtCreateProfile",                func_NtCreateProfile },
     { "NtCreateThread",                 func_NtCreateThread },
     { "NtDeleteKey",                    func_NtDeleteKey },
     { "NtDuplicateObject",              func_NtDuplicateObject },
@@ -145,6 +183,7 @@ const struct test winetest_testlist[] =
     { "NtQueryKey",                     func_NtQueryKey },
     { "NtQueryObject",                  func_NtQueryObject },
     { "NtQueryOpenSubKeys",             func_NtQueryOpenSubKeys },
+    { "NtQuerySection",                 func_NtQuerySection },
     { "NtQuerySystemEnvironmentValue",  func_NtQuerySystemEnvironmentValue },
     { "NtQuerySystemInformation",       func_NtQuerySystemInformation },
     { "NtQueryValueKey",                func_NtQueryValueKey },
@@ -158,6 +197,7 @@ const struct test winetest_testlist[] =
     { "NtSetInformationToken",          func_NtSetInformationToken },
     { "NtSetValueKey",                  func_NtSetValueKey},
     { "NtSetVolumeInformationFile",     func_NtSetVolumeInformationFile },
+    { "NtStartProfile",                 func_NtStartProfile },
     { "NtSystemInformation",            func_NtSystemInformation },
     { "NtUnloadDriver",                 func_NtUnloadDriver },
     { "NtWriteFile",                    func_NtWriteFile },
@@ -190,6 +230,7 @@ const struct test winetest_testlist[] =
     { "RtlImageRvaToVa",                func_RtlImageRvaToVa },
     { "RtlIntSafe",                     func_RtlIntSafe },
     { "RtlIsNameLegalDOS8Dot3",         func_RtlIsNameLegalDOS8Dot3 },
+    { "RtlLocale",                      func_RtlLocale },
     { "RtlMemoryStream",                func_RtlMemoryStream },
     { "RtlMultipleAllocateHeap",        func_RtlMultipleAllocateHeap },
     { "RtlNtPathNameToDosPathName",     func_RtlNtPathNameToDosPathName },

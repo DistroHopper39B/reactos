@@ -294,7 +294,6 @@ CShellLink::CShellLink()
     m_pDBList = NULL;
     m_bInInit = FALSE;
     m_hIcon = NULL;
-    m_idCmdFirst = 0;
 
     m_sLinkPath = NULL;
 
@@ -544,7 +543,7 @@ static BOOL Stream_LoadVolume(LOCAL_VOLUME_INFO *vol, CShellLink::volume_info *v
     INT len = vol->dwSize - vol->dwVolLabelOfs;
 
     LPSTR label = (LPSTR)vol;
-    label += vol->dwVolLabelOfs;
+    label += vol->dwVolLabelOfs; // FIXME: 0x14 Unicode
     MultiByteToWideChar(CP_ACP, 0, label, len, volume->label, _countof(volume->label));
 
     return TRUE;
@@ -595,7 +594,7 @@ static HRESULT Stream_LoadLocation(IStream *stm,
     /* if there's a local path, load it */
     DWORD n = loc->dwLocalPathOfs;
     if (n && n < loc->dwTotalSize)
-        *path = Stream_LoadPath(&p[n], loc->dwTotalSize - n);
+        *path = Stream_LoadPath(&p[n], loc->dwTotalSize - n); // FIXME: Unicode offset (if present)
 
     TRACE("type %d serial %08x name %s path %s\n", volume->type,
           volume->serial, debugstr_w(volume->label), debugstr_w(*path));
@@ -850,7 +849,7 @@ static HRESULT Stream_WriteString(IStream* stm, LPCWSTR str)
  *        Figure out how Windows deals with unicode paths here.
  */
 static HRESULT Stream_WriteLocationInfo(IStream* stm, LPCWSTR path,
-        CShellLink::volume_info *volume)
+        CShellLink::volume_info *volume) // FIXME: Write Unicode strings
 {
     LOCAL_VOLUME_INFO *vol;
     LOCATION_INFO *loc;
@@ -913,6 +912,7 @@ HRESULT STDMETHODCALLTYPE CShellLink::Save(IStream *stm, BOOL fClearDirty)
 
     m_Header.dwSize = sizeof(m_Header);
     m_Header.clsid = CLSID_ShellLink;
+    m_Header.dwReserved3 = m_Header.dwReserved2 = m_Header.wReserved1 = 0;
 
     /* Store target attributes */
     WIN32_FIND_DATAW wfd = {};
@@ -934,8 +934,9 @@ HRESULT STDMETHODCALLTYPE CShellLink::Save(IStream *stm, BOOL fClearDirty)
      * already set in accordance by the different mutator member functions.
      * The other flags will be determined now by the presence or absence of data.
      */
-    m_Header.dwFlags &= (SLDF_RUN_WITH_SHIMLAYER | SLDF_RUNAS_USER |
-                         SLDF_RUN_IN_SEPARATE | SLDF_HAS_DARWINID |
+    UINT NT6SimpleFlags = LOBYTE(GetVersion()) > 6 ? (0x00040000 | 0x00400000 | 0x00800000 | 0x02000000) : 0;
+    m_Header.dwFlags &= (SLDF_RUN_WITH_SHIMLAYER | SLDF_RUNAS_USER | SLDF_RUN_IN_SEPARATE |
+                         SLDF_HAS_DARWINID | SLDF_FORCE_NO_LINKINFO | NT6SimpleFlags |
 #if (NTDDI_VERSION < NTDDI_LONGHORN)
                          SLDF_HAS_LOGO3ID |
 #endif
@@ -2488,14 +2489,11 @@ HRESULT STDMETHODCALLTYPE CShellLink::GetFlags(DWORD *pdwFlags)
 
 HRESULT STDMETHODCALLTYPE CShellLink::SetFlags(DWORD dwFlags)
 {
-#if 0 // FIXME!
+    if (m_Header.dwFlags == dwFlags)
+        return S_FALSE;
     m_Header.dwFlags = dwFlags;
     m_bDirty = TRUE;
     return S_OK;
-#else
-    FIXME("\n");
-    return E_NOTIMPL;
-#endif
 }
 
 /**************************************************************************
@@ -2543,8 +2541,6 @@ HRESULT STDMETHODCALLTYPE CShellLink::Initialize(PCIDLIST_ABSOLUTE pidlFolder, I
 HRESULT STDMETHODCALLTYPE CShellLink::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags)
 {
     INT id = 0;
-
-    m_idCmdFirst = idCmdFirst;
 
     TRACE("%p %p %u %u %u %u\n", this,
           hMenu, indexMenu, idCmdFirst, idCmdLast, uFlags);
@@ -2690,6 +2686,14 @@ HRESULT CShellLink::DoOpen(LPCMINVOKECOMMANDINFO lpici)
             sei.lpDirectory = iciex->lpDirectoryW;
         else if (pszDirA && SHAnsiToUnicode(pszDirA, dir, _countof(dir)))
             sei.lpDirectory = dir;
+    }
+
+    sei.dwHotKey = lpici->dwHotKey;
+    sei.fMask |= CmicFlagsToSeeFlags(lpici->fMask & CMIC_MASK_HOTKEY);
+    if (m_Header.wHotKey)
+    {
+        sei.dwHotKey = m_Header.wHotKey;
+        sei.fMask |= SEE_MASK_HOTKEY;
     }
     return (ShellExecuteExW(&sei) ? S_OK : E_FAIL);
 }
@@ -2935,14 +2939,41 @@ void CShellLink::OnCommand(HWND hwndDlg, int id, HWND hwndCtl, UINT codeNotify)
 
         case IDC_SHORTCUT_CHANGE_ICON:
         {
-            WCHAR wszPath[MAX_PATH] = L"";
-
-            if (m_sIcoPath)
-                wcscpy(wszPath, m_sIcoPath);
-            else
-                FindExecutableW(m_sPath, NULL, wszPath);
-
+            SHFILEINFOW fi;
             INT IconIndex = m_Header.nIconIndex;
+            WCHAR wszPath[MAX_PATH];
+            *wszPath = UNICODE_NULL;
+
+            if (!StrIsNullOrEmpty(m_sIcoPath))
+            {
+                PWSTR pszPath = m_sIcoPath;
+                if (*m_sIcoPath == '.') // Extension-only icon location, we need a fake path
+                {
+                    if (SUCCEEDED(StringCchPrintfW(wszPath, _countof(wszPath), L"x:\\x%s", m_sIcoPath)) &&
+                        SHGetFileInfoW(wszPath, 0, &fi, sizeof(fi), SHGFI_ICONLOCATION | SHGFI_USEFILEATTRIBUTES))
+                    {
+                        pszPath = fi.szDisplayName; // The path is now a generic icon based
+                        IconIndex = fi.iIcon;       // on the registry info of the file extension.
+                    }
+                }
+
+                if (FAILED(StringCchCopyW(wszPath, _countof(wszPath), pszPath)))
+                    *wszPath = UNICODE_NULL;
+            }
+            else if (!StrIsNullOrEmpty(m_sPath))
+            {
+                FindExecutableW(m_sPath, NULL, wszPath);
+            }
+
+            if (!*wszPath && m_pPidl)
+            {
+                if (SHGetFileInfoW((PWSTR)m_pPidl, 0, &fi, sizeof(fi), SHGFI_ICONLOCATION | SHGFI_PIDL) &&
+                    SUCCEEDED(StringCchCopyW(wszPath, _countof(wszPath), fi.szDisplayName)))
+                {
+                    IconIndex = fi.iIcon;
+                }
+            }
+
             if (PickIconDlg(hwndDlg, wszPath, _countof(wszPath), &IconIndex))
             {
                 SetIconLocation(wszPath, IconIndex);
@@ -2994,44 +3025,45 @@ LRESULT CShellLink::OnNotify(HWND hwndDlg, int idFrom, LPNMHDR pnmhdr)
         SetWorkingDirectory(wszBuf);
 
         /* set link destination */
-        GetDlgItemTextW(hwndDlg, IDC_SHORTCUT_TARGET_TEXT, wszBuf, _countof(wszBuf));
-        LPWSTR lpszArgs = NULL;
-        LPWSTR unquoted = strdupW(wszBuf);
-        StrTrimW(unquoted, L" ");
-
-        if (!PathFileExistsW(unquoted))
+        HWND hWndTarget = GetDlgItem(hwndDlg, IDC_SHORTCUT_TARGET_TEXT);
+        GetWindowTextW(hWndTarget, wszBuf, _countof(wszBuf));
+        // Only set the path and arguments for filesystem targets (we can't verify other targets)
+        if (IsWindowEnabled(hWndTarget))
         {
-            lpszArgs = PathGetArgsW(unquoted);
-            PathRemoveArgsW(unquoted);
-            StrTrimW(lpszArgs, L" ");
+            LPWSTR lpszArgs = NULL;
+            LPWSTR unquoted = wszBuf;
+            StrTrimW(unquoted, L" ");
+
+            if (!PathFileExistsW(unquoted))
+            {
+                lpszArgs = PathGetArgsW(unquoted);
+                PathRemoveArgsW(unquoted);
+                StrTrimW(lpszArgs, L" ");
+            }
+            if (unquoted[0] == '"' && unquoted[wcslen(unquoted) - 1] == '"')
+                PathUnquoteSpacesW(unquoted);
+
+            WCHAR *pwszExt = PathFindExtensionW(unquoted);
+            if (!_wcsicmp(pwszExt, L".lnk"))
+            {
+                // TODO: SLDF_ALLOW_LINK_TO_LINK (Win7+)
+                // FIXME load localized error msg
+                MessageBoxW(hwndDlg, L"You cannot create a link to a shortcut", NULL, MB_ICONERROR);
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID_NOCHANGEPAGE);
+                return TRUE;
+            }
+
+            if (!PathFileExistsW(unquoted))
+            {
+                // FIXME load localized error msg
+                MessageBoxW(hwndDlg, L"The specified file name in the target box is invalid", NULL, MB_ICONERROR);
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID_NOCHANGEPAGE);
+                return TRUE;
+            }
+
+            SetPath(unquoted);
+            SetArguments(lpszArgs ? lpszArgs : L"\0");
         }
-        if (unquoted[0] == '"' && unquoted[wcslen(unquoted) - 1] == '"')
-            PathUnquoteSpacesW(unquoted);
-
-        WCHAR *pwszExt = PathFindExtensionW(unquoted);
-        if (!_wcsicmp(pwszExt, L".lnk"))
-        {
-            // FIXME load localized error msg
-            MessageBoxW(hwndDlg, L"You cannot create a link to a shortcut", L"Error", MB_ICONERROR);
-            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID_NOCHANGEPAGE);
-            return TRUE;
-        }
-
-        if (!PathFileExistsW(unquoted))
-        {
-            // FIXME load localized error msg
-            MessageBoxW(hwndDlg, L"The specified file name in the target box is invalid", L"Error", MB_ICONERROR);
-            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID_NOCHANGEPAGE);
-            return TRUE;
-        }
-
-        SetPath(unquoted);
-        if (lpszArgs)
-            SetArguments(lpszArgs);
-        else
-            SetArguments(L"\0");
-
-        HeapFree(GetProcessHeap(), 0, unquoted);
 
         m_Header.wHotKey = (WORD)SendDlgItemMessageW(hwndDlg, IDC_SHORTCUT_KEY_HOTKEY, HKM_GETHOTKEY, 0, 0);
 

@@ -161,6 +161,50 @@ cleanup:
     HeapFree(GetProcessHeap(), 0, SystemStartOptions);
 }
 
+static BOOL
+SafeGetUnicodeString(
+    _In_ const LSA_UNICODE_STRING *pInput,
+    _Out_ PWSTR pszOutput,
+    _In_ SIZE_T cchMax)
+{
+    HRESULT hr;
+    hr = StringCbCopyNExW(pszOutput, cchMax * sizeof(WCHAR),
+                          pInput->Buffer, pInput->Length,
+                          NULL, NULL,
+                          STRSAFE_NO_TRUNCATION | STRSAFE_NULL_ON_FAILURE);
+    return (hr == S_OK);
+}
+
+/* Reference: https://learn.microsoft.com/en-us/windows/win32/secauthn/protecting-the-automatic-logon-password */
+static BOOL
+GetLsaDefaultPassword(_Inout_ PGINA_CONTEXT pgContext)
+{
+    LSA_HANDLE hPolicy;
+    LSA_UNICODE_STRING Name, *pPwd;
+    LSA_OBJECT_ATTRIBUTES ObjectAttributes = { sizeof(ObjectAttributes) };
+
+    NTSTATUS Status = LsaOpenPolicy(NULL, &ObjectAttributes, 
+                                    POLICY_GET_PRIVATE_INFORMATION, &hPolicy);
+    if (!NT_SUCCESS(Status))
+        return FALSE;
+
+    RtlInitUnicodeString(&Name, L"DefaultPassword");
+    Status = LsaRetrievePrivateData(hPolicy, &Name, &pPwd);
+    LsaClose(hPolicy);
+
+    if (Status == STATUS_SUCCESS)
+    {
+        if (!SafeGetUnicodeString(pPwd, pgContext->Password,
+                                  _countof(pgContext->Password)))
+        {
+            Status = STATUS_BUFFER_TOO_SMALL;
+        }
+        SecureZeroMemory(pPwd->Buffer, pPwd->Length);
+        LsaFreeMemory(pPwd);
+    }
+
+    return Status == STATUS_SUCCESS;
+}
 
 static
 BOOL
@@ -259,6 +303,8 @@ GetRegistrySettings(PGINA_CONTEXT pgContext)
                           NULL,
                           (LPBYTE)&pgContext->Password,
                           &dwSize);
+    if (rc)
+        GetLsaDefaultPassword(pgContext);
 
     if (lpIgnoreShiftOverride != NULL)
         HeapFree(GetProcessHeap(), 0, lpIgnoreShiftOverride);
@@ -788,10 +834,10 @@ CreateProfile(
     IN PWSTR Domain,
     IN PWSTR Password)
 {
-    LPWSTR ProfilePath = NULL;
-    LPWSTR lpEnvironment = NULL;
-    TOKEN_STATISTICS Stats;
     PWLX_PROFILE_V2_0 pProfile = NULL;
+    PWSTR pProfilePath = NULL;
+    PWSTR pEnvironment = NULL;
+    TOKEN_STATISTICS Stats;
     DWORD cbStats, cbSize;
     DWORD dwLength;
     BOOL bResult;
@@ -816,13 +862,13 @@ CreateProfile(
     bResult = GetProfilesDirectoryW(NULL, &cbSize);
     if (!bResult && GetLastError() == ERROR_INSUFFICIENT_BUFFER)
     {
-        ProfilePath = HeapAlloc(GetProcessHeap(), 0, cbSize * sizeof(WCHAR));
-        if (!ProfilePath)
+        pProfilePath = LocalAlloc(LMEM_FIXED, cbSize * sizeof(WCHAR));
+        if (!pProfilePath)
         {
-            WARN("HeapAlloc() failed\n");
+            WARN("LocalAlloc() failed\n");
             goto cleanup;
         }
-        bResult = GetProfilesDirectoryW(ProfilePath, &cbSize);
+        bResult = GetProfilesDirectoryW(pProfilePath, &cbSize);
     }
     if (!bResult)
     {
@@ -831,30 +877,30 @@ CreateProfile(
     }
 
     /* Allocate memory for profile */
-    pProfile = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WLX_PROFILE_V2_0));
+    pProfile = LocalAlloc(LMEM_FIXED | LMEM_ZEROINIT, sizeof(*pProfile));
     if (!pProfile)
     {
         WARN("HeapAlloc() failed\n");
         goto cleanup;
     }
     pProfile->dwType = WLX_PROFILE_TYPE_V2_0;
-    pProfile->pszProfile = ProfilePath;
+    pProfile->pszProfile = pProfilePath;
 
     cbSize = sizeof(L"LOGONSERVER=\\\\") +
              wcslen(pgContext->DomainName) * sizeof(WCHAR) +
              sizeof(UNICODE_NULL);
-    lpEnvironment = HeapAlloc(GetProcessHeap(), 0, cbSize);
-    if (!lpEnvironment)
+    pEnvironment = LocalAlloc(LMEM_FIXED, cbSize);
+    if (!pEnvironment)
     {
-        WARN("HeapAlloc() failed\n");
+        WARN("LocalAlloc() failed\n");
         goto cleanup;
     }
 
-    StringCbPrintfW(lpEnvironment, cbSize, L"LOGONSERVER=\\\\%ls", pgContext->DomainName);
-    ASSERT(wcslen(lpEnvironment) == cbSize / sizeof(WCHAR) - 2);
-    lpEnvironment[cbSize / sizeof(WCHAR) - 1] = UNICODE_NULL;
+    StringCbPrintfW(pEnvironment, cbSize, L"LOGONSERVER=\\\\%ls", pgContext->DomainName);
+    ASSERT(wcslen(pEnvironment) == cbSize / sizeof(WCHAR) - 2);
+    pEnvironment[cbSize / sizeof(WCHAR) - 1] = UNICODE_NULL;
 
-    pProfile->pszEnvironment = lpEnvironment;
+    pProfile->pszEnvironment = pEnvironment;
 
     if (!GetTokenInformation(pgContext->UserToken,
                              TokenStatistics,
@@ -876,12 +922,12 @@ CreateProfile(
     return TRUE;
 
 cleanup:
+    if (pEnvironment)
+        LocalFree(pEnvironment);
+    if (pProfilePath)
+        LocalFree(pProfilePath);
     if (pProfile)
-    {
-        HeapFree(GetProcessHeap(), 0, pProfile->pszEnvironment);
-    }
-    HeapFree(GetProcessHeap(), 0, pProfile);
-    HeapFree(GetProcessHeap(), 0, ProfilePath);
+        LocalFree(pProfile);
     return FALSE;
 }
 
@@ -1025,7 +1071,7 @@ WlxLogoff(
     TRACE("WlxLogoff(%p)\n", pWlxContext);
 
     /* Delete the password */
-    ZeroMemory(pgContext->Password, sizeof(pgContext->Password));
+    SecureZeroMemory(pgContext->Password, sizeof(pgContext->Password));
 
     /* Close the user token */
     CloseHandle(pgContext->UserToken);

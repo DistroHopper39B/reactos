@@ -68,6 +68,9 @@ include(sdk/cmake/config.cmake)
 # Compiler flags handling
 include(sdk/cmake/compilerflags.cmake)
 
+# set_wine_module function
+include(sdk/cmake/set_wine_module.cmake)
+
 add_definitions(
     -D__REACTOS__
     # swprintf without count argument is used in most of the codebase
@@ -157,7 +160,10 @@ if(NOT CMAKE_CROSSCOMPILING)
 
     set(NATIVE_TARGETS asmpp bin2c widl gendib cabman fatten hpp isohybrid mkhive mkisofs obj2bin spec2def geninc mkshelllink utf16le xml2sdb pe2macho)
     if(NOT MSVC)
-        list(APPEND NATIVE_TARGETS rsym pefixup)
+        list(APPEND NATIVE_TARGETS pefixup)
+        if (ARCH STREQUAL "i386")
+            list(APPEND NATIVE_TARGETS rsym)
+        endif()
     endif()
 
     install(TARGETS ${NATIVE_TARGETS})
@@ -343,8 +349,7 @@ Enable this if the module uses typeid or dynamic_cast. You will probably need to
     add_subdirectory(sdk/include/xdk)
     add_subdirectory(sdk/include/psdk)
     add_subdirectory(sdk/include/dxsdk)
-    add_subdirectory(sdk/include/reactos/wine)
-    add_subdirectory(sdk/include/reactos/mc)
+    add_subdirectory(sdk/include/reactos)
     add_subdirectory(sdk/include/asm)
 
     if(ARCH MATCHES "64$")

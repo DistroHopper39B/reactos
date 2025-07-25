@@ -614,17 +614,18 @@ BEGIN
     DEFPUSHBUTTON "&Iniciar", IDOK, 53, 198, 60, 14
     PUSHBUTTON "&Fechar", IDCANCEL, 118, 198, 60, 14
     LTEXT "&Capacidade:", -1, 7, 6, 169, 9
-    COMBOBOX 28673, 7, 17, 170, 200, CBS_DROPDOWNLIST | WS_VSCROLL | NOT WS_TABSTOP
+    COMBOBOX 28673, 7, 17, 170, 200, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT "&Sistema de ficheiros", -1, 7, 35, 170, 9
-    COMBOBOX 28677, 7, 46, 170, 200, CBS_DROPDOWNLIST | WS_VSCROLL | NOT WS_TABSTOP
+    COMBOBOX 28677, 7, 46, 170, 200, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL "", 28678, "MSCTLS_PROGRESS32", 0, 7, 181, 170, 8
     LTEXT "&Tamanho da unidade de alocação", -1, 7, 64, 170, 9
-    COMBOBOX 28680, 7, 75, 170, 200, CBS_DROPDOWNLIST | WS_VSCROLL | NOT WS_TABSTOP
+    COMBOBOX 28680, 7, 75, 170, 200, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT "&Nome do volume", -1, 7, 93, 170, 9
     EDITTEXT 28679, 7, 103, 170, 13, ES_AUTOHSCROLL
     GROUPBOX "&Opções", 4610, 7, 121, 170, 49
     AUTOCHECKBOX "Formatação &rápida", 28674, 16, 135, 155, 10
     AUTOCHECKBOX "&Permitir compressão", 28675, 16, 152, 155, 10
+    CONTROL "", 30000, "STATIC", SS_ICON | WS_TABSTOP | SS_CENTERIMAGE | SS_NOTIFY, 7, 198, 15, 14
 END
 
 IDD_CHECK_DISK DIALOGEX 50, 50, 194, 115
@@ -984,7 +985,10 @@ BEGIN
     IDS_PRINT_VERB "Imprimir"
     IDS_CMD_VERB "Linha de Comandos aqui"
 
+    IDS_MULTIPLETYPES   "Multiple Types"
+    IDS_VARIOUSFOLDERS  "Various Folders"
     IDS_FILE_FOLDER "%u Ficheiros, %u Pastas"
+
     IDS_PRINTERS "Impressoras"
     IDS_FONTS "Tipos de letra"
     IDS_INSTALLNEWFONT "Instalar novo tipo de letra..."
@@ -1008,6 +1012,10 @@ BEGIN
     IDS_OBJECTS_SELECTED "%d Objectos seleccionados"
 
     IDS_SEARCH_BROWSEITEM "Procurar..."
+
+    IDS_RECYCLE_CLEANER_DISPLAYNAME "Recycle Bin"
+    IDS_RECYCLE_CLEANER_DESCRIPTION "The Recycle Bin contains files you have deleted from your computer. These files are not permanently removed until you empty the Recycle Bin."
+    IDS_RECYCLE_CLEANER_BUTTON_TEXT "&View Files"
 
     IDS_TITLE_MYCOMP "O Meu Computador"
     IDS_TITLE_MYNET "Os Meus Locais na Rede"
@@ -1043,6 +1051,10 @@ BEGIN
     IDS_ADVANCED_DISPLAY_RUN "Apresentar comando 'Executar'"
     IDS_ADVANCED_DISPLAY_ADMINTOOLS "Mostrar 'Ferramentas administrativas'"
     IDS_ADVANCED_SMALL_START_MENU "Mostrar ícones pequenos no menu 'Iniciar'"
+
+    IDS_VISEFFECT_DRAGFULL "Show window contents while dragging"
+    IDS_VISEFFECT_FONTSMOOTHING "Smooth edges of screen fonts"
+    IDS_VISEFFECT_LISTVIEWSHADOW "Use drop shadows for icon labels on the desktop"
 
     IDS_NEWEXT_ADVANCED_LEFT "<< A&vançado"
     IDS_NEWEXT_ADVANCED_RIGHT "Avança&do >>"
