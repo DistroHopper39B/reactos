@@ -1,18 +1,25 @@
 #ifndef _WINBASE_
 #define _WINBASE_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if !defined(_ADVAPI32_)
+#define WINADVAPI DECLSPEC_IMPORT
+#else
+#define WINADVAPI
+#endif
+
 #if !defined(_KERNEL32_)
 #define WINBASEAPI DECLSPEC_IMPORT
 #else
 #define WINBASEAPI
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <libloaderapi.h>
 #include <sysinfoapi.h>
+#include <threadpoolapiset.h>
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -529,6 +536,9 @@ extern "C" {
 #define STARTF_TITLEISAPPID     0x00001000
 #define STARTF_PREVENTPINNING   0x00002000
 #endif /* (WINVER >= 0x400) */
+#if (WINVER >= 0x0600)
+#define STARTF_UNTRUSTEDSOURCE  0x00008000
+#endif /* (WINVER >= 0x0600) */
 
 #define TC_NORMAL 0
 #define TC_HARDERR 1
@@ -908,11 +918,17 @@ typedef struct _CRITICAL_SECTION_DEBUG {
 	LIST_ENTRY ProcessLocksList;
 	DWORD EntryCount;
 	DWORD ContentionCount;
-//#ifdef __WINESRC__ //not all wine code is marked so
-	DWORD_PTR Spare[8/sizeof(DWORD_PTR)];/* in Wine they store a string here */
-//#else
-	//WORD SpareWORD;
-//#endif
+    union
+    {
+        DWORD_PTR WineDebugString;
+        DWORD_PTR Spare[1];
+        struct
+        {
+            DWORD Flags;
+            WORD CreatorBackTraceIndexHigh;
+            WORD SpareWORD;
+        };
+    };
 } CRITICAL_SECTION_DEBUG,*PCRITICAL_SECTION_DEBUG,*LPCRITICAL_SECTION_DEBUG;
 
 typedef struct _CRITICAL_SECTION {
@@ -4176,4 +4192,4 @@ WCHAR * CDECL wine_get_dos_file_name(LPCSTR str);
 #include <synchapi.h>
 #include <processthreadsapi.h>
 
-#endif /* _WINBASE_H */
+#endif /* _WINBASE_ */

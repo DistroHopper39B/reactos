@@ -16,6 +16,12 @@
 #define CurrentArchitecture L"ppc"
 #endif
 
+static inline HRESULT
+HResultFromWin32(UINT Error)
+{
+    return HRESULT_FROM_WIN32(Error);
+}
+
 static inline UINT
 ErrorFromHResult(HRESULT hr)
 {
@@ -26,12 +32,19 @@ ErrorFromHResult(HRESULT hr)
         return hr >= 0 ? ERROR_SUCCESS : hr;
 }
 
+UINT
+ErrorBox(HWND hOwner, UINT Error = GetLastError());
+
 VOID
 CopyTextToClipboard(LPCWSTR lpszText);
 VOID
 ShowPopupMenuEx(HWND hwnd, HWND hwndOwner, UINT MenuID, UINT DefaultItem, POINT *Point = NULL);
 VOID
 EmulateDialogReposition(HWND hwnd);
+UINT
+ClassifyFile(PCWSTR Path);
+BOOL
+OpensWithExplorer(PCWSTR Path);
 BOOL
 StartProcess(const CStringW &Path, BOOL Wait);
 BOOL

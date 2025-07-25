@@ -686,8 +686,6 @@ DWORD WINAPI GetAdapterIndex(LPWSTR AdapterName, PULONG IfIndex)
 DWORD WINAPI GetAdaptersInfo(PIP_ADAPTER_INFO pAdapterInfo, PULONG pOutBufLen)
 {
   DWORD ret;
-  BOOL dhcpEnabled;
-  DWORD dhcpServer;
 
   TRACE("pAdapterInfo %p, pOutBufLen %p\n", pAdapterInfo, pOutBufLen);
   if (!pOutBufLen)
@@ -771,12 +769,7 @@ DWORD WINAPI GetAdaptersInfo(PIP_ADAPTER_INFO pAdapterInfo, PULONG pOutBufLen)
               ptr->IpAddressList.Context = ptr->Index;
               toIPAddressString(getInterfaceGatewayByIndex(table->indexes[ndx]),
                ptr->GatewayList.IpAddress.String);
-              getDhcpInfoForAdapter(table->indexes[ndx], &dhcpEnabled,
-                                    &dhcpServer, &ptr->LeaseObtained,
-                                    &ptr->LeaseExpires);
-              ptr->DhcpEnabled = (DWORD) dhcpEnabled;
-              toIPAddressString(dhcpServer,
-                                ptr->DhcpServer.IpAddress.String);
+              getDhcpInfoForAdapter(table->indexes[ndx], ptr);
               if (winsEnabled) {
                 ptr->HaveWins = TRUE;
                 memcpy(ptr->PrimaryWinsServer.IpAddress.String,
@@ -1956,12 +1949,23 @@ DWORD WINAPI GetIpStatistics(PMIB_IPSTATS pStats)
  */
 DWORD WINAPI GetIpStatisticsEx(PMIB_IPSTATS pStats, DWORD dwFamily)
 {
-  DWORD ret;
+    HANDLE tcpFile;
+    DWORD ret;
 
-  TRACE("pStats %p\n", pStats);
-  ret = getIPStats(pStats, dwFamily);
-  TRACE("returning %ld\n", ret);
-  return ret;
+    if (!pStats)
+        return ERROR_INVALID_PARAMETER;
+
+    if (dwFamily != AF_INET && dwFamily != AF_INET6)
+        return ERROR_INVALID_PARAMETER;
+
+    if (!NT_SUCCESS(openTcpFile(&tcpFile, FILE_READ_DATA)))
+        return ERROR_NOT_SUPPORTED;
+
+    TRACE("pStats %p\n", pStats);
+    ret = getIPStats(tcpFile, pStats);
+    closeTcpFile(tcpFile);
+    TRACE("returning %ld\n", ret);
+    return ret;
 }
 
 /******************************************************************
@@ -2496,12 +2500,23 @@ BOOL WINAPI GetRTTAndHopCount(IPAddr DestIpAddress, PULONG HopCount, ULONG MaxHo
  */
 DWORD WINAPI GetTcpStatisticsEx(PMIB_TCPSTATS pStats, DWORD dwFamily)
 {
-  DWORD ret;
+    HANDLE tcpFile;
+    DWORD ret;
 
-  TRACE("pStats %p\n", pStats);
-  ret = getTCPStats(pStats, dwFamily);
-  TRACE("returning %ld\n", ret);
-  return ret;
+    if (!pStats)
+        return ERROR_INVALID_PARAMETER;
+
+    if (dwFamily != AF_INET && dwFamily != AF_INET6)
+        return ERROR_INVALID_PARAMETER;
+
+    if (!NT_SUCCESS(openTcpFile(&tcpFile, FILE_READ_DATA)))
+        return ERROR_NOT_SUPPORTED;
+
+    TRACE("pStats %p\n", pStats);
+    ret = getTCPStats(tcpFile, pStats);
+    closeTcpFile(tcpFile);
+    TRACE("returning %ld\n", ret);
+    return ret;
 }
 
 /******************************************************************
@@ -2559,12 +2574,23 @@ DWORD WINAPI GetTcpTable(PMIB_TCPTABLE pTcpTable, PDWORD pdwSize, BOOL bOrder)
  */
 DWORD WINAPI GetUdpStatisticsEx(PMIB_UDPSTATS pStats, DWORD dwFamily)
 {
-  DWORD ret;
+    HANDLE tcpFile;
+    DWORD ret;
 
-  TRACE("pStats %p\n", pStats);
-  ret = getUDPStats(pStats, dwFamily);
-  TRACE("returning %ld\n", ret);
-  return ret;
+    if (!pStats)
+        return ERROR_INVALID_PARAMETER;
+
+    if (dwFamily != AF_INET && dwFamily != AF_INET6)
+        return ERROR_INVALID_PARAMETER;
+
+    if (!NT_SUCCESS(openTcpFile(&tcpFile, FILE_READ_DATA)))
+        return ERROR_NOT_SUPPORTED;
+
+    TRACE("pStats %p\n", pStats);
+    ret = getUDPStats(tcpFile, pStats);
+    closeTcpFile(tcpFile);
+    TRACE("returning %ld\n", ret);
+    return ret;
 }
 
 /******************************************************************
