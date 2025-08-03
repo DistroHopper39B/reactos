@@ -15,10 +15,10 @@ DBG_DEFAULT_CHANNEL(HWDETECT);
 
 /* GLOBALS *******************************************************************/
 
-extern PMACH_BOOTARGS BootArgs; // from eax register; see appletventry.S
-
 UCHAR FrldrBootDrive = 0x80; // Drive 1
 ULONG FrldrBootPartition = 1; // Partition 1
+
+extern PMACH_BOOTARGS BootArgs; // from eax register; see appletventry.S
 
 /* FUNCTIONS *****************************************************************/
 
@@ -26,6 +26,51 @@ VOID
 AppleTVPrepareForReactOS(VOID)
 {
     DebugDisableScreenPort();
+}
+
+static
+VOID
+ParseCmdLine(PCSTR CmdLine)
+{
+    PSTR    CmdLineCopy = NULL, PartitionString = NULL;
+    CHAR    CmdLineCopyBuffer[1024];
+    ULONG   Value;
+    
+    // Don't bother checking the command line if it's empty
+    if (!CmdLine || !*CmdLine) return;
+    
+    strncpy(CmdLineCopyBuffer,
+        CmdLine,
+        sizeof(CmdLineCopyBuffer));
+    
+    CmdLineCopy = CmdLineCopyBuffer;
+    
+    // Uppercase
+    _strupr(CmdLineCopy);
+    
+    // Get the partition number
+    PartitionString = strstr(CmdLineCopy, "PARTITION");
+    
+    /*
+     * Check if we got a partition number.
+     * NOTE: Inspired by freeldr/lib/debug.c, DebugInit(),
+     * which is inspired by reactos/ntoskrnl/kd/kdinit.c, KdInitSystem(...)
+     */
+    if (PartitionString)
+    {
+        // Move past the actual string, to reach the partition number
+        PartitionString += strlen("PARTITION");
+        
+        // Now get past any spaces
+        while (*PartitionString == ' ') PartitionString++;
+        
+        // And make sure we have a partition number
+        if (*PartitionString)
+        {
+            Value = atol(PartitionString + 1);
+            if (Value) FrldrBootPartition = Value;
+        }
+    }
 }
 
 VOID
@@ -73,10 +118,6 @@ MachInit(const char *CmdLine)
     MachVtbl.HwDetect = AppleTVHwDetect;
     MachVtbl.HwIdle = AppleTVHwIdle;
     
-    // FIXME: Do this somewhere else!
-    FrldrBootDrive = 0x80;
-    FrldrBootPartition = 1;
-    
     // If verbose mode is enabled according to Mach, enable it here
     if (BootArgs->Video.DisplayMode == DISPLAY_MODE_TEXT)
     {
@@ -86,6 +127,9 @@ MachInit(const char *CmdLine)
         // Enable screen debug
         DebugEnableScreenPort();
     }
+    
+    // If a disk partition is specified on the command line, set it.
+    ParseCmdLine(CmdLine);
     
     HalpCalibrateStallExecution();
 }
