@@ -99,6 +99,13 @@ static unsigned int delay_count = 1;
 PCHAR
 GetHarddiskIdentifier(UCHAR DriveNumber); /* hwdisk.c */
 
+#define SMBIOS_TABLE_GUID \
+  { \
+    0xeb9d2d31, 0x2d88, 0x11d3, {0x9a, 0x16, 0x0, 0x90, 0x27, 0x3f, 0xc1, 0x4d } \
+  }
+
+#define SMBIOS_TABLE_LOW 0xF0000
+
 /* FUNCTIONS *****************************************************************/
 
 BOOLEAN IsAcpiPresent(VOID)
@@ -156,6 +163,24 @@ WaitFor8254Wraparound(VOID)
          */
     }
     while (Delta < 300);
+}
+
+static
+PVOID
+FindUefiVendorTable(EFI_SYSTEM_TABLE *SystemTable, EFI_GUID Guid)
+{
+    ULONG i;
+    
+    for (i = 0; i < SystemTable->NumberOfTableEntries; i++)
+    {
+        if (!memcmp(&SystemTable->ConfigurationTable[i].VendorGuid,
+            &Guid, sizeof(EFI_GUID)))
+        {
+            return SystemTable->ConfigurationTable[i].VendorTable;
+        }
+    }
+    
+    return NULL;
 }
 
 VOID
@@ -800,65 +825,36 @@ DetectIsaBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     /* FIXME: Detect more ISA devices */
 }
 
-PRSDP_DESCRIPTOR
-FindAcpiBios(USHORT WindowsVersion)
-{
-    PRSDP_DESCRIPTOR    Rsdp = NULL;
-    UINTN               i;
-    EFI_GUID            AcpiGuid;
-    EFI_GUID            Acpi1Guid = ACPI_10_TABLE_GUID;
-    EFI_GUID            Acpi2Guid = EFI_ACPI_20_TABLE_GUID;
-    
-    // Detect what version of NT we are loading
-    // This command doesn't work correctly, but it works well enough to
-    // tell the difference between W2K and later versions of Windows
-    
-    if (WindowsVersion >= _WIN32_WINNT_WINXP)
-    {
-        // For Windows XP and later, we use the ACPI 2.0 table
-        // This works on SP3 at least, hopefully it works on RTM too
-        TRACE("Windows XP or later detected, using ACPI 2.0\n");
-        AcpiGuid = Acpi2Guid;
-    }
-    else
-    {
-        TRACE("Windows 2000 or earlier detected, using ACPI 1.0\n");
-        // For Windows 2000 and earlier, we use the ACPI 1.0 table.
-        // Some computers might not have this, but the Apple TV does.
-        // This breaks software reboot on the Apple TV.
-        AcpiGuid = Acpi1Guid;
-    }
-        
-    GlobalSystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
-    
-    for (i = 0; i < GlobalSystemTable->NumberOfTableEntries; i++)
-    {
-        if (!memcmp(&GlobalSystemTable->ConfigurationTable[i].VendorGuid,
-                    &AcpiGuid, sizeof(AcpiGuid)))
-        {
-            Rsdp = (PRSDP_DESCRIPTOR) GlobalSystemTable->ConfigurationTable[i].VendorTable;
-            break;
-        }
-    }
-
-    return Rsdp;
-}
-
 VOID
 DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 {
-    PCONFIGURATION_COMPONENT_DATA BiosKey;
-    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCONFIGURATION_COMPONENT_DATA   BiosKey;
+    PCM_PARTIAL_RESOURCE_LIST       PartialResourceList;
     PCM_PARTIAL_RESOURCE_DESCRIPTOR PartialDescriptor;
-    PRSDP_DESCRIPTOR Rsdp;
-    PACPI_BIOS_DATA AcpiBiosData;
-    ULONG TableSize;
-    USHORT WindowsVersion = 0;
+    PRSDP_DESCRIPTOR                Rsdp;
+    PACPI_BIOS_DATA                 AcpiBiosData;
+    ULONG                           TableSize;
+    USHORT                          WindowsVersion = 0;
+    EFI_SYSTEM_TABLE                *SystemTable;
     
+    SystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
+    
+    // Detect what version of NT we're running
     WindowsVersion = WinLdrDetectVersion();
     ASSERT(WindowsVersion != 0);
 
-    Rsdp = FindAcpiBios(WindowsVersion);
+    if (WindowsVersion >= _WIN32_WINNT_WINXP)
+    {
+        // Windows XP and later: Use ACPI 2.0 table.
+        Rsdp = FindUefiVendorTable(SystemTable, (EFI_GUID) EFI_ACPI_20_TABLE_GUID);
+    }
+    else
+    {
+        // Windows 2000 and later: Use ACPI 1.0 table.
+        // Note: This breaks reboot and shutdown on the Apple TV and may be completely broken on newer
+        // devices.
+        Rsdp = FindUefiVendorTable(SystemTable, (EFI_GUID) ACPI_10_TABLE_GUID);
+    }
 
     if (Rsdp)
     {
@@ -925,7 +921,8 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     }
     else
     {
-        // NT will not boot without ACPI. EFI platforms like the Apple TV should never reach this.
+        // NT will not boot without ACPI unless a PIRQ table is present.
+        // EFI platforms like the Apple TV should never reach this.
         UiMessageBoxCritical("Cannot find ACPI tables!");
     }
 }
@@ -1011,7 +1008,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
 
     // Physical format of the pixel
     // ASSERT(sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL) == 4);
-    // With UGA this can just be hardcoded to PixelBlueGreenRedReserved8BitPerColor.
+    // On Apple systems this can just be hardcoded to PixelBlueGreenRedReserved8BitPerColor.
     FramebufferData->BitsPerPixel = (8 * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
     *(EFI_PIXEL_BITMASK*)&FramebufferData->PixelInformation = EfiPixelMasks[PixelBlueGreenRedReserved8BitPerColor];
 
@@ -1076,6 +1073,29 @@ DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     //FIXME: Detect more devices
 }
 
+static
+VOID
+DetectSmBios(VOID)
+{
+    PSMBIOS_TABLE_HEADER    SmBiosTable;
+    EFI_SYSTEM_TABLE        *SystemTable;
+    
+    SystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
+    SmBiosTable = FindUefiVendorTable(SystemTable, (EFI_GUID) SMBIOS_TABLE_GUID);
+    if (!SmBiosTable)
+    {
+        // This should never happen, but should not result in a critical system error if it does.
+        ERR("No SMBIOS table found!\n");
+        return;
+    }
+    
+    // Copy SMBIOS table to low memory.
+    // Note: On most hardware, low memory is read-only and must be unlocked using either the
+    // EFI Legacy Region Protocol or PAM/MTRR; see UefiSeven/CSMWrap.
+    // The Apple TV is a notable exception.
+    memcpy((PVOID) SMBIOS_TABLE_LOW, SmBiosTable, sizeof(SMBIOS_TABLE_HEADER));
+}
+
 PCONFIGURATION_COMPONENT_DATA
 AppleTVHwDetect(_In_opt_ PCSTR Options)
 {
@@ -1091,6 +1111,7 @@ AppleTVHwDetect(_In_opt_ PCSTR Options)
     DetectIsaBios(SystemKey, &BusNumber);
     DetectAcpiBios(SystemKey, &BusNumber);
     DetectInternal(SystemKey, &BusNumber);
+    DetectSmBios();
 
     TRACE("MachHwDetect() Done\n");
     return SystemKey;

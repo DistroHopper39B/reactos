@@ -17,52 +17,14 @@ DBG_DEFAULT_CHANNEL(HWDETECT);
 
 extern PMACH_BOOTARGS BootArgs; // from eax register; see appletventry.S
 
-UCHAR FrldrBootDrive;
-ULONG FrldrBootPartition;
-
-#define SMBIOS_TABLE_GUID \
-  { \
-    0xeb9d2d31, 0x2d88, 0x11d3, {0x9a, 0x16, 0x0, 0x90, 0x27, 0x3f, 0xc1, 0x4d } \
-  }
-
-#define SMBIOS_TABLE_LOW 0xF0000
+UCHAR FrldrBootDrive = 0x80; // Drive 1
+ULONG FrldrBootPartition = 1; // Partition 1
 
 /* FUNCTIONS *****************************************************************/
 
 VOID
-CopySmbios(VOID)
-{
-    PSMBIOS_TABLE_HEADER    SmbiosTable = NULL;
-    EFI_SYSTEM_TABLE        *EfiSystemTable;
-    EFI_GUID                SmbiosTableGuid = SMBIOS_TABLE_GUID;
-    UINTN                   i;
-    
-    EfiSystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
-    
-    for (i = 0; i < EfiSystemTable->NumberOfTableEntries; i++)
-    {
-        if (!memcmp(&EfiSystemTable->ConfigurationTable[i].VendorGuid,
-                    &SmbiosTableGuid, sizeof(SmbiosTableGuid)))
-        {
-            SmbiosTable = (PSMBIOS_TABLE_HEADER) EfiSystemTable->ConfigurationTable[i]
-                                                    .VendorTable;
-            break;
-        }
-    }
-    
-    if (!SmbiosTable)
-    {
-        ERR("Cannot find SMBIOS!\n");
-    }
-    
-    memcpy((PVOID) SMBIOS_TABLE_LOW, SmbiosTable, sizeof(SMBIOS_TABLE_HEADER));
-}
-
-VOID
 AppleTVPrepareForReactOS(VOID)
 {
-    CopySmbios();
-
     DebugDisableScreenPort();
 }
 
