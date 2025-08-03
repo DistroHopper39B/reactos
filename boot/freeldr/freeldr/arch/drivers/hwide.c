@@ -28,6 +28,8 @@ static const IDE_REG AtapChannelBaseArray[] =
     0x640
 #elif defined(SARCH_XBOX)
     0x1F0
+#elif defined(SARCH_APPLETV)
+    0x2058, 0x2064, 0x1F0, 0x170
 #else
     0x1F0, 0x170, 0x1E8, 0x168
 #endif
