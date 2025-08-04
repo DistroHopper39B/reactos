@@ -70,7 +70,11 @@ ParseCmdLine(PCSTR CmdLine)
             Value = atol(PartitionString + 1);
             if (Value) FrldrBootPartition = Value;
         }
+        
+        ERR("partition = %d\n", FrldrBootPartition);
     }
+    
+    // TODO: Add more command line parameters
 }
 
 VOID
@@ -118,7 +122,11 @@ MachInit(const char *CmdLine)
     MachVtbl.HwDetect = AppleTVHwDetect;
     MachVtbl.HwIdle = AppleTVHwIdle;
     
-    // If verbose mode is enabled according to Mach, enable it here
+    /*
+     * If we are booting in text mode, enable screen debugging
+     * Enabling this can be achieved by holding Cmd/Win-V or S at startup
+     * or adding '-v' or '-s' to the 'Kernel Flags' key in com.apple.Boot.plist
+     */
     if (BootArgs->Video.DisplayMode == DISPLAY_MODE_TEXT)
     {
         // Clear screen
