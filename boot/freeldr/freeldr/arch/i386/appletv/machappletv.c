@@ -73,10 +73,6 @@ MachInit(const char *CmdLine)
     MachVtbl.HwDetect = AppleTVHwDetect;
     MachVtbl.HwIdle = AppleTVHwIdle;
     
-    // FIXME: Do this somewhere else!
-    FrldrBootDrive = 0x80;
-    FrldrBootPartition = 1;
-    
     /*
      * If we are booting in text mode, enable screen debugging
      * Enabling this can be achieved by holding Cmd/Win-V or S at startup
