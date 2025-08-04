@@ -17,9 +17,6 @@ DBG_DEFAULT_CHANNEL(HWDETECT);
 
 extern PMACH_BOOTARGS BootArgs; // from eax register; see appletventry.S
 
-UCHAR FrldrBootDrive = 0x80; // Drive 1
-ULONG FrldrBootPartition = 1; // Partition 1
-
 /* FUNCTIONS *****************************************************************/
 
 VOID
@@ -97,8 +94,12 @@ Reboot(VOID)
     if (BootArgs)
     {
         // Do UEFI reboot
-        EFI_RESET_SYSTEM ResetSystem = ((EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable)->RuntimeServices->ResetSystem;
-        ResetSystem(EfiResetCold, EFI_SUCCESS, 0, NULL);
+        ((EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable)->
+                            RuntimeServices->ResetSystem(
+                            EfiResetCold,
+                            EFI_SUCCESS,
+                            0,
+                            NULL);
         // if it fails, hang
         _disable();
         __halt();
