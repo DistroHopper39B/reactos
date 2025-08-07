@@ -150,7 +150,7 @@ add_dependencies(freeldr_pe asm)
 
 # Apple TV loader stuff
 add_custom_target(freeldr
-                COMMAND native-pe2macho ${CMAKE_CURRENT_BINARY_DIR}/$<TARGET_FILE_NAME:freeldr_pe> ${CMAKE_CURRENT_BINARY_DIR}/mach_kernel
+                COMMAND native-pe2macho ${CMAKE_CURRENT_BINARY_DIR}/$<TARGET_FILE_NAME:freeldr_pe> ${CMAKE_CURRENT_BINARY_DIR}/freeldr.sys
                 DEPENDS native-pe2macho freeldr_pe
                 VERBATIM)
                 

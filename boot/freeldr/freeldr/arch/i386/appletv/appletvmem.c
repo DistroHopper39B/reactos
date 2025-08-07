@@ -113,7 +113,7 @@ PcMemFinalizeMemoryMap(
     DiskReadBuffer = (PUCHAR)ALIGN_UP_BY(BootArgs->KernelBaseAddress + BootArgs->KernelSize, PAGE_SIZE);
     DiskReadBufferSize = PAGE_SIZE;
 
-    /* Scan for free range above freeldr image */
+    /* Scan for free range above firmware */
     for (i = 0; i < FreeldrDescCount; i++)
     {
         if ((MemoryMap[i].BasePage > (BootArgs->KernelBaseAddress + BootArgs->KernelSize / PAGE_SIZE)) &&
