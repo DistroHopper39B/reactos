@@ -24,11 +24,12 @@ extern UCHAR PcBiosDiskCount; /* hwdisk.c */
 extern UINT32 FreeldrDescCount; /* appletvmem.c */
 extern BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS]; /* appletvmem.c */
 
-extern USHORT WinLdrDetectVersion(VOID);
-
 BOOLEAN AcpiPresent = FALSE;
 
-EFI_SYSTEM_TABLE *GlobalSystemTable;
+static unsigned int delay_count = 1;
+
+PCHAR GetHarddiskIdentifier(UCHAR DriveNumber); /* hwdisk.c */
+USHORT WinLdrDetectVersion(VOID); /* winldr.c */
 
 /* Maximum number of COM and LPT ports */
 #define MAX_COM_PORTS   4
@@ -93,11 +94,6 @@ EFI_SYSTEM_TABLE *GlobalSystemTable;
 
 #define HZ (100)
 #define LATCH (CLOCK_TICK_RATE / HZ)
-
-static unsigned int delay_count = 1;
-
-PCHAR
-GetHarddiskIdentifier(UCHAR DriveNumber); /* hwdisk.c */
 
 #define SMBIOS_TABLE_GUID \
   { \
@@ -165,6 +161,7 @@ WaitFor8254Wraparound(VOID)
     while (Delta < 300);
 }
 
+static
 PVOID
 FindUefiVendorTable(EFI_SYSTEM_TABLE *SystemTable, EFI_GUID Guid)
 {
@@ -836,25 +833,29 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     ULONG                           TableSize;
     USHORT                          WindowsVersion = 0;
     EFI_SYSTEM_TABLE                *SystemTable;
+    EFI_GUID                        Guid;
     
     SystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
     
     // Detect what version of NT we're running
+    // Note: This information should probably be passed into HwDetect
     WindowsVersion = WinLdrDetectVersion();
     ASSERT(WindowsVersion != 0);
 
     if (WindowsVersion >= _WIN32_WINNT_WINXP)
     {
         // Windows XP and later: Use ACPI 2.0 table.
-        Rsdp = FindUefiVendorTable(SystemTable, (EFI_GUID) EFI_ACPI_20_TABLE_GUID);
+        Guid = (EFI_GUID) EFI_ACPI_20_TABLE_GUID;
     }
     else
     {
         // Windows 2000 and earlier: Use ACPI 1.0 table.
-        // Note: This breaks reboot and shutdown on the Apple TV and may be completely broken on newer
+        // Note: This breaks software reboot on the Apple TV and may be completely broken on newer
         // devices.
-        Rsdp = FindUefiVendorTable(SystemTable, (EFI_GUID) ACPI_10_TABLE_GUID);
+        Guid = (EFI_GUID) ACPI_10_TABLE_GUID;
     }
+    
+    Rsdp = FindUefiVendorTable(SystemTable, Guid);
 
     if (Rsdp)
     {
@@ -1093,7 +1094,7 @@ DetectSmBios(VOID)
     // Note: On most hardware, low memory is read-only and must be unlocked using either the
     // EFI Legacy Region Protocol or PAM/MTRR; see UefiSeven/CSMWrap.
     // The Apple TV is a notable exception.
-    memcpy((PVOID) SMBIOS_TABLE_LOW, SmBiosTable, sizeof(SMBIOS_TABLE_HEADER));
+    RtlCopyMemory((PVOID) SMBIOS_TABLE_LOW, SmBiosTable, sizeof(SMBIOS_TABLE_HEADER));
 }
 
 PCONFIGURATION_COMPONENT_DATA

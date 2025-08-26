@@ -26,7 +26,7 @@ AddMemoryDescriptor(
     IN PFN_NUMBER PageCount,
     IN TYPE_OF_MEMORY MemoryType);
 
-// we love statically allocated memory, don't we? :D
+// BIOS/E820 memory map, this is passed to Windows for ACPI support
 BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS];
 UINT32 BiosMapNumberOfEntries = 0;
 
@@ -193,6 +193,9 @@ BiosConvertToFreeldrType(BIOS_MEMORY_TYPE MemoryType)
     {
         case BiosMemoryUsable:
             return LoaderFree;
+        // FIXME: does this break real hardware?
+        case BiosMemoryAcpiReclaim:
+            return LoaderFirmwareTemporary;
         case BiosMemoryReserved:
             return LoaderFirmwarePermanent;
         default:
@@ -208,8 +211,8 @@ BiosAddMemoryRegion(PBIOS_MEMORY_MAP MemoryMap,
                     UINT64 Size,
                     BIOS_MEMORY_TYPE Type)
 {
-    UINT32 x = *BiosNumberOfEntries;
-    if (x == MAX_BIOS_DESCRIPTORS)
+    UINT32 NumEntries = *BiosNumberOfEntries;
+    if (NumEntries == MAX_BIOS_DESCRIPTORS)
     {
         ERR("Too many entries!\n");
         FrLdrBugCheckWithMessage(
@@ -219,17 +222,17 @@ BiosAddMemoryRegion(PBIOS_MEMORY_MAP MemoryMap,
             "Cannot create more than 80 BIOS memory descriptors!");
     }
     // Add on to existing entry if we can
-    if ((x > 0)
-        && (MemoryMap[x - 1].BaseAddress + MemoryMap[x - 1].Length == Start)
-        && (MemoryMap[x - 1].Type == Type))
+    if ((NumEntries > 0)
+        && (MemoryMap[NumEntries - 1].BaseAddress + MemoryMap[NumEntries - 1].Length == Start)
+        && (MemoryMap[NumEntries - 1].Type == Type))
     {
-        MemoryMap[x - 1].Length += Size;
+        MemoryMap[NumEntries - 1].Length += Size;
     }
     else
     {
-        MemoryMap[x].BaseAddress    = Start;
-        MemoryMap[x].Length         = Size;
-        MemoryMap[x].Type           = Type;
+        MemoryMap[NumEntries].BaseAddress   = Start;
+        MemoryMap[NumEntries].Length        = Size;
+        MemoryMap[NumEntries].Type          = Type;
         (*BiosNumberOfEntries)++;
     }
 }
@@ -301,16 +304,10 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     BiosConvertToFreeldrMap(BiosMapPtr,
                             BiosMapNumberOfEntries);
     
-    // reserve some ranges to prevent windows bugs
-    SetMemory(FreeldrMemMap, 0x000000, 0x01000, LoaderFirmwarePermanent); // Realmode IVT / BDA
-    SetMemory(FreeldrMemMap, 0x0A0000, 0x50000, LoaderFirmwarePermanent); // Video memory
-    SetMemory(FreeldrMemMap, 0x0F0000, 0x10000, LoaderSpecialMemory); // ROM
-    SetMemory(FreeldrMemMap, 0xFFF000, 0x01000, LoaderSpecialMemory); // unusable memory (do we really need this?)
+    // The first page should be reserved.
+    SetMemory(FreeldrMemMap, 0x000000, 0x01000, LoaderSpecialMemory); // Realmode IVT / BDA
     
     *MemoryMapSize = PcMemFinalizeMemoryMap(FreeldrMemMap);
-    
-    // Prevent BootArgs from being overwritten (can this even happen?)
-    SetMemory(FreeldrMemMap, (ULONG_PTR)BootArgs, sizeof(MACH_BOOTARGS), LoaderFirmwareTemporary);
-    
+        
     return FreeldrMemMap;
 }
