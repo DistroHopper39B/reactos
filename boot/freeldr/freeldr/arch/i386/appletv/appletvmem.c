@@ -278,7 +278,8 @@ BiosConvertToFreeldrMap(PBIOS_MEMORY_MAP BiosMap,
         MemoryType = BiosConvertToFreeldrType(BiosMap[i].Type);
         SetMemory(FreeldrMemMap,
                 BiosMap[i].BaseAddress,
-                BiosMap[i].Length, MemoryType);
+                BiosMap[i].Length,
+                MemoryType);
     }
 }
 
@@ -305,7 +306,10 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
                             BiosMapNumberOfEntries);
     
     // The first page should be reserved.
-    SetMemory(FreeldrMemMap, 0x000000, 0x01000, LoaderSpecialMemory); // Realmode IVT / BDA
+    SetMemory(FreeldrMemMap,
+            0x000000,
+            0x01000,
+            LoaderSpecialMemory);
     
     *MemoryMapSize = PcMemFinalizeMemoryMap(FreeldrMemMap);
         
