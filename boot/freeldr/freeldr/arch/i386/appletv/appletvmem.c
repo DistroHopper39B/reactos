@@ -193,9 +193,6 @@ BiosConvertToFreeldrType(BIOS_MEMORY_TYPE MemoryType)
     {
         case BiosMemoryUsable:
             return LoaderFree;
-        // FIXME: does this break real hardware?
-        case BiosMemoryAcpiReclaim:
-            return LoaderFirmwareTemporary;
         case BiosMemoryReserved:
             return LoaderFirmwarePermanent;
         default:
