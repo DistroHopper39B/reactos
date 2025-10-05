@@ -634,6 +634,7 @@ static BOOLEAN NtfsFindMftRecord(PNTFS_VOLUME_INFO Volume, ULONGLONG MFTIndex, P
             IndexAllocationCtx = NtfsFindAttribute(Volume, MftRecord, NTFS_ATTR_TYPE_INDEX_ALLOCATION, L"$I30");
             if (IndexAllocationCtx == NULL)
             {
+                // FIXME: This is where errors occur on NTFS partitions that are formatted by certain versions of Windows.
                 TRACE("Corrupted filesystem!\n");
                 FrLdrTempFree(BitmapData, TAG_NTFS_BITMAP);
                 FrLdrTempFree(IndexRecord, TAG_NTFS_INDEX_REC);
