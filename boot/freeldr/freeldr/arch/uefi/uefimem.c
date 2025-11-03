@@ -110,36 +110,17 @@ UefiConvertToFreeldrDesc(EFI_MEMORY_TYPE EfiMemoryType)
 {
     switch (EfiMemoryType)
     {
-        case EfiReservedMemoryType:
-            return LoaderReserve;
-        case EfiLoaderCode:
-            return LoaderLoadedProgram;
-        case EfiLoaderData:
-            return LoaderLoadedProgram;
         case EfiBootServicesCode:
-            return LoaderFirmwareTemporary;
         case EfiBootServicesData:
-            return LoaderFirmwareTemporary;
-        case EfiRuntimeServicesCode:
-            return LoaderFirmwarePermanent;
-        case EfiRuntimeServicesData:
-            return LoaderFirmwarePermanent;
         case EfiConventionalMemory:
+        case EfiLoaderCode:
+        case EfiLoaderData:
             return LoaderFree;
         case EfiUnusableMemory:
             return LoaderBad;
-        case EfiACPIReclaimMemory:
-            return LoaderFirmwareTemporary;
-        case EfiACPIMemoryNVS:
-            return LoaderReserve;
-        case EfiMemoryMappedIO:
-            return LoaderReserve;
-        case EfiMemoryMappedIOPortSpace:
-            return LoaderReserve;
         default:
-            break;
+            return LoaderSpecialMemory;
     }
-    return LoaderReserve;
 }
 
 PFREELDR_MEMORY_DESCRIPTOR
@@ -212,7 +193,7 @@ UefiMemGetMemoryMap(ULONG *MemoryMapSize)
             if (Status != EFI_SUCCESS)
             {
                 /* We failed to reserve the page, so change its type */
-                MemoryType = LoaderFirmwareTemporary;
+                MemoryType = LoaderFirmwarePermanent;
             }
         }
 
@@ -240,7 +221,7 @@ UefiMemGetMemoryMap(ULONG *MemoryMapSize)
 
     /* Windows expects the first page to be reserved, otherwise it asserts.
      * However it can be just a free page on some UEFI systems. */
-    UefiSetMemory(FreeldrMem, 0x000000, 1, LoaderFirmwarePermanent);
+    UefiSetMemory(FreeldrMem, 0x000000, 1, LoaderSpecialMemory);
     *MemoryMapSize = FreeldrDescCount;
     return FreeldrMem;
 }

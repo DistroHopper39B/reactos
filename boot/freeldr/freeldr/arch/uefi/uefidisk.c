@@ -93,7 +93,7 @@ UefiGetBootPartitionEntry(
     TRACE("UefiGetBootPartitionEntry: DriveNumber: %d\n", DriveNumber - FIRST_BIOS_DISK);
     /* UefiBootRoot is the offset into the array of handles where the raw disk of the boot drive is.
      * Partitions start with 1 in ARC, but UEFI root drive identitfier is also first partition. */
-    PartitionNum = (OffsetToBoot - UefiBootRootIdentifier);
+    PartitionNum = 0;
     if (PartitionNum == 0)
     {
         TRACE("Boot PartitionNumber is 0\n");

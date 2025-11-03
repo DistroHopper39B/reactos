@@ -8,6 +8,7 @@
 /* INCLUDES ******************************************************************/
 
 #include <uefildr.h>
+#include <drivers/bootvid/framebuf.h>
 
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(WARNING);
@@ -68,8 +69,7 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         AcpiPresent = TRUE;
 
         /* Calculate the table size */
-        TableSize = FreeldrDescCount * sizeof(BIOS_MEMORY_MAP) +
-            sizeof(ACPI_BIOS_DATA) - sizeof(BIOS_MEMORY_MAP);
+        TableSize = sizeof(ACPI_BIOS_DATA);
 
         /* Set 'Configuration Data' value */
         PartialResourceList = FrLdrHeapAlloc(sizeof(CM_PARTIAL_RESOURCE_LIST) +
@@ -104,9 +104,7 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
             AcpiBiosData->RSDTAddress.LowPart = Rsdp->rsdt_physical_address;
         }
 
-        AcpiBiosData->Count = FreeldrDescCount;
-        memcpy(AcpiBiosData->MemoryMap, EfiMemoryMap,
-            FreeldrDescCount * sizeof(BIOS_MEMORY_MAP));
+        AcpiBiosData->Count = 0;
 
         TRACE("RSDT %p, data size %x\n", Rsdp->rsdt_physical_address, TableSize);
 
@@ -127,6 +125,196 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     }
 }
 
+extern REACTOS_INTERNAL_BGCONTEXT framebufferData;
+/****/extern EFI_PIXEL_BITMASK UefiGopPixelBitmask;/****/
+
+static VOID
+DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
+{
+    PCONFIGURATION_COMPONENT_DATA ControllerKey;
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR PartialDescriptor;
+    PCM_FRAMEBUF_DEVICE_DATA FramebufferData;
+    ULONG Size;
+
+    if (framebufferData.BufferSize == 0)
+        return;
+
+    ERR("\nStructure sizes:\n"
+        "    sizeof(CM_PARTIAL_RESOURCE_LIST)       = %lu\n"
+        "    sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) = %lu\n"
+        "    sizeof(CM_FRAMEBUF_DEVICE_DATA)        = %lu\n\n",
+        sizeof(CM_PARTIAL_RESOURCE_LIST),
+        sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR),
+        sizeof(CM_FRAMEBUF_DEVICE_DATA));
+
+    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) +
+           sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) +
+           sizeof(CM_FRAMEBUF_DEVICE_DATA);
+    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+    if (PartialResourceList == NULL)
+    {
+        ERR("Failed to allocate resource descriptor\n");
+        return;
+    }
+
+    /* Initialize resource descriptor */
+    RtlZeroMemory(PartialResourceList, Size);
+    PartialResourceList->Version  = 1;
+    PartialResourceList->Revision = 2;
+    PartialResourceList->Count = 2;
+
+    /* Set Memory */
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
+    PartialDescriptor->Type = CmResourceTypeMemory;
+    PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
+    PartialDescriptor->Flags = CM_RESOURCE_MEMORY_READ_WRITE;
+    PartialDescriptor->u.Memory.Start.QuadPart = framebufferData.BaseAddress;
+    PartialDescriptor->u.Memory.Length = framebufferData.BufferSize;
+
+    /* Set framebuffer-specific data */
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
+    PartialDescriptor->Type = CmResourceTypeDeviceSpecific;
+    PartialDescriptor->ShareDisposition = CmResourceShareUndetermined;
+    PartialDescriptor->Flags = 0;
+    PartialDescriptor->u.DeviceSpecificData.DataSize =
+        sizeof(CM_FRAMEBUF_DEVICE_DATA);
+
+    /* Get pointer to framebuffer-specific data */
+    FramebufferData = (PVOID)(PartialDescriptor + 1);
+    RtlZeroMemory(FramebufferData, sizeof(*FramebufferData));
+    FramebufferData->Version  = 2;
+    FramebufferData->Revision = 0;
+
+    FramebufferData->VideoClock = 0; // FIXME: Use EDID
+
+    /* Horizontal and Vertical resolution in pixels */
+    FramebufferData->ScreenWidth  = framebufferData.ScreenWidth;
+    FramebufferData->ScreenHeight = framebufferData.ScreenHeight;
+
+    /* Number of pixel elements per video memory line */
+    FramebufferData->PixelsPerScanLine = framebufferData.PixelsPerScanLine;
+
+    //
+    // TODO: Investigate display rotation!
+    //
+    // See OpenCorePkg OcConsoleLib/ConsoleGop.c
+    // if ((mGop.Rotation == 90) || (mGop.Rotation == 270))
+    if (FramebufferData->ScreenWidth < FramebufferData->ScreenHeight)
+    {
+        #define SWAP(x, y) { (x) ^= (y); (y) ^= (x); (x) ^= (y); }
+        SWAP(FramebufferData->ScreenWidth, FramebufferData->ScreenHeight);
+        FramebufferData->PixelsPerScanLine = FramebufferData->ScreenWidth;
+        #undef SWAP
+    }
+
+    /* Physical format of the pixel */
+    // ASSERT(sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL) == 4);
+    switch (framebufferData.PixelFormat)
+    {
+        case PixelRedGreenBlueReserved8BitPerColor:
+        {
+            FramebufferData->BitsPerPixel = (8 * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
+           *(EFI_PIXEL_BITMASK*)&FramebufferData->PixelInformation = EfiPixelMasks[framebufferData.PixelFormat];
+            break;
+        }
+
+        case PixelBlueGreenRedReserved8BitPerColor:
+        {
+            FramebufferData->BitsPerPixel = (8 * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
+            FramebufferData->PixelInformation.RedMask      = 0x00FF0000;
+            FramebufferData->PixelInformation.GreenMask    = 0x0000FF00;
+            FramebufferData->PixelInformation.BlueMask     = 0x000000FF;
+            FramebufferData->PixelInformation.ReservedMask = 0xFF000000;
+            break;
+        }
+
+        case PixelBitMask:
+        {
+            FramebufferData->BitsPerPixel =
+                PixelBitmasksToBpp(UefiGopPixelBitmask.RedMask,
+                                   UefiGopPixelBitmask.GreenMask,
+                                   UefiGopPixelBitmask.BlueMask,
+                                   UefiGopPixelBitmask.ReservedMask);
+           *(EFI_PIXEL_BITMASK*)&FramebufferData->PixelInformation = UefiGopPixelBitmask;
+           //FramebufferData->PixelInformation.RedMask      = UefiGopPixelBitmask.RedMask;
+           //FramebufferData->PixelInformation.GreenMask    = UefiGopPixelBitmask.GreenMask;
+           //FramebufferData->PixelInformation.BlueMask     = UefiGopPixelBitmask.BlueMask;
+           //FramebufferData->PixelInformation.ReservedMask = UefiGopPixelBitmask.ReservedMask;
+            break;
+        }
+
+        case PixelBltOnly:
+        default:
+        {
+            ERR("Unsupported UFEI GOP format %lu\n", framebufferData.PixelFormat);
+            FramebufferData->BitsPerPixel = 0;
+            RtlZeroMemory(&FramebufferData->PixelInformation,
+                          sizeof(FramebufferData->PixelInformation));
+            break;
+        }
+    }
+
+    FldrCreateComponentKey(BusKey,
+                           ControllerClass,
+                           DisplayController,
+                           Output | ConsoleOut,
+                           0,
+                           0xFFFFFFFF,
+                           "UEFI GOP Framebuffer",
+                           PartialResourceList,
+                           Size,
+                           &ControllerKey);
+
+    // NOTE: Don't add a MonitorPeripheral for now...
+    // We should use EDID data for it.
+}
+
+static
+VOID
+DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
+{
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCONFIGURATION_COMPONENT_DATA BusKey;
+    ULONG Size;
+
+    /* Set 'Configuration Data' value */
+    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) -
+           sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR);
+    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+    if (PartialResourceList == NULL)
+    {
+        ERR("Failed to allocate resource descriptor\n");
+        return;
+    }
+
+    /* Initialize resource descriptor */
+    RtlZeroMemory(PartialResourceList, Size);
+    PartialResourceList->Version  = 1;
+    PartialResourceList->Revision = 2;
+    PartialResourceList->Count = 0;
+
+    /* Create new bus key */
+    FldrCreateComponentKey(SystemKey,
+                           AdapterClass,
+                           MultiFunctionAdapter,
+                           0,
+                           0,
+                           0xFFFFFFFF,
+                           "UEFI Internal",
+                           PartialResourceList,
+                           Size,
+                           &BusKey);
+
+    /* Increment bus number */
+    (*BusNumber)++;
+
+    /* Detect devices that do not belong to "standard" buses */
+    DetectDisplayController(BusKey);
+
+    /* FIXME: Detect more devices */
+}
+
 PCONFIGURATION_COMPONENT_DATA
 UefiHwDetect(
     _In_opt_ PCSTR Options)
@@ -138,7 +326,7 @@ UefiHwDetect(
 
     /* Create the 'System' key */
 #if defined(_M_IX86) || defined(_M_AMD64)
-    FldrCreateSystemKey(&SystemKey, "AT/AT COMPATIBLE");
+    FldrCreateSystemKey(&SystemKey, "UEFI-based Device");
 #elif defined(_M_IA64)
     FldrCreateSystemKey(&SystemKey, "Intel Itanium processor family");
 #elif defined(_M_ARM) || defined(_M_ARM64)
@@ -149,6 +337,8 @@ UefiHwDetect(
 
     /* Detect ACPI */
     DetectAcpiBios(SystemKey, &BusNumber);
+    DetectInternal(SystemKey, &BusNumber);
+    
 
     TRACE("DetectHardware() Done\n");
     return SystemKey;
