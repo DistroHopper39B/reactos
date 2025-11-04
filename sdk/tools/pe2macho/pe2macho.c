@@ -18,7 +18,7 @@
 #include "macho.h"
 
 #ifdef _MSC_VER
-#define __builtin_ctz(x) __tzcnt_u32(x)
+#define __builtin_ctz(x) _tzcnt_u32(x)
 #endif
 
 #define HEADER_ADDITIONAL_BYTES 0x1000 // 1 page (UEFI)
