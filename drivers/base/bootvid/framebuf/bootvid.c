@@ -22,7 +22,8 @@
 #define FB_OFFSET(x, y)    (((PanV + (y)) * FrameBufferPixelsPerScanLine + PanH + (x)) * BytesPerPixel)
 
 static ULONG_PTR FrameBufferStart = 0;
-static ULONG FrameBufferWidth, FrameBufferHeight, FrameBufferPixelsPerScanLine, PanH, PanV;
+static ULONG FrameBufferWidth, FrameBufferHeight, FrameBufferPixelsPerScanLine;
+static LONG PanH, PanV;
 static UCHAR BytesPerPixel;
 static RGBQUAD CachedPalette[BV_MAX_COLORS];
 static PUCHAR BackBuffer = NULL;
