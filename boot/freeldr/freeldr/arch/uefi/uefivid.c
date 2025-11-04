@@ -6,6 +6,7 @@
  */
 
 #include <uefildr.h>
+#include <drivers/bootvid/framebuf.h>
 
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(WARNING);
@@ -24,12 +25,14 @@ extern UCHAR BitmapFont8x16[256 * 16];
 UCHAR MachDefaultTextColor = COLOR_GRAY;
 REACTOS_INTERNAL_BGCONTEXT framebufferData;
 EFI_GUID EfiGraphicsOutputProtocol = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+EFI_GUID AppleScreenInfoGUID = APPLE_SCREEN_INFO_PROTOCOL_GUID;
 /****/EFI_PIXEL_BITMASK UefiGopPixelBitmask;/****/
 
 /* FUNCTIONS ******************************************************************/
 
+static
 EFI_STATUS
-UefiInitializeVideo(VOID)
+UefiInitializeGop(VOID)
 {
     EFI_STATUS Status;
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop = NULL;
@@ -43,7 +46,7 @@ UefiInitializeVideo(VOID)
     }
 
     /* We don't need high resolutions for freeldr */
-    //gop->SetMode(gop, LOWEST_SUPPORTED_RES);
+    gop->SetMode(gop, LOWEST_SUPPORTED_RES);
 
     framebufferData.BaseAddress        = (ULONG_PTR)gop->Mode->FrameBufferBase;
     framebufferData.BufferSize         = gop->Mode->FrameBufferSize;
@@ -52,6 +55,73 @@ UefiInitializeVideo(VOID)
     framebufferData.PixelsPerScanLine  = gop->Mode->Info->PixelsPerScanLine;
     framebufferData.PixelFormat        = gop->Mode->Info->PixelFormat;
     /****/UefiGopPixelBitmask = gop->Mode->Info->PixelInformation;/****/
+    return Status;
+}
+
+static
+EFI_STATUS
+UefiInitializeAppleScreen(VOID)
+{
+    EFI_STATUS Status;
+    APPLE_SCREEN_INFO_PROTOCOL* AppleScreen = NULL;
+    UINT64 BaseAddress, FrameBufferSize;
+    UINT32 BytesPerRow, Width, Height, Depth;
+    
+    RtlZeroMemory(&framebufferData, sizeof(framebufferData));
+    
+    Status = GlobalSystemTable->BootServices->LocateProtocol(&AppleScreenInfoGUID, 0, (void**)&AppleScreen);
+    if (Status != EFI_SUCCESS)
+    {
+        TRACE("Failed to find Apple Screen Info Protocol with status %d\n", Status);
+        return Status;
+    }
+    
+    Status = AppleScreen->GetInfo(AppleScreen, 
+                                &BaseAddress,
+                                &FrameBufferSize,
+                                &BytesPerRow,
+                                &Width,
+                                &Height,
+                                &Depth);
+    
+    if (Status != EFI_SUCCESS)
+    {
+        TRACE("Failed to get screen info from Apple EFI with status %d\n", Status);
+        return Status;
+    }
+    
+    ASSERT(Depth == 32);
+    
+    framebufferData.BaseAddress         = (ULONG_PTR) BaseAddress;
+    framebufferData.BufferSize          = (ULONG_PTR) FrameBufferSize;
+    framebufferData.ScreenWidth         = Width;
+    framebufferData.ScreenHeight        = Height;
+    framebufferData.PixelsPerScanLine   = BytesPerRow / 4;
+    framebufferData.PixelFormat         = PixelBlueGreenRedReserved8BitPerColor;
+    UefiGopPixelBitmask                 = EfiPixelMasks[PixelBlueGreenRedReserved8BitPerColor];
+    
+    return Status;
+}
+
+EFI_STATUS
+UefiInitializeVideo(VOID)
+{
+    EFI_STATUS Status;
+    
+    // First try UEFI GOP.
+    Status = UefiInitializeGop();
+    if (Status == EFI_SUCCESS)
+    {
+        return Status;
+    }
+    
+    // Fall back to Apple Screen Info Protocol if GOP is unavailable.
+    Status = UefiInitializeAppleScreen();
+    if (Status != EFI_SUCCESS)
+    {
+        ERR("Unable to find any suitable video modes!\n");
+    }
+    
     return Status;
 }
 
