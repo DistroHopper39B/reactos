@@ -9,6 +9,9 @@
 #include <arch/pc/x86common.h>
 #include <arch/pc/pcbios.h>
 
+EXTERN _InitIdt:PROC
+EXTERN _i386Idt:DWORD
+
 #ifdef _USE_ML
 EXTERN __bss_start__:DWORD
 EXTERN __bss_end__:DWORD
@@ -17,10 +20,7 @@ EXTERN __bss_end__:DWORD
 #define APPLETV_COMMAND_LINE_OFFSET 4
 
 /* VOID __cdecl BootMain(IN PCCH CmdLine) */
-EXTERN _BootMain
-
-/* Align to 32 bits boundary */
-.align 4
+EXTERN _BootMain:PROC
 
 .code32
 ASSUME ES:NOTHING, FS:NOTHING, GS:NOTHING

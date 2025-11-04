@@ -57,7 +57,7 @@ FindOptionalHeaderFromFileHeader(PIMAGE_FILE_HEADER FileHeader)
 
 static
 PMACHO_HEADER
-CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, PUINT Size)
+CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 PeSize, PUINT Size)
 {
     UINT32                      MachoInfoSize;
     PMACHO_HEADER               MachoHeader;
@@ -83,7 +83,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, PUINT Siz
     
     memset(MachoHeader, 0, MachoInfoSize);
     
-    SizeOfExecData = OptionalHeader->SizeOfInitializedData - 1;
+    SizeOfExecData = PeSize - 0x1000 - 1;
     
     // Fill out Mach-O header.
     MachoHeader->MagicNumber    = MACHO_MAGIC;
@@ -239,7 +239,7 @@ main(INT argc, PCHAR argv[])
     }
     
     // Convert PE executable header to Mach-O
-    MachoHeader = CreateMachOHeaderFromPeHeader(PeOptionalHeader, &MachoSize);
+    MachoHeader = CreateMachOHeaderFromPeHeader(PeOptionalHeader, InputFileLength, &MachoSize);
     if (!MachoHeader)
     {
         fprintf(stderr, "Failed to create Mach-O header!\n");

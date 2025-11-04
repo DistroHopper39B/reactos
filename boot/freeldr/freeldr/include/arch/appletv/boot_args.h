@@ -12,21 +12,27 @@
 #define DISPLAY_MODE_GRAPHICS 1
 #define DISPLAY_MODE_TEXT 2
 
+#ifdef _MSC_VER
+#define ALIGNED(a) __declspec(align(a))
+#else
+#define ALIGNED(a) __attribute__((aligned(a)))
+#endif
+
 /* Video parameters passed to kernel. */
-typedef struct {
+typedef struct ALIGNED(4) {
     UINT32 BaseAddress; /* Base video address */
     UINT32 DisplayMode; /* Display mode specifier */
     UINT32 Pitch; /* Bytes per row */
     UINT32 Width; /* Display width in pixels */
     UINT32 Height; /* Display height in pixels */
     UINT32 Depth; /* Display depth in bits */
-} __attribute__((aligned(4))) MACH_VIDEO, *PMACH_VIDEO;
+} MACH_VIDEO, *PMACH_VIDEO;
 
 /* Boot arguments struct passed into loader. A pointer to this struct is located in the EAX register upon kernel load.
  * See xnu-1228 pexpert/pexpert/i386/boot.h.
  */
 
-typedef struct {
+typedef struct ALIGNED(4) {
     UINT16 Revision; /* Revision of this structure */
     UINT16 Version; /* Version of this structure */
 
@@ -53,6 +59,6 @@ typedef struct {
 
     UINT8 __reserved1[3];
     UINT8 __reserved2[7];
-} __attribute__((aligned(4))) MACH_BOOTARGS, *PMACH_BOOTARGS;
+} MACH_BOOTARGS, *PMACH_BOOTARGS;
 
 extern PMACH_BOOTARGS BootArgs;
