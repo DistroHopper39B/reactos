@@ -1850,7 +1850,7 @@ PcHwDetect(
 
     /* Create the 'System' key */
     // TODO: Discover and set the other machine types
-    FldrCreateSystemKey(&SystemKey, FALSE, "AT/AT COMPATIBLE");
+    FldrCreateSystemKey(&SystemKey, "AT/AT COMPATIBLE");
 
     GetHarddiskConfigurationData = PcGetHarddiskConfigurationData;
     FindPciBios = PcFindPciBios;
