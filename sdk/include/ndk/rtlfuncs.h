@@ -676,7 +676,15 @@ NTSYSAPI
 LONG
 NTAPI
 RtlUnhandledExceptionFilter(
-    _In_ struct _EXCEPTION_POINTERS* ExceptionInfo
+    _In_ PEXCEPTION_POINTERS ExceptionInfo
+);
+
+NTSYSAPI
+LONG
+NTAPI
+RtlUnhandledExceptionFilter2(
+    _In_ PEXCEPTION_POINTERS ExceptionInfo,
+    _In_ PCSTR Function
 );
 
 __analysis_noreturn
@@ -3193,14 +3201,14 @@ RtlInitializeCriticalSectionAndSpinCount(
 );
 
 NTSYSAPI
-ULONG
+LOGICAL
 NTAPI
 RtlIsCriticalSectionLocked(
     _In_ PRTL_CRITICAL_SECTION CriticalSection
 );
 
 NTSYSAPI
-ULONG
+LOGICAL
 NTAPI
 RtlIsCriticalSectionLockedByThread(
     _In_ PRTL_CRITICAL_SECTION CriticalSection
@@ -3214,7 +3222,7 @@ RtlLeaveCriticalSection(
 );
 
 NTSYSAPI
-BOOLEAN
+LOGICAL
 NTAPI
 RtlTryEnterCriticalSection(
     _In_ PRTL_CRITICAL_SECTION CriticalSection

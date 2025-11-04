@@ -14,7 +14,6 @@ list(APPEND SOURCE_CRT_TESTS
     ../crt/_vsnprintf.c
     ../crt/_vsnwprintf.c
     ../crt/mbstowcs.c
-    ../crt/mbtowc.c
     ../crt/setjmp.c
     ../crt/sprintf.c
     ../crt/strcpy.c
@@ -22,11 +21,10 @@ list(APPEND SOURCE_CRT_TESTS
     ../crt/strtoul.c
     ../crt/wcstombs.c
     ../crt/wcstoul.c
-    ../crt/wctomb.c
 )
 
 add_library(ntdll_crt_test_lib ${SOURCE_CRT_TESTS})
-target_compile_definitions(ntdll_crt_test_lib PRIVATE TEST_NTDLL)
+target_compile_definitions(ntdll_crt_test_lib PRIVATE TEST_NTDLL TEST_DLL_NAME="ntdll.dll")
 target_link_libraries(ntdll_crt_test_lib ${PSEH_LIB})
 add_dependencies(ntdll_crt_test_lib psdk)
 
@@ -125,6 +123,7 @@ list(APPEND SOURCE
     RtlQueryTimeZoneInfo.c
     RtlReAllocateHeap.c
     RtlRemovePrivileges.c
+    RtlUnhandledExceptionFilter.c
     RtlUnicodeStringToAnsiString.c
     RtlUnicodeStringToCountedOemString.c
     RtlUnicodeToOemN.c
@@ -139,9 +138,15 @@ list(APPEND SOURCE
     precomp.h)
 
 if(ARCH STREQUAL "i386")
-    add_asm_files(ntdll_apitest_asm i386/NtContinue.S)
+    add_asm_files(ntdll_apitest_asm
+        ../crt/i386/setjmp_helper.s
+        i386/NtContinue.S
+    )
 elseif(ARCH STREQUAL "amd64")
-    add_asm_files(ntdll_apitest_asm amd64/NtContinue.S)
+    add_asm_files(ntdll_apitest_asm
+        ../crt/amd64/setjmp_helper.s
+        amd64/NtContinue.S
+    )
 endif()
 
 list(APPEND PCH_SKIP_SOURCE

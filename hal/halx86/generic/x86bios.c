@@ -149,9 +149,9 @@ HalInitializeBios(
 NTSTATUS
 NTAPI
 x86BiosAllocateBuffer(
-    _In_ ULONG *Size,
-    _In_ USHORT *Segment,
-    _In_ USHORT *Offset)
+    _Inout_ ULONG *Size,
+    _Out_ USHORT *Segment,
+    _Out_ USHORT *Offset)
 {
     /* Check if the system is initialized and the buffer is large enough */
     if (!x86BiosIsInitialized || (*Size > PAGE_SIZE))
@@ -427,15 +427,17 @@ x86BiosCall(
                       NULL,  // FpuCallback,
                       NULL); // Tlb
 
-    /* Copy the registers */
+    /* Copy the GP registers */
     EmulatorContext.GeneralRegs[FAST486_REG_EAX].Long = Registers->Eax;
     EmulatorContext.GeneralRegs[FAST486_REG_EBX].Long = Registers->Ebx;
     EmulatorContext.GeneralRegs[FAST486_REG_ECX].Long = Registers->Ecx;
     EmulatorContext.GeneralRegs[FAST486_REG_EDX].Long = Registers->Edx;
     EmulatorContext.GeneralRegs[FAST486_REG_ESI].Long = Registers->Esi;
     EmulatorContext.GeneralRegs[FAST486_REG_EDI].Long = Registers->Edi;
-    EmulatorContext.SegmentRegs[FAST486_REG_DS].Selector = Registers->SegDs;
-    EmulatorContext.SegmentRegs[FAST486_REG_ES].Selector = Registers->SegEs;
+
+    /* Initialize segment registers */
+    Fast486SetSegment(&EmulatorContext, FAST486_REG_DS, Registers->SegDs);
+    Fast486SetSegment(&EmulatorContext, FAST486_REG_ES, Registers->SegEs);
 
     /* Set Eflags */
     EmulatorContext.Flags.Long = 0;

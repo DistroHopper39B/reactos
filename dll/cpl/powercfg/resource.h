@@ -1,9 +1,48 @@
+/*
+ * PROJECT:     ReactOS Power Configuration Applet
+ * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
+ * PURPOSE:     Resource definitions
+ * COPYRIGHT:   Copyright 2006 Alexander Wurzinger <lohnegrim@gmx.net>
+ *              Copyright 2006 Johannes Anderwald <johannes.anderwald@reactos.org>
+ *              Copyright 2006 Martin Rottensteiner <2005only@pianonote.at>
+ */
+
 #pragma once
 
 /* IDs */
 
+#define IDC_STATIC  (-1)
+
 /* Set default to IDI_AC */
-#define IDC_CPLICON_1 IDI_AC
+#define IDC_CPLICON IDI_AC
+#define IDS_CPLNAME 190
+#define IDS_CPLDESCRIPTION 191
+
+
+/* Icons */
+#define IDI_AC        100
+#define IDI_DC        101
+#define IDI_ACDC      102
+#define IDI_SCREEN    103
+#define IDI_HIBERNATE 104
+
+#define IDI_BAT_CHARGE_CRIT     110
+#define IDI_BAT_CHARGE_LOW      111
+#define IDI_BAT_CHARGE_HALF     112
+#define IDI_BAT_CHARGE_HIGH     113
+#define IDI_BAT_CHARGE_FULL     114
+
+#define IDI_BAT_DISCHRG_CRIT    115
+#define IDI_BAT_DISCHRG_LOW     116
+#define IDI_BAT_DISCHRG_HALF    117
+#define IDI_BAT_DISCHRG_HIGH    118
+#define IDI_BAT_DISCHRG_FULL    119
+
+#define IDI_BAT_UNKNOWN         120
+#define IDI_BAT_NONE            121
+
+
+/* Dialogs, Controls and Strings */
 
 #define IDS_PERCENT  49
 #define IDS_SOUND    50
@@ -60,13 +99,6 @@
 #define IDC_BATTERYMANUFACTURER    177
 #define IDS_DISCHARGING            178
 
-#define IDI_AC        175
-#define IDI_DC        176
-#define IDI_ACDC      177
-#define IDI_SCREEN    178
-#define IDI_HIBERNATE 179
-
-#define IDS_CPLNAME_1       190
 #define IDC_ENERGYLIST      200
 #define IDC_GRPDETAIL       201
 #define IDC_SAT             202
@@ -130,9 +162,12 @@
 #define IDS_UNKNOWN              719
 
 #define IDC_SHOWDETAILS          800
-#define IDC_POWERSOURCE          801
-#define IDC_POWERSTATUS          802
-#define IDC_REFRESH              803
+#define IDC_IPOWERSOURCE         801
+#define IDC_POWERSOURCE          802
+#define IDC_POWERSTATUS          803
+#define IDC_BATTPROGRESS         804
+#define IDC_CLICKBATTINFO        805
+#define IDC_REFRESH              806
 
 #define IDC_BATTERY0             810
 #define IDC_BATTERY1             (IDC_BATTERY0 + 1)
@@ -166,5 +201,3 @@
 #define IDC_BATTERYCHARGING5     (IDC_BATTERYCHARGING0 + 5)
 #define IDC_BATTERYCHARGING6     (IDC_BATTERYCHARGING0 + 6)
 #define IDC_BATTERYCHARGING7     (IDC_BATTERYCHARGING0 + 7)
-
-#define IDS_CPLDESCRIPTION_1 901

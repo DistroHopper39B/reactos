@@ -5,6 +5,62 @@
 extern "C" {
 #endif
 
+#define NETSH_ERROR_BASE                  15000
+#define ERROR_NO_ENTRIES                  (NETSH_ERROR_BASE + 0)
+#define ERROR_INVALID_SYNTAX              (NETSH_ERROR_BASE + 1)
+#define ERROR_PROTOCOL_NOT_IN_TRANSPORT   (NETSH_ERROR_BASE + 2)
+#define ERROR_NO_CHANGE                   (NETSH_ERROR_BASE + 3)
+#define ERROR_CMD_NOT_FOUND               (NETSH_ERROR_BASE + 4)
+#define ERROR_ENTRY_PT_NOT_FOUND          (NETSH_ERROR_BASE + 5)
+#define ERROR_DLL_LOAD_FAILED             (NETSH_ERROR_BASE + 6)
+#define ERROR_INIT_DISPLAY                (NETSH_ERROR_BASE + 7)
+#define ERROR_TAG_ALREADY_PRESENT         (NETSH_ERROR_BASE + 8)
+#define ERROR_INVALID_OPTION_TAG          (NETSH_ERROR_BASE + 9)
+#define ERROR_NO_TAG                      (NETSH_ERROR_BASE + 10)
+#define ERROR_MISSING_OPTION              (NETSH_ERROR_BASE + 11)
+#define ERROR_TRANSPORT_NOT_PRESENT       (NETSH_ERROR_BASE + 12)
+#define ERROR_SHOW_USAGE                  (NETSH_ERROR_BASE + 13)
+#define ERROR_INVALID_OPTION_VALUE        (NETSH_ERROR_BASE + 14)
+#define ERROR_OKAY                        (NETSH_ERROR_BASE + 15)
+#define ERROR_CONTINUE_IN_PARENT_CONTEXT  (NETSH_ERROR_BASE + 16)
+#define ERROR_SUPPRESS_OUTPUT             (NETSH_ERROR_BASE + 17)
+#define ERROR_HELPER_ALREADY_REGISTERED   (NETSH_ERROR_BASE + 18)
+#define ERROR_CONTEXT_ALREADY_REGISTERED  (NETSH_ERROR_BASE + 19)
+#define ERROR_PARSING_FAILURE             (NETSH_ERROR_BASE + 20)
+#define NETSH_ERROR_END          ERROR_CONTEXT_ALREADY_REGISTERED
+
+typedef enum _NS_REQS
+{
+    NS_REQ_ZERO = 0,
+    NS_REQ_PRESENT = 1,
+    NS_REQ_ALLOW_MULTIPLE = 2,
+    NS_REQ_ONE_OR_MORE = 3
+} NS_REQS;
+
+enum NS_CMD_FLAGS
+{
+    CMD_FLAG_PRIVATE     = 0x01,
+    CMD_FLAG_INTERACTIVE = 0x02,
+    CMD_FLAG_LOCAL       = 0x08,
+    CMD_FLAG_ONLINE      = 0x10,
+    CMD_FLAG_HIDDEN      = 0x20,
+    CMD_FLAG_LIMIT_MASK  = 0xffff,
+    CMD_FLAG_PRIORITY    = 0x80000000
+};
+
+enum NS_MODE_CHANGE
+{
+    NETSH_COMMIT       = 0,
+    NETSH_UNCOMMIT     = 1,
+    NETSH_FLUSH        = 2,
+    NETSH_COMMIT_STATE = 3,
+    NETSH_SAVE         = 4
+};
+
+#define DEFAULT_CONTEXT_PRIORITY 100
+
+#define NETSH_ROOT_GUID          {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}}
+
 typedef
 DWORD
 (WINAPI *PGET_RESOURCE_STRING_FN)(
@@ -164,7 +220,7 @@ MatchToken(
 DWORD
 WINAPI
 PreprocessCommand(
-    _In_ HANDLE hModule,
+    _In_opt_ HANDLE hModule,
     _Inout_ LPWSTR *ppwcArguments,
     _In_ DWORD dwCurrentIndex,
     _In_ DWORD dwArgCount,
