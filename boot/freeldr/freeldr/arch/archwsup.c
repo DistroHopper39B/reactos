@@ -164,39 +164,6 @@ FldrCreateSystemKey(
     *SystemNode = FldrArcHwTreeRoot;
 }
 
-VOID
-FldrCreateSystemKey(
-    _Out_ PCONFIGURATION_COMPONENT_DATA* SystemNode,
-    _In_ PCSTR IdentifierString)
-{
-    PCONFIGURATION_COMPONENT Component;
-
-    /* Allocate the root */
-    FldrArcHwTreeRoot = FrLdrHeapAlloc(sizeof(CONFIGURATION_COMPONENT_DATA),
-                                       TAG_HW_COMPONENT_DATA);
-    if (!FldrArcHwTreeRoot) return;
-
-    /* Set it up */
-    Component = &FldrArcHwTreeRoot->ComponentEntry;
-    Component->Class = SystemClass;
-    Component->Type = MaximumType;
-    Component->ConfigurationDataLength = 0;
-    Component->Identifier = 0;
-    Component->IdentifierLength = 0;
-    Component->Flags = 0;
-    Component->Version = 0;
-    Component->Revision = 0;
-    Component->Key = 0;
-    Component->AffinityMask = 0xFFFFFFFF;
-
-    /* Set identifier */
-    if (IdentifierString)
-        FldrSetIdentifier(Component, IdentifierString);
-
-    /* Return the node */
-    *SystemNode = FldrArcHwTreeRoot;
-}
-
 static VOID
 FldrLinkToParent(
     _In_ PCONFIGURATION_COMPONENT_DATA Parent,
