@@ -383,7 +383,7 @@ UefiHwDetect(
     /* Create the 'System' key */
 #if defined(_M_IX86) || defined(_M_AMD64)
     /* Create the 'System' key */
-    FldrCreateSystemKey(&SystemKey, FALSE, "AT/AT COMPATIBLE");
+    FldrCreateSystemKey(&SystemKey, "AT/AT COMPATIBLE");
 #elif defined(_M_IA64)
     FldrCreateSystemKey(&SystemKey, "Intel Itanium processor family");
 #elif defined(_M_ARM) || defined(_M_ARM64)

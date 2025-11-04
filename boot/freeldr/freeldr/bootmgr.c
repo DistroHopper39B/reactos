@@ -60,14 +60,13 @@ OSLoadingMethods[] =
 
 #ifndef UEFIBOOT
 #ifndef SARCH_APPLETV
-    {"Drive"       , EditCustomBootDisk      , LoadAndBootDevice},
-    {"Partition"   , EditCustomBootPartition , LoadAndBootDevice},
-    {"BootSector"  , EditCustomBootSectorFile, LoadAndBootDevice},
+    {"BootSector"  , EditCustomBootSector, LoadAndBootSector},
     {"Linux"       , EditCustomBootLinux, LoadAndBootLinux  },
-#endif /* SARCH_APPLETV */
-#endif /* UEFIBOOT */
+#endif /* ! SARCH_APPLETV */
+#endif /* ! UEFIBOOT */
 
-#endif
+#endif /* _M_IX86 || _M_AMD64 */
+
 #ifdef _M_IX86
     {"WindowsNT40" , EditCustomBootNTOS, LoadAndBootWindows},
 #endif
