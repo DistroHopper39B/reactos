@@ -61,3 +61,7 @@ VOID AppleTVBeep(VOID);
 extern UCHAR FrldrBootDrive;
 extern ULONG FrldrBootPartition;
 LONG DiskReportError(BOOLEAN bShowError);
+
+CONFIGURATION_TYPE
+DiskGetConfigType(
+    _In_ UCHAR DriveNumber);

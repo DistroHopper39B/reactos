@@ -24,6 +24,16 @@ ULONG FrldrBootPartition = 1; // Partition 1
 
 /* FUNCTIONS *****************************************************************/
 
+CONFIGURATION_TYPE
+DiskGetConfigType(
+    _In_ UCHAR DriveNumber)
+{
+    if ((DriveNumber == FrldrBootDrive)/* && DiskIsDriveRemovable(DriveNumber) */ && (FrldrBootPartition == 0xFF))
+        return CdromController; /* This is our El Torito boot CD-ROM */
+    else
+        return DiskPeripheral;
+}
+
 VOID
 AppleTVDiskInit(VOID)
 {
