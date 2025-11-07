@@ -167,7 +167,7 @@ HalInitSystem(
         HalpInitPhase1();
 
         /* Initialize Phase 1 of the x86 emulator */
-       // HalInitializeBios(1, LoaderBlock);
+        HalInitializeBios(1, LoaderBlock);
     }
 
     /* All done, return */
