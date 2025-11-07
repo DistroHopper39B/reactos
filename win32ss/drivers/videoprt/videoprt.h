@@ -269,11 +269,17 @@ extern KMUTEX VideoPortInt10Mutex;
 extern KSPIN_LOCK HwResetAdaptersLock;
 extern LIST_ENTRY HwResetAdaptersList;
 
-VOID FASTCALL
-IntAttachToCSRSS(PKPROCESS *CallingProcess, PKAPC_STATE ApcState);
+BOOLEAN
+FASTCALL
+IntAttachToCSRSS(
+    _Outptr_ PKPROCESS* CallingProcess,
+    _Out_ PKAPC_STATE ApcState);
 
-VOID FASTCALL
-IntDetachFromCSRSS(PKPROCESS *CallingProcess, PKAPC_STATE ApcState);
+VOID
+FASTCALL
+IntDetachFromCSRSS(
+    _In_ PKPROCESS CallingProcess,
+    _In_ PKAPC_STATE ApcState);
 
 NTSTATUS NTAPI
 IntVideoPortCreateAdapterDeviceObject(
@@ -290,10 +296,11 @@ IntVideoPortFindAdapter(
    IN PVIDEO_PORT_DRIVER_EXTENSION DriverExtension,
    IN PDEVICE_OBJECT DeviceObject);
 
-PVOID NTAPI
+PVOID
+NTAPI
 IntVideoPortGetProcAddress(
-   IN PVOID HwDeviceExtension,
-   IN PUCHAR FunctionName);
+    _In_ PVOID HwDeviceExtension,
+    _In_ PUCHAR FunctionName);
 
 NTSTATUS NTAPI
 IntVideoPortEnumerateChildren(
