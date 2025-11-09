@@ -115,6 +115,7 @@ typedef struct _CONTEXT_ENTRY
     ULONG ulPriority;
     PNS_CONTEXT_COMMIT_FN pfnCommitFn;
     PNS_CONTEXT_DUMP_FN pfnDumpFn;
+    PNS_CONTEXT_CONNECT_FN pfnConnectFn;
 
     PCOMMAND_ENTRY pCommandListHead;
     PCOMMAND_ENTRY pCommandListTail;
@@ -138,6 +139,47 @@ extern HMODULE hModule;
 extern PWSTR pszMachine;
 
 /* PROTOTYPES *****************************************************************/
+
+/* alias.c */
+
+VOID
+InitAliases(VOID);
+
+VOID
+DestroyAliases(VOID);
+
+DWORD
+WINAPI
+AliasCommand(
+    LPCWSTR pwszMachine,
+    LPWSTR *argv,
+    DWORD dwCurrentIndex,
+    DWORD dwArgCount,
+    DWORD dwFlags,
+    LPCVOID pvData,
+    BOOL *pbDone);
+
+DWORD
+WINAPI
+ShowAliasCommand(
+    LPCWSTR pwszMachine,
+    LPWSTR *argv,
+    DWORD dwCurrentIndex,
+    DWORD dwArgCount,
+    DWORD dwFlags,
+    LPCVOID pvData,
+    BOOL *pbDone);
+
+DWORD
+WINAPI
+UnaliasCommand(
+    LPCWSTR pwszMachine,
+    LPWSTR *argv,
+    DWORD dwCurrentIndex,
+    DWORD dwArgCount,
+    DWORD dwFlags,
+    LPCVOID pvData,
+    BOOL *pbDone);
 
 /* context.c */
 
