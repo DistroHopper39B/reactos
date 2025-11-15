@@ -20,6 +20,7 @@ DBG_DEFAULT_CHANNEL(WARNING);
 
 /* GLOBALS *******************************************************************/
 
+extern UCHAR PcBiosDiskCount; /* hwdisk.c */
 extern UINT32 FreeldrDescCount; /* appletvmem.c */
 extern BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS]; /* appletvmem.c */
 
@@ -30,10 +31,66 @@ static unsigned int delay_count = 1;
 PCHAR GetHarddiskIdentifier(UCHAR DriveNumber); /* hwdisk.c */
 USHORT WinLdrDetectVersion(VOID); /* winldr.c */
 
+/* Maximum number of COM and LPT ports */
+#define MAX_COM_PORTS   4
+#define MAX_LPT_PORTS   3
+
+/* No Mouse */
+#define MOUSE_TYPE_NONE            0
+/* Microsoft Mouse with 2 buttons */
+#define MOUSE_TYPE_MICROSOFT       1
+/* Logitech Mouse with 3 buttons */
+#define MOUSE_TYPE_LOGITECH        2
+/* Microsoft Wheel Mouse (aka Z Mouse) */
+#define MOUSE_TYPE_WHEELZ          3
+/* Mouse Systems Mouse */
+#define MOUSE_TYPE_MOUSESYSTEMS    4
+
+
+/* Timeout in ms for sending to keyboard controller. */
+#define CONTROLLER_TIMEOUT                              250
+
+/* PS2 stuff */
+
+/* Controller registers. */
+#define CONTROLLER_REGISTER_STATUS                      0x64
+#define CONTROLLER_REGISTER_CONTROL                     0x64
+#define CONTROLLER_REGISTER_DATA                        0x60
+
+/* Controller commands. */
+#define CONTROLLER_COMMAND_READ_MODE                    0x20
+#define CONTROLLER_COMMAND_WRITE_MODE                   0x60
+#define CONTROLLER_COMMAND_GET_VERSION                  0xA1
+#define CONTROLLER_COMMAND_MOUSE_DISABLE                0xA7
+#define CONTROLLER_COMMAND_MOUSE_ENABLE                 0xA8
+#define CONTROLLER_COMMAND_TEST_MOUSE                   0xA9
+#define CONTROLLER_COMMAND_SELF_TEST                    0xAA
+#define CONTROLLER_COMMAND_KEYBOARD_TEST                0xAB
+#define CONTROLLER_COMMAND_KEYBOARD_DISABLE             0xAD
+#define CONTROLLER_COMMAND_KEYBOARD_ENABLE              0xAE
+#define CONTROLLER_COMMAND_WRITE_MOUSE_OUTPUT_BUFFER    0xD3
+#define CONTROLLER_COMMAND_WRITE_MOUSE                  0xD4
+
+/* Controller status */
+#define CONTROLLER_STATUS_OUTPUT_BUFFER_FULL            0x01
+#define CONTROLLER_STATUS_INPUT_BUFFER_FULL             0x02
+#define CONTROLLER_STATUS_SELF_TEST                     0x04
+#define CONTROLLER_STATUS_COMMAND                       0x08
+#define CONTROLLER_STATUS_UNLOCKED                      0x10
+#define CONTROLLER_STATUS_MOUSE_OUTPUT_BUFFER_FULL      0x20
+#define CONTROLLER_STATUS_GENERAL_TIMEOUT               0x40
+#define CONTROLLER_STATUS_PARITY_ERROR                  0x80
+#define AUX_STATUS_OUTPUT_BUFFER_FULL                   (CONTROLLER_STATUS_OUTPUT_BUFFER_FULL | \
+                                                         CONTROLLER_STATUS_MOUSE_OUTPUT_BUFFER_FULL)
+
 #define MILLISEC     (10)
 #define PRECISION    (8)
 
+#if defined(SARCH_XBOX)
+#define CLOCK_TICK_RATE 1125000
+#else
 #define CLOCK_TICK_RATE 1193182
+#endif
 
 #define HZ (100)
 #define LATCH (CLOCK_TICK_RATE / HZ)
@@ -188,6 +245,583 @@ HalpCalibrateStallExecution(VOID)
     delay_count /= (MILLISEC / 2);
 }
 
+BOOLEAN
+AppleTVFindPciBios(PPCI_REGISTRY_INFO BusData)
+{
+    /* We hardcode PCI BIOS here */
+    
+    BusData->MajorRevision = 0x02;
+    BusData->MinorRevision = 0x10;
+    BusData->NoBuses = 7;
+    BusData->HardwareMechanism = 1;
+    return TRUE;
+}
+
+VOID
+DetectPci(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
+{
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR PartialDescriptor;
+    PCI_REGISTRY_INFO BusData;
+    ULONG Size;
+    PCONFIGURATION_COMPONENT_DATA BusKey;
+    ULONG i;
+
+    AppleTVFindPciBios(&BusData);
+    
+    /* Set 'Configuration Data' value */
+    Size = FIELD_OFFSET(CM_PARTIAL_RESOURCE_LIST, PartialDescriptors);
+    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+    if (PartialResourceList == NULL)
+    {
+        ERR("Failed to allocate resource descriptor\n");
+        return;
+    }
+
+    /* Initialize resource descriptor */
+    RtlZeroMemory(PartialResourceList, Size);
+
+    /* Increment bus number */
+    (*BusNumber)++;
+
+    // DetectPciIrqRoutingTable(BiosKey);
+
+    /* Report PCI buses */
+    for (i = 0; i < (ULONG)BusData.NoBuses; i++)
+    {
+        /* Check if this is the first bus */
+        if (i == 0)
+        {
+            /* Set 'Configuration Data' value */
+            Size = FIELD_OFFSET(CM_PARTIAL_RESOURCE_LIST,
+                                PartialDescriptors) +
+                   sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) +
+                   sizeof(PCI_REGISTRY_INFO);
+            PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+            if (!PartialResourceList)
+            {
+                ERR("Failed to allocate resource descriptor! Ignoring remaining PCI buses. (i = %lu, NoBuses = %lu)\n",
+                    i, (ULONG)BusData.NoBuses);
+                return;
+            }
+
+            /* Initialize resource descriptor */
+            RtlZeroMemory(PartialResourceList, Size);
+            PartialResourceList->Version = 1;
+            PartialResourceList->Revision = 1;
+            PartialResourceList->Count = 1;
+            PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
+            PartialDescriptor->Type = CmResourceTypeDeviceSpecific;
+            PartialDescriptor->ShareDisposition = CmResourceShareUndetermined;
+            PartialDescriptor->u.DeviceSpecificData.DataSize = sizeof(PCI_REGISTRY_INFO);
+            memcpy(&PartialResourceList->PartialDescriptors[1],
+                   &BusData,
+                   sizeof(PCI_REGISTRY_INFO));
+        }
+        else
+        {
+            /* Set 'Configuration Data' value */
+            Size = FIELD_OFFSET(CM_PARTIAL_RESOURCE_LIST,
+                                PartialDescriptors);
+            PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+            if (!PartialResourceList)
+            {
+                ERR("Failed to allocate resource descriptor! Ignoring remaining PCI buses. (i = %lu, NoBuses = %lu)\n",
+                    i, (ULONG)BusData.NoBuses);
+                return;
+            }
+
+            /* Initialize resource descriptor */
+            RtlZeroMemory(PartialResourceList, Size);
+        }
+
+        /* Create the bus key */
+        FldrCreateComponentKey(SystemKey,
+                               AdapterClass,
+                               MultiFunctionAdapter,
+                               0x0,
+                               0x0,
+                               0xFFFFFFFF,
+                               "PCI",
+                               PartialResourceList,
+                               Size,
+                               &BusKey);
+
+        /* Increment bus number */
+        (*BusNumber)++;
+    }
+
+}
+
+static
+VOID
+DetectKeyboardController(PCONFIGURATION_COMPONENT_DATA BusKey)
+{
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR PartialDescriptor;
+    PCONFIGURATION_COMPONENT_DATA ControllerKey;
+    ULONG Size;
+
+    /* Set 'Configuration Data' value */
+    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) +
+           2 * sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR);
+    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+    if (PartialResourceList == NULL)
+    {
+        ERR("Failed to allocate resource descriptor\n");
+        return;
+    }
+
+    /* Initialize resource descriptor */
+    RtlZeroMemory(PartialResourceList, Size);
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
+    PartialResourceList->Count = 3;
+
+    /* Set Interrupt */
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
+    PartialDescriptor->Type = CmResourceTypeInterrupt;
+    PartialDescriptor->ShareDisposition = CmResourceShareUndetermined;
+    PartialDescriptor->Flags = CM_RESOURCE_INTERRUPT_LATCHED;
+    PartialDescriptor->u.Interrupt.Level = 1;
+    PartialDescriptor->u.Interrupt.Vector = 1;
+    PartialDescriptor->u.Interrupt.Affinity = 0xFFFFFFFF;
+
+    /* Set IO Port 0x60 */
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
+    PartialDescriptor->Type = CmResourceTypePort;
+    PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
+    PartialDescriptor->Flags = CM_RESOURCE_PORT_IO;
+    PartialDescriptor->u.Port.Start.LowPart = 0x60;
+    PartialDescriptor->u.Port.Start.HighPart = 0x0;
+    PartialDescriptor->u.Port.Length = 1;
+
+    /* Set IO Port 0x64 */
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[2];
+    PartialDescriptor->Type = CmResourceTypePort;
+    PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
+    PartialDescriptor->Flags = CM_RESOURCE_PORT_IO;
+    PartialDescriptor->u.Port.Start.LowPart = 0x64;
+    PartialDescriptor->u.Port.Start.HighPart = 0x0;
+    PartialDescriptor->u.Port.Length = 1;
+
+    /* Create controller key */
+    FldrCreateComponentKey(BusKey,
+                           ControllerClass,
+                           KeyboardController,
+                           Input | ConsoleIn,
+                           0x0,
+                           0xFFFFFFFF,
+                           NULL,
+                           PartialResourceList,
+                           Size,
+                           &ControllerKey);
+    TRACE("Created key: KeyboardController\\0\n");
+}
+
+
+static
+VOID
+PS2ControllerWait(VOID)
+{
+    ULONG Timeout;
+    UCHAR Status;
+
+    for (Timeout = 0; Timeout < CONTROLLER_TIMEOUT; Timeout++)
+    {
+        Status = READ_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_STATUS);
+        if ((Status & CONTROLLER_STATUS_INPUT_BUFFER_FULL) == 0)
+            return;
+
+        /* Sleep for one millisecond */
+        StallExecutionProcessor(1000);
+    }
+}
+
+static
+BOOLEAN
+DetectPS2AuxPort(VOID)
+{
+#if 1
+    /* Current detection is too unreliable. Just do as if
+     * the PS/2 aux port is always present
+     */
+    return TRUE;
+#else
+    ULONG Loops;
+    UCHAR Status;
+
+    /* Put the value 0x5A in the output buffer using the
+     * "WriteAuxiliary Device Output Buffer" command (0xD3).
+     * Poll the Status Register for a while to see if the value really turns up
+     * in the Data Register. If the KEYBOARD_STATUS_MOUSE_OBF bit is also set
+     * to 1 in the Status Register, we assume this controller has an
+     *  Auxiliary Port (a.k.a. Mouse Port).
+     */
+    PS2ControllerWait();
+    WRITE_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_CONTROL,
+                     CONTROLLER_COMMAND_WRITE_MOUSE_OUTPUT_BUFFER);
+    PS2ControllerWait();
+
+    /* 0x5A is a random dummy value */
+    WRITE_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_DATA,
+                     0x5A);
+
+    for (Loops = 0; Loops < 10; Loops++)
+    {
+        StallExecutionProcessor(10000);
+        Status = READ_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_STATUS);
+        if ((Status & CONTROLLER_STATUS_OUTPUT_BUFFER_FULL) != 0)
+            break;
+    }
+
+    READ_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_DATA);
+
+    return (Status & CONTROLLER_STATUS_MOUSE_OUTPUT_BUFFER_FULL);
+#endif
+}
+
+static
+BOOLEAN
+DetectPS2AuxDevice(VOID)
+{
+    UCHAR Scancode;
+    UCHAR Status;
+    ULONG Loops;
+    BOOLEAN Result = TRUE;
+
+    PS2ControllerWait();
+    WRITE_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_CONTROL,
+                     CONTROLLER_COMMAND_WRITE_MOUSE);
+    PS2ControllerWait();
+
+    /* Identify device */
+    WRITE_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_DATA, 0xF2);
+
+    /* Wait for reply */
+    for (Loops = 0; Loops < 100; Loops++)
+    {
+        StallExecutionProcessor(10000);
+        Status = READ_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_STATUS);
+        if ((Status & CONTROLLER_STATUS_OUTPUT_BUFFER_FULL) != 0)
+            break;
+    }
+
+    Status = READ_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_STATUS);
+    if ((Status & CONTROLLER_STATUS_MOUSE_OUTPUT_BUFFER_FULL) == 0)
+        Result = FALSE;
+
+    Scancode = READ_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_DATA);
+    if (Scancode != 0xFA)
+        Result = FALSE;
+
+    StallExecutionProcessor(10000);
+
+    Status = READ_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_STATUS);
+    if ((Status & CONTROLLER_STATUS_MOUSE_OUTPUT_BUFFER_FULL) == 0)
+        Result = FALSE;
+
+    Scancode = READ_PORT_UCHAR((PUCHAR)CONTROLLER_REGISTER_DATA);
+    if (Scancode != 0x00)
+        Result = FALSE;
+
+    return Result;
+}
+
+// FIXME: Missing: DetectPS2Peripheral!! (for corresponding 'PointerPeripheral')
+
+static
+VOID
+DetectPS2Mouse(PCONFIGURATION_COMPONENT_DATA BusKey)
+{
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCONFIGURATION_COMPONENT_DATA ControllerKey;
+    PCONFIGURATION_COMPONENT_DATA PeripheralKey;
+    ULONG Size;
+
+    if (DetectPS2AuxPort())
+    {
+        TRACE("Detected PS2 port\n");
+
+        PartialResourceList = FrLdrHeapAlloc(sizeof(CM_PARTIAL_RESOURCE_LIST), TAG_HW_RESOURCE_LIST);
+        if (PartialResourceList == NULL)
+        {
+            ERR("Failed to allocate resource descriptor\n");
+            return;
+        }
+
+        /* Initialize resource descriptor */
+        RtlZeroMemory(PartialResourceList, sizeof(CM_PARTIAL_RESOURCE_LIST));
+        PartialResourceList->Version = 1;
+        PartialResourceList->Revision = 1;
+        PartialResourceList->Count = 1;
+
+        /* Set Interrupt */
+        PartialResourceList->PartialDescriptors[0].Type = CmResourceTypeInterrupt;
+        PartialResourceList->PartialDescriptors[0].ShareDisposition = CmResourceShareUndetermined;
+        PartialResourceList->PartialDescriptors[0].Flags = CM_RESOURCE_INTERRUPT_LATCHED;
+        PartialResourceList->PartialDescriptors[0].u.Interrupt.Level = 12;
+        PartialResourceList->PartialDescriptors[0].u.Interrupt.Vector = 12;
+        PartialResourceList->PartialDescriptors[0].u.Interrupt.Affinity = 0xFFFFFFFF;
+
+        /* Create controller key */
+        FldrCreateComponentKey(BusKey,
+                               ControllerClass,
+                               PointerController,
+                               Input,
+                               0x0,
+                               0xFFFFFFFF,
+                               NULL,
+                               PartialResourceList,
+                               sizeof(CM_PARTIAL_RESOURCE_LIST),
+                               &ControllerKey);
+        TRACE("Created key: PointerController\\0\n");
+
+        if (DetectPS2AuxDevice())
+        {
+            TRACE("Detected PS2 mouse\n");
+
+            /* Initialize resource descriptor */
+            Size = sizeof(CM_PARTIAL_RESOURCE_LIST) -
+                   sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR);
+            PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+            if (PartialResourceList == NULL)
+            {
+                ERR("Failed to allocate resource descriptor\n");
+                return;
+            }
+
+            RtlZeroMemory(PartialResourceList, Size);
+            PartialResourceList->Version = 1;
+            PartialResourceList->Revision = 1;
+            PartialResourceList->Count = 0;
+
+            /* Create peripheral key */
+            FldrCreateComponentKey(ControllerKey,
+                                   ControllerClass,
+                                   PointerPeripheral,
+                                   Input,
+                                   0x0,
+                                   0xFFFFFFFF,
+                                   "MICROSOFT PS2 MOUSE",
+                                   PartialResourceList,
+                                   Size,
+                                   &PeripheralKey);
+            TRACE("Created key: PointerPeripheral\\0\n");
+        }
+    }
+}
+
+PCHAR
+GetHarddiskIdentifier(UCHAR DriveNumber);
+PCONFIGURATION_COMPONENT_DATA ControllerKey;
+
+static
+PCM_PARTIAL_RESOURCE_LIST
+XboxGetHarddiskConfigurationData(UCHAR DriveNumber, ULONG* pSize)
+{
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCM_DISK_GEOMETRY_DEVICE_DATA DiskGeometry;
+    //EXTENDED_GEOMETRY ExtGeometry;
+    GEOMETRY Geometry;
+    ULONG Size;
+
+    //
+    // Initialize returned size
+    //
+    *pSize = 0;
+
+    /* Set 'Configuration Data' value */
+    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) +
+           sizeof(CM_DISK_GEOMETRY_DEVICE_DATA);
+    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+    if (PartialResourceList == NULL)
+    {
+        ERR("Failed to allocate resource descriptor\n");
+        return NULL;
+    }
+
+    RtlZeroMemory(PartialResourceList, Size);
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
+    PartialResourceList->Count = 1;
+    PartialResourceList->PartialDescriptors[0].Type =
+        CmResourceTypeDeviceSpecific;
+//  PartialResourceList->PartialDescriptors[0].ShareDisposition =
+//  PartialResourceList->PartialDescriptors[0].Flags =
+    PartialResourceList->PartialDescriptors[0].u.DeviceSpecificData.DataSize =
+        sizeof(CM_DISK_GEOMETRY_DEVICE_DATA);
+
+    /* Get pointer to geometry data */
+    DiskGeometry = (PVOID)(((ULONG_PTR)PartialResourceList) + sizeof(CM_PARTIAL_RESOURCE_LIST));
+
+    /* Get the disk geometry */
+    //ExtGeometry.Size = sizeof(EXTENDED_GEOMETRY);
+
+    if (MachDiskGetDriveGeometry(DriveNumber, &Geometry))
+    {
+        DiskGeometry->BytesPerSector = Geometry.BytesPerSector;
+        DiskGeometry->NumberOfCylinders = Geometry.Cylinders;
+        DiskGeometry->SectorsPerTrack = Geometry.Sectors;
+        DiskGeometry->NumberOfHeads = Geometry.Heads;
+    }
+    else
+    {
+        ERR("Reading disk geometry failed\n");
+        FrLdrHeapFree(PartialResourceList, TAG_HW_RESOURCE_LIST);
+        return NULL;
+    }
+    TRACE("Disk %x: %u Cylinders  %u Heads  %u Sectors  %u Bytes\n",
+          DriveNumber,
+          DiskGeometry->NumberOfCylinders,
+          DiskGeometry->NumberOfHeads,
+          DiskGeometry->SectorsPerTrack,
+          DiskGeometry->BytesPerSector);
+
+    //
+    // Return configuration data
+    //
+    *pSize = Size;
+    return PartialResourceList;
+}
+
+VOID
+DetectBiosDisks(PCONFIGURATION_COMPONENT_DATA SystemKey,
+                PCONFIGURATION_COMPONENT_DATA BusKey)
+{
+    PCONFIGURATION_COMPONENT_DATA DiskKey;
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCM_INT13_DRIVE_PARAMETER Int13Drives;
+    GEOMETRY Geometry;
+    UCHAR DiskCount, DriveNumber;
+    USHORT i;
+    ULONG Size;
+
+    /* The pre-enumeration of the BIOS disks was already done in InitializeBootDevices() */
+    DiskCount = PcBiosDiskCount;
+
+    /* Allocate resource descriptor */
+    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) +
+           sizeof(CM_INT13_DRIVE_PARAMETER) * DiskCount;
+    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+    if (PartialResourceList == NULL)
+    {
+        ERR("Failed to allocate resource descriptor\n");
+        return;
+    }
+
+    /* Initialize resource descriptor */
+    RtlZeroMemory(PartialResourceList, Size);
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
+    PartialResourceList->Count = 1;
+    PartialResourceList->PartialDescriptors[0].Type = CmResourceTypeDeviceSpecific;
+    PartialResourceList->PartialDescriptors[0].ShareDisposition = 0;
+    PartialResourceList->PartialDescriptors[0].Flags = 0;
+    PartialResourceList->PartialDescriptors[0].u.DeviceSpecificData.DataSize =
+        sizeof(CM_INT13_DRIVE_PARAMETER) * DiskCount;
+
+    /* Get harddisk Int13 geometry data */
+    Int13Drives = (PVOID)(((ULONG_PTR)PartialResourceList) + sizeof(CM_PARTIAL_RESOURCE_LIST));
+    for (i = 0; i < DiskCount; i++)
+    {
+        DriveNumber = 0x80 + i;
+
+        if (MachDiskGetDriveGeometry(DriveNumber, &Geometry))
+        {
+            Int13Drives[i].DriveSelect = DriveNumber;
+            Int13Drives[i].MaxCylinders = Geometry.Cylinders - 1;
+            Int13Drives[i].SectorsPerTrack = (USHORT)Geometry.Sectors;
+            Int13Drives[i].MaxHeads = (USHORT)Geometry.Heads - 1;
+            Int13Drives[i].NumberDrives = DiskCount;
+
+            TRACE("Disk %x: %u Cylinders  %u Heads  %u Sectors  %u Bytes\n",
+                  DriveNumber,
+                  Geometry.Cylinders - 1,
+                  Geometry.Heads - 1,
+                  Geometry.Sectors,
+                  Geometry.BytesPerSector);
+        }
+    }
+
+    /* Update the 'System' key's configuration data with BIOS INT13h information */
+    FldrSetConfigurationData(SystemKey, PartialResourceList, Size);
+
+    /* Create and fill subkey for each harddisk */
+    for (i = 0; i < DiskCount; i++)
+    {
+        PCHAR Identifier;
+
+        DriveNumber = 0x80 + i;
+
+        /* Get disk values */
+        PartialResourceList = XboxGetHarddiskConfigurationData(DriveNumber, &Size);
+        Identifier = GetHarddiskIdentifier(DriveNumber);
+
+        /* Create disk key */
+        FldrCreateComponentKey(ControllerKey,
+                               PeripheralClass,
+                               DiskPeripheral,
+                               Output | Input,
+                               i,
+                               0xFFFFFFFF,
+                               Identifier,
+                               PartialResourceList,
+                               Size,
+                               &DiskKey);
+    }
+}
+
+static
+VOID
+DetectIsaBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
+{
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCONFIGURATION_COMPONENT_DATA BusKey;
+    ULONG Size;
+
+    /* Set 'Configuration Data' value */
+    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) -
+           sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR);
+    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+    if (PartialResourceList == NULL)
+    {
+        ERR("Failed to allocate resource descriptor\n");
+        return;
+    }
+
+    /* Initialize resource descriptor */
+    RtlZeroMemory(PartialResourceList, Size);
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
+    PartialResourceList->Count = 0;
+
+    /* Create new bus key */
+    FldrCreateComponentKey(SystemKey,
+                           AdapterClass,
+                           MultiFunctionAdapter,
+                           0x0,
+                           0x0,
+                           0xFFFFFFFF,
+                           "ISA",
+                           PartialResourceList,
+                           Size,
+                           &BusKey);
+
+    /* Increment bus number */
+    (*BusNumber)++;
+
+        DetectKeyboardController(BusKey);
+    DetectPS2Mouse(BusKey);
+  //  DetectDisplayController(BusKey);
+    /* Detect ISA/BIOS devices */
+    DetectBiosDisks(SystemKey, BusKey);
+   // DetectSerialPorts(BusKey, XboxGetSerialPort, MAX_XBOX_COM_PORTS);
+   // DetectDisplayController(BusKey);
+
+    /* FIXME: Detect more ISA devices */
+}
+
 VOID
 DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 {
@@ -265,9 +899,9 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
             AcpiBiosData->RSDTAddress.LowPart = Rsdp->rsdt_physical_address;
         }
 
-        //AcpiBiosData->Count = FreeldrDescCount;
-        //memcpy(AcpiBiosData->MemoryMap, (void *) BiosMap,
-        //    FreeldrDescCount * sizeof(BIOS_MEMORY_MAP));
+        AcpiBiosData->Count = FreeldrDescCount;
+        memcpy(AcpiBiosData->MemoryMap, (void *) BiosMap,
+            FreeldrDescCount * sizeof(BIOS_MEMORY_MAP));
 
         TRACE("RSDT %p, data size %x\n", Rsdp->rsdt_physical_address, TableSize);
 
@@ -463,7 +1097,6 @@ DetectSmBios(VOID)
     RtlCopyMemory((PVOID) SMBIOS_TABLE_LOW, SmBiosTable, sizeof(SMBIOS_TABLE_HEADER));
 }
 
-
 PCONFIGURATION_COMPONENT_DATA
 AppleTVHwDetect(_In_opt_ PCSTR Options)
 {
@@ -475,6 +1108,8 @@ AppleTVHwDetect(_In_opt_ PCSTR Options)
     /* Create the 'System' key */
     FldrCreateSystemKey(&SystemKey, "Apple TV (1st generation)");
 
+    DetectPci(SystemKey, &BusNumber);
+    DetectIsaBios(SystemKey, &BusNumber);
     DetectAcpiBios(SystemKey, &BusNumber);
     DetectInternal(SystemKey, &BusNumber);
     DetectSmBios();
