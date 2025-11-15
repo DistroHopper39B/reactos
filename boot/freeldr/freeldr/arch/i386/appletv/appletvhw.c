@@ -188,6 +188,115 @@ HalpCalibrateStallExecution(VOID)
     delay_count /= (MILLISEC / 2);
 }
 
+static
+BOOLEAN
+AppleTVFindPciBios(PPCI_REGISTRY_INFO BusData)
+{
+    /* We hardcode PCI BIOS here */
+    
+    BusData->MajorRevision = 0x02;
+    BusData->MinorRevision = 0x10;
+    BusData->NoBuses = 7;
+    BusData->HardwareMechanism = 1;
+    return TRUE;
+}
+
+VOID
+DetectPciBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
+{
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR PartialDescriptor;
+    PCI_REGISTRY_INFO BusData;
+    ULONG Size;
+    PCONFIGURATION_COMPONENT_DATA BusKey;
+    ULONG i;
+
+    AppleTVFindPciBios(&BusData);
+    
+    /* Set 'Configuration Data' value */
+    Size = FIELD_OFFSET(CM_PARTIAL_RESOURCE_LIST, PartialDescriptors);
+    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+    if (PartialResourceList == NULL)
+    {
+        ERR("Failed to allocate resource descriptor\n");
+        return;
+    }
+
+    /* Initialize resource descriptor */
+    RtlZeroMemory(PartialResourceList, Size);
+
+    /* Increment bus number */
+    (*BusNumber)++;
+
+    // DetectPciIrqRoutingTable(BiosKey);
+
+    /* Report PCI buses */
+    for (i = 0; i < (ULONG)BusData.NoBuses; i++)
+    {
+        /* Check if this is the first bus */
+        if (i == 0)
+        {
+            /* Set 'Configuration Data' value */
+            Size = FIELD_OFFSET(CM_PARTIAL_RESOURCE_LIST,
+                                PartialDescriptors) +
+                   sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) +
+                   sizeof(PCI_REGISTRY_INFO);
+            PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+            if (!PartialResourceList)
+            {
+                ERR("Failed to allocate resource descriptor! Ignoring remaining PCI buses. (i = %lu, NoBuses = %lu)\n",
+                    i, (ULONG)BusData.NoBuses);
+                return;
+            }
+
+            /* Initialize resource descriptor */
+            RtlZeroMemory(PartialResourceList, Size);
+            PartialResourceList->Version = 1;
+            PartialResourceList->Revision = 1;
+            PartialResourceList->Count = 1;
+            PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
+            PartialDescriptor->Type = CmResourceTypeDeviceSpecific;
+            PartialDescriptor->ShareDisposition = CmResourceShareUndetermined;
+            PartialDescriptor->u.DeviceSpecificData.DataSize = sizeof(PCI_REGISTRY_INFO);
+            memcpy(&PartialResourceList->PartialDescriptors[1],
+                   &BusData,
+                   sizeof(PCI_REGISTRY_INFO));
+        }
+        else
+        {
+            /* Set 'Configuration Data' value */
+            Size = FIELD_OFFSET(CM_PARTIAL_RESOURCE_LIST,
+                                PartialDescriptors);
+            PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+            if (!PartialResourceList)
+            {
+                ERR("Failed to allocate resource descriptor! Ignoring remaining PCI buses. (i = %lu, NoBuses = %lu)\n",
+                    i, (ULONG)BusData.NoBuses);
+                return;
+            }
+
+            /* Initialize resource descriptor */
+            RtlZeroMemory(PartialResourceList, Size);
+        }
+
+        /* Create the bus key */
+        FldrCreateComponentKey(SystemKey,
+                               AdapterClass,
+                               MultiFunctionAdapter,
+                               0x0,
+                               0x0,
+                               0xFFFFFFFF,
+                               "PCI",
+                               PartialResourceList,
+                               Size,
+                               &BusKey);
+
+        /* Increment bus number */
+        (*BusNumber)++;
+    }
+
+}
+
 VOID
 DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 {
@@ -475,6 +584,7 @@ AppleTVHwDetect(_In_opt_ PCSTR Options)
     /* Create the 'System' key */
     FldrCreateSystemKey(&SystemKey, "Apple TV (1st generation)");
 
+    DetectPciBios(SystemKey, &BusNumber);
     DetectAcpiBios(SystemKey, &BusNumber);
     DetectInternal(SystemKey, &BusNumber);
     DetectSmBios();

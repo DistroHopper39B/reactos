@@ -98,59 +98,6 @@ SetMemory(
                                         MemoryType);
 }
 
-ULONG
-PcMemFinalizeMemoryMap(
-    PFREELDR_MEMORY_DESCRIPTOR MemoryMap)
-{
-    ULONG i;
-
-    /* Reserve some static ranges for freeldr */
-    ReserveMemory(MemoryMap, 0x1000, STACKLOW - 0x1000, LoaderFirmwareTemporary, "BIOS area");
-    ReserveMemory(MemoryMap, STACKLOW, STACKADDR - STACKLOW, LoaderOsloaderStack, "FreeLdr stack");
-    ReserveMemory(MemoryMap, FREELDR_BASE, FrLdrImageSize, LoaderLoadedProgram, "FreeLdr image");
-
-    /* Default to 1 page above the firmware for the disk read buffer */
-    DiskReadBuffer = (PUCHAR)ALIGN_UP_BY(BootArgs->KernelBaseAddress + BootArgs->KernelSize, PAGE_SIZE);
-    DiskReadBufferSize = PAGE_SIZE;
-
-    /* Scan for free range above firmware */
-    for (i = 0; i < FreeldrDescCount; i++)
-    {
-        if ((MemoryMap[i].BasePage > (BootArgs->KernelBaseAddress + BootArgs->KernelSize / PAGE_SIZE)) &&
-            (MemoryMap[i].MemoryType == LoaderFree))
-        {
-            /* Use this range for the disk read buffer */
-            DiskReadBuffer = (PVOID)(MemoryMap[i].BasePage * PAGE_SIZE);
-            DiskReadBufferSize = min(MemoryMap[i].PageCount * PAGE_SIZE,
-                                     MAX_DISKREADBUFFER_SIZE);
-            break;
-        }
-    }
-
-    TRACE("DiskReadBuffer=0x%p, DiskReadBufferSize=0x%lx\n",
-          DiskReadBuffer, DiskReadBufferSize);
-
-    ASSERT(DiskReadBufferSize > 0);
-
-    /* Now reserve the range for the disk read buffer */
-    ReserveMemory(MemoryMap,
-                  (ULONG_PTR)DiskReadBuffer,
-                  DiskReadBufferSize,
-                  LoaderFirmwareTemporary,
-                  "Disk read buffer");
-
-    TRACE("Dumping resulting memory map:\n");
-    for (i = 0; i < FreeldrDescCount; i++)
-    {
-        TRACE("BasePage=0x%lx, PageCount=0x%lx, Type=%s\n",
-              MemoryMap[i].BasePage,
-              MemoryMap[i].PageCount,
-              MmGetSystemMemoryMapTypeString(MemoryMap[i].MemoryType));
-    }
-    return FreeldrDescCount;
-}
-
-
 static
 BIOS_MEMORY_TYPE
 UefiConvertToBiosType(EFI_MEMORY_TYPE MemoryType)
@@ -302,13 +249,26 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     BiosConvertToFreeldrMap(BiosMapPtr,
                             BiosMapNumberOfEntries);
     
-    // The first page should be reserved.
+    // Reserve a few static ranges
+    // Windows requires page #1 to be reserved
     SetMemory(FreeldrMemMap,
-            0x000000,
-            0x01000,
+            0x0,
+            PAGE_SIZE,
             LoaderSpecialMemory);
     
-    *MemoryMapSize = PcMemFinalizeMemoryMap(FreeldrMemMap);
+    // FreeLoader stack
+    SetMemory(FreeldrMemMap,
+        STACKLOW,
+        STACKADDR - STACKLOW,
+        LoaderOsloaderStack);
+        
+    // FreeLoader program
+    SetMemory(FreeldrMemMap,
+        FREELDR_BASE,
+        FrLdrImageSize,
+        LoaderLoadedProgram);
+    
+    *MemoryMapSize = FreeldrDescCount;
         
     return FreeldrMemMap;
 }
