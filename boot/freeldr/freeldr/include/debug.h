@@ -122,6 +122,7 @@ void    MEMORY_WRITE_BREAKPOINT4(unsigned long addr);
     #define BugCheck(fmt, ...)
     #define DbgDumpBuffer(mask, buf, len)
     #define DebugDisableScreenPort()
+    #define DebugEnableScreenPort()
     #define DbgParseDebugChannels(val)
 
 #endif // DBG
