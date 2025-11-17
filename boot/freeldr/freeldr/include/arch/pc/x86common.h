@@ -16,8 +16,8 @@
 #define STACKADDR           HEX(F000) /* The 32/64-bit stack top will be at 0000:F000, or 0xF000 */
 
 #ifdef SARCH_APPLETV
-#define FREELDR_BASE        HEX(111000)
-#define FREELDR_PE_BASE     HEX(112000)
+#define FREELDR_BASE        HEX(10F000)
+#define FREELDR_PE_BASE     HEX(110000)
 #else
 #define FREELDR_BASE        HEX(F800)
 #define FREELDR_PE_BASE     HEX(10000)

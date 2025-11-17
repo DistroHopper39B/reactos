@@ -62,7 +62,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     UINT32                      MachoInfoSize;
     PMACHO_HEADER               MachoHeader;
     PMACHO_SEGMENT_COMMAND      MachoSegmentCommand;
-    PMACHO_SECTION              MachoSection;
+    //PMACHO_SECTION              MachoSection;
     PMACHO_THREAD_COMMAND_X86   MachoUnixThread;
     UINT32                      SizeOfExecData;
     
@@ -71,7 +71,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     
     MachoInfoSize = sizeof(MACHO_HEADER)
                     + sizeof(MACHO_SEGMENT_COMMAND)
-                    + sizeof(MACHO_SECTION)
+                    //+ sizeof(MACHO_SECTION)
                     + sizeof(MACHO_THREAD_COMMAND_X86);
                     
     MachoHeader = malloc(MachoInfoSize);
@@ -83,7 +83,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     
     memset(MachoHeader, 0, MachoInfoSize);
     
-    SizeOfExecData = PeSize - 0x1000 - 1;
+    SizeOfExecData = PeSize - 0x1000;
     
     // Fill out Mach-O header.
     MachoHeader->MagicNumber    = MACHO_MAGIC;
@@ -102,7 +102,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     MachoSegmentCommand = (PMACHO_SEGMENT_COMMAND) (((PUCHAR) MachoHeader) + sizeof(MACHO_HEADER));
     
     MachoSegmentCommand->Command            = MACHO_LC_SEGMENT;
-    MachoSegmentCommand->CommandSize        = sizeof(MACHO_SEGMENT_COMMAND) + sizeof(MACHO_SECTION);
+    MachoSegmentCommand->CommandSize        = sizeof(MACHO_SEGMENT_COMMAND);
     
     strcpy(MachoSegmentCommand->SegmentName, "__TEXT");
     
@@ -115,9 +115,10 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     MachoSegmentCommand->MaximumProtection  = 7; // ???
     MachoSegmentCommand->InitialProtection  = 5; // ???
     
-    MachoSegmentCommand->NumberOfSections   = 1;
+    MachoSegmentCommand->NumberOfSections   = 0;
     MachoSegmentCommand->Flags              = 0;
     
+    /*
     // Fill out first and only section.
     MachoSection = (PMACHO_SECTION) (((PUCHAR) MachoSegmentCommand) + sizeof(MACHO_SEGMENT_COMMAND));
     
@@ -140,6 +141,8 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     
     // Fill out second load command.
     MachoUnixThread = (PMACHO_THREAD_COMMAND_X86) (((PUCHAR) MachoSection) + sizeof(MACHO_SECTION));
+    */
+    MachoUnixThread = (PMACHO_THREAD_COMMAND_X86) (((PUCHAR) MachoSegmentCommand) + sizeof(MACHO_SEGMENT_COMMAND));
     
     MachoUnixThread->Command            = MACHO_LC_UNIXTHREAD;
     MachoUnixThread->CommandSize        = sizeof(MACHO_THREAD_COMMAND_X86);
