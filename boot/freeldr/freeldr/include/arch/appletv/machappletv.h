@@ -42,7 +42,7 @@ VOID AppleTVDiskInit();
 BOOLEAN AppleTVDiskReadLogicalSectors(UCHAR DriveNumber, ULONGLONG SectorNumber, ULONG SectorCount, PVOID Buffer);
 BOOLEAN AppleTVDiskGetDriveGeometry(UCHAR DriveNumber, PGEOMETRY DriveGeometry);
 ULONG AppleTVDiskGetCacheableBlockCount(UCHAR DriveNumber);
-BOOLEAN PcInitializeBootDevices(VOID);
+BOOLEAN AppleTVInitializeBootDevices(VOID);
 
 TIMEINFO* AppleTVGetTime(VOID);
 

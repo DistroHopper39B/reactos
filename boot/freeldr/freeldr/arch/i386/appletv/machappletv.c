@@ -66,7 +66,7 @@ MachInit(const char *CmdLine)
     MachVtbl.DiskGetDriveGeometry = AppleTVDiskGetDriveGeometry;
     MachVtbl.DiskGetCacheableBlockCount = AppleTVDiskGetCacheableBlockCount;
     MachVtbl.GetTime = AppleTVGetTime;
-    MachVtbl.InitializeBootDevices = PcInitializeBootDevices; // in hwdisk.c
+    MachVtbl.InitializeBootDevices = AppleTVInitializeBootDevices;
     MachVtbl.HwDetect = AppleTVHwDetect;
     MachVtbl.HwIdle = AppleTVHwIdle;
     

@@ -460,18 +460,6 @@ PcInitializeBootDevices(VOID)
     UCHAR DiskCount;
     BOOLEAN BootDriveReported = FALSE;
     CONFIGURATION_TYPE DriveType;
-    
-    #ifdef SARCH_APPLETV
-    // Set up disk read buffer.
-    DiskReadBufferSize = PAGE_SIZE;
-    DiskReadBuffer = MmAllocateMemoryWithType(DiskReadBufferSize, LoaderFirmwareTemporary);
-    if (!DiskReadBuffer)
-    {
-        ERR("Cannot allocate disk read buffer!\n");
-        ASSERT(FALSE);
-        return FALSE;
-    }
-    #endif
 
     DiskCount = EnumerateHarddisks(&BootDriveReported);
 
