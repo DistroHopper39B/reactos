@@ -35,7 +35,7 @@ typedef struct tagDISKCONTEXT
 static const CHAR Hex[] = "0123456789abcdef";
 
 /* Data cache for BIOS disks pre-enumeration */
-UCHAR PcBiosDiskCount = 0;.
+UCHAR PcBiosDiskCount = 0;
 static CHAR PcDiskIdentifier[32][20];
 
 PVOID DiskReadBuffer;
