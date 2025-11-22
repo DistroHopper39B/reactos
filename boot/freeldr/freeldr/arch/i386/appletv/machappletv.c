@@ -13,10 +13,6 @@
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(HWDETECT);
 
-/* GLOBALS *******************************************************************/
-
-extern PMACH_BOOTARGS BootArgs; // from eax register; see appletventry.S
-
 /* FUNCTIONS *****************************************************************/
 
 VOID
@@ -31,7 +27,7 @@ MachInit(const char *CmdLine)
     if (BootArgs->Version != 1
         && BootArgs->Revision != 4)
     {
-        ERR("This is not an Apple TV!\n");
+        ERR("BootArgs struct missing or damaged; this probably isn't an Apple TV!\n");
         
         _disable();
         __halt();
@@ -72,15 +68,12 @@ MachInit(const char *CmdLine)
     
     /*
      * If we are booting in text mode, enable screen debugging
-     * Enabling this can be achieved by holding Cmd/Win-V or S at startup
+     * Text mode can be enabled by holding Windows/Command-V or Command-S at startup
      * or adding '-v' or '-s' to the 'Kernel Flags' key in com.apple.Boot.plist
      */
     if (BootArgs->Video.DisplayMode == DISPLAY_MODE_TEXT)
     {
-        // Clear screen
         AppleTVVideoClearScreen(COLOR_BLACK);
-        
-        // Enable screen debug
         DebugEnableScreenPort();
     }
     

@@ -171,3 +171,16 @@ AppleTVVideoScrollUp(VOID)
     for (PixelCount = 0; PixelCount < Video->Width * CHAR_HEIGHT; PixelCount++)
         *Dst++ = BgColor;
 }
+
+VIDEODISPLAYMODE
+AppleTVVideoSetDisplayMode(char *DisplayMode, BOOLEAN Init)
+{
+    // We only have one display mode
+    return VideoTextMode;
+}
+
+BOOLEAN
+AppleTVVideoIsPaletteFixed(VOID)
+{
+    return FALSE;
+}

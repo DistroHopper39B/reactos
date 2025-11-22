@@ -61,4 +61,4 @@ typedef struct ALIGNED(4) {
     UINT8 __reserved2[7];
 } MACH_BOOTARGS, *PMACH_BOOTARGS;
 
-extern PMACH_BOOTARGS BootArgs;
+extern PMACH_BOOTARGS BootArgs; // from eax register; see appletventry.S

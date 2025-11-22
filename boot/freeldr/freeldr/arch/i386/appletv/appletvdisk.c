@@ -637,3 +637,16 @@ AppleTVInitializeBootDevices(VOID)
 
     return (DiskCount != 0);
 }
+
+UCHAR
+AppleTVGetFloppyCount(VOID)
+{
+    /* No floppy drive present */
+    return 0;
+}
+
+UCHAR
+DriveMapGetBiosDriveNumber(PCSTR DeviceName)
+{
+    return 0;
+}

@@ -13,18 +13,12 @@
 
 /* GENERAL FUNCTIONS *********************************************************/
 
-UCHAR
-AppleTVGetFloppyCount(VOID)
-{
-    /* No floppy drive present */
-    return 0;
-}
-
 VOID
 AppleTVGetExtendedBIOSData(PULONG ExtendedBIOSDataArea, PULONG ExtendedBIOSDataSize)
 {
     /* No EBDA on EFI-based Apple TV */
 }
+
 VOID
 AppleTVHwIdle(VOID)
 {
@@ -37,18 +31,6 @@ AppleTVBeep(VOID)
     /* No beeper speaker support */
 }
 
-UCHAR
-DriveMapGetBiosDriveNumber(PCSTR DeviceName)
-{
-    return 0;
-}
-
-BOOLEAN
-PxeInit(VOID)
-{
-    return FALSE;
-}
-
 VOID
 ChainLoadBiosBootSectorCode(UCHAR BootDrive, ULONG BootPartition)
 {
@@ -56,7 +38,7 @@ ChainLoadBiosBootSectorCode(UCHAR BootDrive, ULONG BootPartition)
 }
 
 VOID
-DiskStopFloppyMotor()
+DiskStopFloppyMotor(VOID)
 {
     // Not supported
 }
@@ -99,19 +81,6 @@ VOID
 AppleTVVideoHideShowTextCursor(BOOLEAN Show)
 {
     // We don't have a cursor
-}
-
-VIDEODISPLAYMODE
-AppleTVVideoSetDisplayMode(char *DisplayMode, BOOLEAN Init)
-{
-    // We only have one display mode
-    return VideoTextMode;
-}
-
-BOOLEAN
-AppleTVVideoIsPaletteFixed(VOID)
-{
-    return FALSE;
 }
 
 VOID
