@@ -113,7 +113,7 @@ UefiInitializeVideo(VOID)
                          gop->Mode->Info->VerticalResolution,
                          gop->Mode->Info->PixelsPerScanLine,
                          BitsPerPixel,
-                         (PPIXEL_BITMASK)pPixelBitmask);
+                         (PPIXEL_FORMAT)pPixelBitmask, TRUE);
     return Status;
 }
 
