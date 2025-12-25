@@ -154,3 +154,21 @@ LONG DiskReportError(BOOLEAN bShowError)
     else            --lReportError;
     return lReportError;
 }
+
+UCHAR
+AppleTVGetFloppyCount(VOID)
+{
+    /* No floppy drive present */
+    return 0;
+}
+
+UCHAR
+DriveMapGetBiosDriveNumber(PCSTR DeviceName)
+{
+    return 0;
+}
+
+BOOLEAN PxeInit(VOID)
+{
+    return FALSE;
+}
