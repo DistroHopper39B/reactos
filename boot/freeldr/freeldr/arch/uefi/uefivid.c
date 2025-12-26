@@ -16,7 +16,6 @@ DBG_DEFAULT_CHANNEL(UI);
 extern EFI_SYSTEM_TABLE* GlobalSystemTable;
 extern EFI_HANDLE GlobalImageHandle;
 EFI_GUID EfiGraphicsOutputProtocol = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
-/****/EFI_PIXEL_BITMASK UefiGopPixelBitmask;/****/
 
 #define LOWEST_SUPPORTED_RES 1
 

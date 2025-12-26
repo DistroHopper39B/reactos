@@ -181,8 +181,8 @@ DetectBiosFloppyPeripheral(PCONFIGURATION_COMPONENT_DATA ControllerKey)
             return;
         }
         RtlZeroMemory(PartialResourceList, Size);
-        PartialResourceList->Version  = ARC_VERSION;
-        PartialResourceList->Revision = ARC_REVISION;
+        PartialResourceList->Version = 1;
+        PartialResourceList->Revision = 1;
         PartialResourceList->Count = 1;
 
         PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
@@ -246,8 +246,8 @@ DetectBiosFloppyController(PCONFIGURATION_COMPONENT_DATA BusKey)
         return NULL;
     }
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = 7;
 
     /* Set I/O ports */
@@ -332,10 +332,9 @@ Pc98GetHarddiskConfigurationData(UCHAR DriveNumber, ULONG* pSize)
         return NULL;
     }
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = 1;
-
     PartialResourceList->PartialDescriptors[0].Type = CmResourceTypeDeviceSpecific;
 //  PartialResourceList->PartialDescriptors[0].ShareDisposition =
 //  PartialResourceList->PartialDescriptors[0].Flags =
@@ -404,8 +403,8 @@ DetectBiosDisks(
         return;
     }
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = 1;
 
     PartialResourceList->PartialDescriptors[0].Type = CmResourceTypeDeviceSpecific;
@@ -484,8 +483,8 @@ DetectPointerPeripheral(PCONFIGURATION_COMPONENT_DATA ControllerKey)
         return;
     }
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = 0;
 
     /* Create 'PointerPeripheral' key */
@@ -521,8 +520,8 @@ DetectPointerController(PCONFIGURATION_COMPONENT_DATA BusKey)
         return;
     }
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = (HiResoMachine ? 7 : 6);
 
     /* Set I/O ports */
@@ -603,8 +602,8 @@ DetectKeyboardPeripheral(PCONFIGURATION_COMPONENT_DATA ControllerKey)
         return;
     }
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = 1;
 
     PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
@@ -673,8 +672,8 @@ DetectKeyboardController(PCONFIGURATION_COMPONENT_DATA BusKey)
         return;
     }
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = 3;
 
     /* Set I/O ports */
@@ -735,8 +734,8 @@ DetectParallelPorts(PCONFIGURATION_COMPONENT_DATA BusKey)
         return;
     }
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = 8;
 
     /* Set I/O ports */
@@ -831,8 +830,8 @@ DetectSerialPorts(PCONFIGURATION_COMPONENT_DATA BusKey)
             return;
         }
         RtlZeroMemory(PartialResourceList, Size);
-        PartialResourceList->Version  = ARC_VERSION;
-        PartialResourceList->Revision = ARC_REVISION;
+        PartialResourceList->Version = 1;
+        PartialResourceList->Revision = 1;
         PartialResourceList->Count = (HasFifo ? 11 : 4);
 
         /* Set I/O ports */
@@ -912,8 +911,8 @@ DetectSerialPorts(PCONFIGURATION_COMPONENT_DATA BusKey)
             return;
         }
         RtlZeroMemory(PartialResourceList, Size);
-        PartialResourceList->Version  = ARC_VERSION;
-        PartialResourceList->Revision = ARC_REVISION;
+        PartialResourceList->Version = 1;
+        PartialResourceList->Revision = 1;
         PartialResourceList->Count = 3;
 
         /* Set I/O ports */
@@ -977,8 +976,8 @@ DetectCBusBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         return;
     }
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = 0;
 
     /* Create bus key */
@@ -1026,8 +1025,8 @@ DetectNesaBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         return;
     }
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = 0;
 
     /* Create bus key */
@@ -1108,10 +1107,9 @@ DetectPnpBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
     /* Initialize resource descriptor */
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = 1;
-
     PartialResourceList->PartialDescriptors[0].Type =
         CmResourceTypeDeviceSpecific;
     PartialResourceList->PartialDescriptors[0].ShareDisposition =

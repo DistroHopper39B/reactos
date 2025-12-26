@@ -63,8 +63,8 @@ DetectApmBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         return;
     }
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version = 0;
+    PartialResourceList->Revision = 0;
     PartialResourceList->Count = 0;
 
     /* FIXME: Add configuration data */
