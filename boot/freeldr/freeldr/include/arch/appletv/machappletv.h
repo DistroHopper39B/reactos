@@ -18,8 +18,9 @@ VOID AppleTVConsPutChar(int Ch);
 BOOLEAN AppleTVConsKbHit(VOID);
 int AppleTVConsGetCh(VOID);
 
+VOID AppleTVInitializeVideo(VOID);
 VOID AppleTVVideoClearScreen(UCHAR Attr);
-VIDEODISPLAYMODE AppleTVVideoSetDisplayMode(char *DisplayMode, BOOLEAN Init);
+VIDEODISPLAYMODE AppleTVVideoSetDisplayMode(PCSTR DisplayMode, BOOLEAN Init);
 VOID AppleTVVideoGetDisplaySize(PULONG Width, PULONG Height, PULONG Depth);
 ULONG AppleTVVideoGetBufferSize(VOID);
 VOID AppleTVVideoGetFontsFromFirmware(PULONG RomFontPointers);
@@ -31,7 +32,6 @@ BOOLEAN AppleTVVideoIsPaletteFixed(VOID);
 VOID AppleTVVideoSetPaletteColor(UCHAR Color, UCHAR Red, UCHAR Green, UCHAR Blue);
 VOID AppleTVVideoGetPaletteColor(UCHAR Color, UCHAR* Red, UCHAR* Green, UCHAR* Blue);
 VOID AppleTVVideoSync(VOID);
-VOID AppleTVVideoScrollUp(VOID);
 VOID AppleTVPrepareForReactOS(VOID);
 
 VOID AppleTVMemInit(VOID);

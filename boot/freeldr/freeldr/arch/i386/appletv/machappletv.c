@@ -24,6 +24,7 @@ AppleTVPrepareForReactOS(VOID)
 VOID
 MachInit(const char *CmdLine)
 {
+    
     if (BootArgs->Version != 1
         && BootArgs->Revision != 4)
     {
@@ -65,6 +66,8 @@ MachInit(const char *CmdLine)
     MachVtbl.InitializeBootDevices = PcInitializeBootDevices; // in hwdisk.c
     MachVtbl.HwDetect = AppleTVHwDetect;
     MachVtbl.HwIdle = AppleTVHwIdle;
+    
+    AppleTVInitializeVideo();
     
     /*
      * If we are booting in text mode, enable screen debugging

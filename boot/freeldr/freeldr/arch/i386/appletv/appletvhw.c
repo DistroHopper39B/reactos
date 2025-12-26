@@ -8,12 +8,11 @@
 /* INCLUDES ******************************************************************/
 
 #include <freeldr.h>
+#include "../../vidfb.h"
 
 /* UEFI support */
 #include <Uefi.h>
 #include <Acpi.h>
-#include <GraphicsOutput.h>
-#include <drivers/bootvid/framebuf.h>
 
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(WARNING);
@@ -409,108 +408,6 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     }
 }
 
-static VOID
-DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
-{
-    PCONFIGURATION_COMPONENT_DATA ControllerKey;
-    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
-    PCM_PARTIAL_RESOURCE_DESCRIPTOR PartialDescriptor;
-    PCM_FRAMEBUF_DEVICE_DATA FramebufferData;
-    ULONG Size;
-    
-    PMACH_VIDEO Video = &BootArgs->Video;
-
-    TRACE("\nStructure sizes:\n"
-        "    sizeof(CM_PARTIAL_RESOURCE_LIST)       = %lu\n"
-        "    sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) = %lu\n"
-        "    sizeof(CM_FRAMEBUF_DEVICE_DATA)        = %lu\n\n",
-        sizeof(CM_PARTIAL_RESOURCE_LIST),
-        sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR),
-        sizeof(CM_FRAMEBUF_DEVICE_DATA));
-
-    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) +
-           sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) +
-           sizeof(CM_FRAMEBUF_DEVICE_DATA);
-    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
-    if (PartialResourceList == NULL)
-    {
-        ERR("Failed to allocate resource descriptor\n");
-        return;
-    }
-
-    // Initialize resource descriptor
-    RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
-    PartialResourceList->Count = 2;
-
-    // Set Memory
-    PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
-    PartialDescriptor->Type = CmResourceTypeMemory;
-    PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
-    PartialDescriptor->Flags = CM_RESOURCE_MEMORY_READ_WRITE;
-    PartialDescriptor->u.Memory.Start.QuadPart = Video->BaseAddress;
-    PartialDescriptor->u.Memory.Length = (Video->Pitch * Video->Height);
-
-    // Set framebuffer-specific data
-    PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
-    PartialDescriptor->Type = CmResourceTypeDeviceSpecific;
-    PartialDescriptor->ShareDisposition = CmResourceShareUndetermined;
-    PartialDescriptor->Flags = 0;
-    PartialDescriptor->u.DeviceSpecificData.DataSize =
-        sizeof(CM_FRAMEBUF_DEVICE_DATA);
-
-    // Get pointer to framebuffer-specific data
-    FramebufferData = (PVOID)(PartialDescriptor + 1);
-    RtlZeroMemory(FramebufferData, sizeof(*FramebufferData));
-    FramebufferData->Version  = 2;
-    FramebufferData->Revision = 0;
-
-    FramebufferData->VideoClock = 0; // FIXME: Use EDID
-
-    // Horizontal and Vertical resolution in pixels
-    FramebufferData->ScreenWidth  = Video->Width;
-    FramebufferData->ScreenHeight = Video->Height;
-
-    // Number of pixel elements per video memory line
-    FramebufferData->PixelsPerScanLine = (Video->Pitch / 4);
-
-    //
-    // TODO: Investigate display rotation!
-    //
-    // See OpenCorePkg OcConsoleLib/ConsoleGop.c
-    // if ((mGop.Rotation == 90) || (mGop.Rotation == 270))
-    if (FramebufferData->ScreenWidth < FramebufferData->ScreenHeight)
-    {
-        #define SWAP(x, y) { (x) ^= (y); (y) ^= (x); (x) ^= (y); }
-        SWAP(FramebufferData->ScreenWidth, FramebufferData->ScreenHeight);
-        FramebufferData->PixelsPerScanLine = FramebufferData->ScreenWidth;
-        #undef SWAP
-    }
-
-    // Physical format of the pixel
-    // ASSERT(sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL) == 4);
-    // On Apple systems this can just be hardcoded to PixelBlueGreenRedReserved8BitPerColor.
-    FramebufferData->BitsPerPixel = (8 * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
-    *(EFI_PIXEL_BITMASK*)&FramebufferData->PixelInformation = EfiPixelMasks[PixelBlueGreenRedReserved8BitPerColor];
-
-    FldrCreateComponentKey(BusKey,
-                           ControllerClass,
-                           DisplayController,
-                           Output | ConsoleOut,
-                           0,
-                           0xFFFFFFFF,
-                           "Apple TV Framebuffer",
-                           PartialResourceList,
-                           Size,
-                           &ControllerKey);
-
-    // NOTE: Don't add a MonitorPeripheral for now...
-    // We should use EDID data for it.
-
-}
-
-
 static
 VOID
 DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
@@ -550,7 +447,7 @@ DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     (*BusNumber)++;
 
     // Detect devices that do not belong to "standard" buses
-    DetectDisplayController(BusKey);
+    DetectDisplayController(BusKey, "Apple TV Framebuffer");
 
     //FIXME: Detect more devices
 }

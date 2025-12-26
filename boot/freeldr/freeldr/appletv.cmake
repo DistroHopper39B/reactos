@@ -37,6 +37,7 @@ list(APPEND APPLETVLDR_ARC_SOURCE
 
 # extra stuff we need
 list(APPEND APPLETVLDR_ARC_SOURCE
+    arch/vidfb.c
     arch/vgafont.c
     arch/drivers/hwide.c
     arch/i386/hwdisk.c
