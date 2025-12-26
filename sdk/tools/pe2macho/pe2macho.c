@@ -62,16 +62,11 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     UINT32                      MachoInfoSize;
     PMACHO_HEADER               MachoHeader;
     PMACHO_SEGMENT_COMMAND      MachoSegmentCommand;
-    //PMACHO_SECTION              MachoSection;
     PMACHO_THREAD_COMMAND_X86   MachoUnixThread;
     UINT32                      SizeOfExecData;
     
-    // We only use a single segment with a single section, which doesn't impact runtime but does impact things like disassembling.
-    // Disassembling should be done with the original PE file.
-    
     MachoInfoSize = sizeof(MACHO_HEADER)
                     + sizeof(MACHO_SEGMENT_COMMAND)
-                    //+ sizeof(MACHO_SECTION)
                     + sizeof(MACHO_THREAD_COMMAND_X86);
                     
     MachoHeader = malloc(MachoInfoSize);
@@ -118,30 +113,6 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     MachoSegmentCommand->NumberOfSections   = 0;
     MachoSegmentCommand->Flags              = 0;
     
-    /*
-    // Fill out first and only section.
-    MachoSection = (PMACHO_SECTION) (((PUCHAR) MachoSegmentCommand) + sizeof(MACHO_SEGMENT_COMMAND));
-    
-    strcpy(MachoSection->SectionName, "__entry");
-    strcpy(MachoSection->SegmentName, "__TEXT");
-    
-    MachoSection->Address               = OptionalHeader->ImageBase + OptionalHeader->AddressOfEntryPoint; // Entry address!!
-    MachoSection->Size                  = SizeOfExecData - (OptionalHeader->AddressOfEntryPoint + OptionalHeader->SectionAlignment);
-    MachoSection->Offset                = OptionalHeader->AddressOfEntryPoint;
-    
-    MachoSection->Alignment             = __builtin_ctz(OptionalHeader->SectionAlignment);
-    
-    MachoSection->RelocationOffset      = 0; // no relocations here :D
-    MachoSection->NumberOfRelocation    = 0;
-    
-    MachoSection->Flags                 = 0x80000400;
-    
-    MachoSection->Reserved1             = 0;
-    MachoSection->Reserved2             = 0;
-    
-    // Fill out second load command.
-    MachoUnixThread = (PMACHO_THREAD_COMMAND_X86) (((PUCHAR) MachoSection) + sizeof(MACHO_SECTION));
-    */
     MachoUnixThread = (PMACHO_THREAD_COMMAND_X86) (((PUCHAR) MachoSegmentCommand) + sizeof(MACHO_SEGMENT_COMMAND));
     
     MachoUnixThread->Command            = MACHO_LC_UNIXTHREAD;
