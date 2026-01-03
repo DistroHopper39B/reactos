@@ -31,6 +31,8 @@
     #error Unknown architecture
 #endif
 
+#ifndef TEXT_VGA
+
 /* Define if FontData has upside-down characters */
 #undef CHAR_GEN_UPSIDE_DOWN
 
@@ -59,6 +61,18 @@ typedef struct tagBITMAPINFOHEADER
 
 typedef ULONG RGBQUAD;
 
+#else
+
+/*
+ * So that:
+ * TEXT_WIDTH == (SCREEN_WIDTH / BOOTCHAR_WIDTH) == 80
+ * TEXT_HEIGHT == (SCREEN_HEIGHT / BOOTCHAR_HEIGHT) == 25
+ */
+#define BOOTCHAR_HEIGHT 19
+#define BOOTCHAR_WIDTH  8
+
+#endif // TEXT_VGA
+
 typedef struct _URECT
 {
     ULONG Left;
@@ -74,6 +88,9 @@ extern UCHAR VidpTextColor;
 extern ULONG VidpCurrentX;
 extern ULONG VidpCurrentY;
 extern URECT VidpScrollRegion;
+
+#ifndef TEXT_VGA
+
 extern const UCHAR VidpFontData[256 * BOOTCHAR_HEIGHT];
 extern const RGBQUAD VidpDefaultPalette[BV_MAX_COLORS];
 
@@ -92,6 +109,8 @@ extern const RGBQUAD VidpDefaultPalette[BV_MAX_COLORS];
 # define GetFontPtr(_Char)  (&VidpFontData[(_Char) * BOOTCHAR_HEIGHT])
 # define FONT_PTR_DELTA     (1)
 #endif
+
+#endif // TEXT_VGA
 
 
 VOID
