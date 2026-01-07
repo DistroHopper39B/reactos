@@ -19,6 +19,9 @@
 #include <freeldr.h>
 #include <cportlib/cportlib.h>
 #include <drivers/bootvid/framebuf.h>
+#include "../../vidfb.h"
+#define ARC_VERSION 1
+#define ARC_REVISION 2
 
 #include "../ntldr/ntldropts.h"
 
@@ -1577,6 +1580,11 @@ USHORT  BiosIsVesaSupported(VOID);
 BOOLEAN BiosIsVesaDdcSupported(VOID);
 BOOLEAN BiosVesaReadEdid(VOID);
 
+#if !defined(SARCH_XBOX) && !defined(SARCH_PC98)
+extern PVOID FrameBuffer;
+extern ULONG FrameBufferSize;
+#endif
+
 static VOID
 DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
 {
@@ -1611,58 +1619,61 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     else
         Identifier = "VGA Display";
 
-
-    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) +
-           1 * sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) +
-           sizeof(CM_FRAMEBUF_DEVICE_DATA);
-    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
-    if (PartialResourceList == NULL)
+    // FIXME: See pcvideo.c/pcmem.c temp variables
+    if (FrameBuffer && FrameBufferSize)
     {
-        ERR("Failed to allocate resource descriptor\n");
-        return;
+        Size = sizeof(CM_PARTIAL_RESOURCE_LIST) +
+               1 * sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) +
+               sizeof(CM_FRAMEBUF_DEVICE_DATA);
+        PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+        if (PartialResourceList == NULL)
+        {
+            ERR("Failed to allocate resource descriptor\n");
+            return;
+        }
+
+        /* Initialize resource descriptor */
+        RtlZeroMemory(PartialResourceList, Size);
+        PartialResourceList->Version  = ARC_VERSION;
+        PartialResourceList->Revision = ARC_REVISION;
+        PartialResourceList->Count = 2;
+
+        /* Set Memory */
+        PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
+        PartialDescriptor->Type = CmResourceTypeMemory;
+        PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
+        PartialDescriptor->Flags = CM_RESOURCE_MEMORY_READ_WRITE;
+        PartialDescriptor->u.Memory.Start.QuadPart = (ULONG_PTR)FrameBuffer;
+        PartialDescriptor->u.Memory.Length = FrameBufferSize;
+
+        /* Set framebuffer-specific data */
+        PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
+        PartialDescriptor->Type = CmResourceTypeDeviceSpecific;
+        PartialDescriptor->ShareDisposition = CmResourceShareUndetermined;
+        PartialDescriptor->Flags = 0;
+        PartialDescriptor->u.DeviceSpecificData.DataSize =
+            sizeof(CM_FRAMEBUF_DEVICE_DATA);
+
+        /* Get pointer to framebuffer-specific data */
+        FramebufferData = (PVOID)(PartialDescriptor + 1);
+        RtlZeroMemory(FramebufferData, sizeof(*FramebufferData));
+        FramebufferData->Version  = 2;
+        FramebufferData->Revision = 0;
+
+        FramebufferData->VideoClock = 0; // FIXME: Use EDID
+
+        ULONG_PTR BaseAddress;
+        ULONG BufferSize;
+        VidFbGetFbDeviceData(&BaseAddress, &BufferSize, FramebufferData);
+        ASSERT(BaseAddress == (ULONG_PTR)FrameBuffer);
+        ASSERT(BufferSize == FrameBufferSize);
     }
-
-    /* Initialize resource descriptor */
-    RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
-    PartialResourceList->Count = 2;
-
-    /* Set Memory */
-    PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
-    PartialDescriptor->Type = CmResourceTypeMemory;
-    PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
-    PartialDescriptor->Flags = CM_RESOURCE_MEMORY_READ_WRITE;
-    PartialDescriptor->u.Memory.Start.LowPart = (ULONG_PTR)0xA0000;
-    PartialDescriptor->u.Memory.Length = 256*1024;
-
-    /* Set framebuffer-specific data */
-    PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
-    PartialDescriptor->Type = CmResourceTypeDeviceSpecific;
-    PartialDescriptor->ShareDisposition = CmResourceShareUndetermined;
-    PartialDescriptor->Flags = 0;
-    PartialDescriptor->u.DeviceSpecificData.DataSize =
-        sizeof(CM_FRAMEBUF_DEVICE_DATA);
-
-    /* Get pointer to framebuffer-specific data */
-    FramebufferData = (PVOID)(PartialDescriptor + 1);
-    RtlZeroMemory(FramebufferData, sizeof(*FramebufferData));
-    FramebufferData->Version  = 2;
-    FramebufferData->Revision = 0;
-
-    FramebufferData->VideoClock = 0; // FIXME: Use EDID
-
-    /* Horizontal and Vertical resolution in pixels */
-    FramebufferData->ScreenWidth  = 640;
-    FramebufferData->ScreenHeight = 480;
-
-    /* Number of pixel elements per video memory line */
-    FramebufferData->PixelsPerScanLine = 640;
-
-    /* Physical format of the pixel */
-    FramebufferData->BitsPerPixel = 16;
-    RtlZeroMemory(&FramebufferData->PixelInformation,
-                  sizeof(FramebufferData->PixelInformation));
+    else
+    {
+        FramebufferData = NULL;
+        PartialResourceList = NULL;
+        Size = 0;
+    }
 
     FldrCreateComponentKey(BusKey,
                            ControllerClass,
@@ -1688,6 +1699,8 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
         }
     }
 
+    CHAR IdentifierStr[32];
+
 #if 0 // Using "old" configuration data
 
     Size = sizeof(MONITOR_CONFIGURATION_DATA);
@@ -1699,17 +1712,21 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     }
 
     RtlZeroMemory(MonitorData, sizeof(MonitorData));
-    MonitorData->HorizontalResolution = 1024;
+    MonitorData->HorizontalResolution = (FramebufferData ? FramebufferData->ScreenWidth : 640); // 1024;
     MonitorData->HorizontalDisplayTime = 16000;
     MonitorData->HorizontalBackPorch = 2000;
     MonitorData->HorizontalFrontPorch = 1000;
     MonitorData->HorizontalSync = 1500;
-    MonitorData->VerticalResolution = 768;
+    MonitorData->VerticalResolution = (FramebufferData ? FramebufferData->ScreenHeight : 480); // 768;
     MonitorData->VerticalBackPorch = 39;
     MonitorData->VerticalFrontPorch = 1;
     MonitorData->VerticalSync = 1;
     MonitorData->HorizontalScreenSize = 343;
     MonitorData->VerticalScreenSize = 274;
+
+    sprintf(IdentifierStr, "%lux%lu",
+            MonitorData->HorizontalResolution,
+            MonitorData->VerticalResolution);
 
     FldrCreateComponentKey(ControllerKey,
                            PeripheralClass,
@@ -1717,7 +1734,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
                            Output | ConsoleOut,
                            0,
                            0xFFFFFFFF,
-                           "1024x768",
+                           IdentifierStr,
                            (PCM_PARTIAL_RESOURCE_LIST)MonitorData, // Pointer to MONITOR_CONFIGURATION_DATA
                            Size,
                            &PeripheralKey);
@@ -1755,8 +1772,8 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     MonitorData->Revision = 0;
     MonitorData->HorizontalScreenSize = 343;
     MonitorData->VerticalScreenSize = 274;
-    MonitorData->HorizontalResolution = 1024;
-    MonitorData->VerticalResolution = 768;
+    MonitorData->HorizontalResolution = (FramebufferData ? FramebufferData->ScreenWidth : 640); // 1024;
+    MonitorData->VerticalResolution = (FramebufferData ? FramebufferData->ScreenHeight : 480); // 768;
     MonitorData->HorizontalDisplayTimeLow = 0;
     MonitorData->HorizontalDisplayTime = 16000;
     MonitorData->HorizontalDisplayTimeHigh = 0;
@@ -1779,13 +1796,17 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     MonitorData->VerticalSync = 1;
     MonitorData->VerticalSyncHigh = 0;
 
+    sprintf(IdentifierStr, "%lux%lu",
+            MonitorData->HorizontalResolution,
+            MonitorData->VerticalResolution);
+
     FldrCreateComponentKey(ControllerKey,
                            PeripheralClass,
                            MonitorPeripheral,
                            Output | ConsoleOut,
                            0,
                            0xFFFFFFFF,
-                           "1024x768",
+                           IdentifierStr,
                            PartialResourceList,
                            Size,
                            &PeripheralKey);

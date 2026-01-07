@@ -42,6 +42,7 @@ typedef struct _FRAMEBUFFER_INFO
     ULONG ScreenWidth;
     ULONG ScreenHeight;
 
+    /* Number of pixel elements per video memory line */
     ULONG PixelsPerScanLine; // aka. "Pitch" or "ScreenStride", but Stride is in bytes or bits...
     ULONG BitsPerPixel;      // aka. "PixelStride".
 
@@ -66,7 +67,7 @@ typedef struct _FRAMEBUFFER_INFO
     UCHAR ReservedMaskPosition;
 } FRAMEBUFFER_INFO, *PFRAMEBUFFER_INFO;
 
-FRAMEBUFFER_INFO framebufInfo;
+FRAMEBUFFER_INFO framebufInfo = {0};
 
 static UINT8 VidpXScale = 1;
 static UINT8 VidpYScale = 1;
@@ -535,6 +536,23 @@ ERR("VidpYScale: %u\n", VidpYScale);
     }
 
     return TRUE;
+}
+
+VOID
+VidFbGetFbDeviceData(
+    _Out_ PULONG_PTR BaseAddress,
+    _Out_ PULONG BufferSize,
+    _Out_ PCM_FRAMEBUF_DEVICE_DATA FbData)
+{
+    *BaseAddress = framebufInfo.BaseAddress;
+    *BufferSize = framebufInfo.BufferSize;
+
+    FbData->ScreenWidth  = framebufInfo.ScreenWidth;
+    FbData->ScreenHeight = framebufInfo.ScreenHeight;
+    FbData->PixelsPerScanLine = framebufInfo.PixelsPerScanLine;
+    FbData->BitsPerPixel = framebufInfo.BitsPerPixel;
+
+    RtlCopyMemory(&FbData->PixelMasks, &framebufInfo.PixelMasks, sizeof(framebufInfo.PixelMasks));
 }
 
 /**

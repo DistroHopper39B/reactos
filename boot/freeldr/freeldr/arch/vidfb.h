@@ -83,6 +83,13 @@ VidFbInitializeVideo(
     _In_opt_ PPIXEL_FORMAT PixelFormat,
     _In_ BOOLEAN FormatByMask);
 
+#include <drivers/bootvid/framebuf.h>
+VOID
+VidFbGetFbDeviceData(
+    _Out_ PULONG_PTR BaseAddress,
+    _Out_ PULONG BufferSize,
+    _Out_ PCM_FRAMEBUF_DEVICE_DATA FbData);
+
 VOID
 VidFbClearScreenColor(
     _In_ UINT32 Color,

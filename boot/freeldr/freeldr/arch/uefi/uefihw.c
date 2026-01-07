@@ -9,6 +9,9 @@
 
 #include <uefildr.h>
 #include <drivers/bootvid/framebuf.h>
+#include "../vidfb.h"
+#define ARC_VERSION 1
+#define ARC_REVISION 2
 
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(WARNING);
@@ -128,7 +131,7 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     }
 }
 
-extern FRAMEBUFFER_INFO framebufInfo;
+// extern FRAMEBUFFER_INFO framebufInfo; // FIXME
 
 static VOID
 DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
@@ -139,7 +142,12 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     PCM_FRAMEBUF_DEVICE_DATA FramebufferData;
     ULONG Size;
 
-    if (framebufInfo.BufferSize == 0)
+    ULONG_PTR FrameBuffer;
+    ULONG FrameBufferSize;
+    CM_FRAMEBUF_DEVICE_DATA TempFbData;
+    VidFbGetFbDeviceData(&FrameBuffer, &FrameBufferSize, &TempFbData);
+
+    if (FrameBuffer == 0 || FrameBufferSize == 0)
         return;
 
     ERR("\nStructure sizes:\n"
@@ -171,8 +179,8 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     PartialDescriptor->Type = CmResourceTypeMemory;
     PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
     PartialDescriptor->Flags = CM_RESOURCE_MEMORY_READ_WRITE;
-    PartialDescriptor->u.Memory.Start.QuadPart = framebufInfo.BaseAddress;
-    PartialDescriptor->u.Memory.Length = framebufInfo.BufferSize;
+    PartialDescriptor->u.Memory.Start.QuadPart = FrameBuffer; // framebufInfo.BaseAddress;
+    PartialDescriptor->u.Memory.Length = FrameBufferSize; // framebufInfo.BufferSize;
 
     /* Set framebuffer-specific data */
     PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
@@ -184,19 +192,12 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
 
     /* Get pointer to framebuffer-specific data */
     FramebufferData = (PVOID)(PartialDescriptor + 1);
-    RtlZeroMemory(FramebufferData, sizeof(*FramebufferData));
+    // RtlZeroMemory(FramebufferData, sizeof(*FramebufferData));
+    RtlCopyMemory(FramebufferData, &TempFbData, sizeof(TempFbData));
     FramebufferData->Version  = 2;
     FramebufferData->Revision = 0;
 
     FramebufferData->VideoClock = 0; // FIXME: Use EDID
-
-    /* Horizontal and Vertical resolution in pixels */
-    FramebufferData->ScreenWidth  = framebufInfo.ScreenWidth;
-    FramebufferData->ScreenHeight = framebufInfo.ScreenHeight;
-
-    /* Number of pixel elements per video memory line */
-    FramebufferData->PixelsPerScanLine = framebufInfo.PixelsPerScanLine;
-    FramebufferData->BitsPerPixel = framebufInfo.BitsPerPixel;
 
     //
     // TODO: Investigate display rotation!
@@ -211,8 +212,6 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
         #undef SWAP
     }
 
-    RtlCopyMemory(&FramebufferData->PixelInformation, &framebufInfo.PixelMasks);
-
     FldrCreateComponentKey(BusKey,
                            ControllerClass,
                            DisplayController,
@@ -224,7 +223,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
                            Size,
                            &ControllerKey);
 
-    // NOTE: Don't add a MonitorPeripheral for now...
+    // NOTE: Don't add a MonitorPeripheral for now.
     // We should use EDID data for it.
 }
 

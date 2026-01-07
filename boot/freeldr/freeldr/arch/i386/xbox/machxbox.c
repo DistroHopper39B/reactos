@@ -19,6 +19,7 @@
 #include <freeldr.h>
 #include <drivers/xbox/superio.h>
 #include <drivers/bootvid/framebuf.h>
+#include "../../vidfb.h"
 
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(HWDETECT);
@@ -165,7 +166,7 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     PCM_FRAMEBUF_DEVICE_DATA FramebufferData;
     ULONG Size;
 
-    if (FrameBufferSize == 0)
+    if (FrameBuffer == 0 || FrameBufferSize == 0)
         return;
 
     Size = sizeof(CM_PARTIAL_RESOURCE_LIST) +
@@ -217,17 +218,14 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
 
     FramebufferData->VideoClock = 0; // FIXME: Use EDID
 
-    /* Horizontal and Vertical resolution in pixels */
-    FramebufferData->ScreenWidth  = ScreenWidth;
-    FramebufferData->ScreenHeight = ScreenHeight;
-
-    /* Number of pixel elements per video memory line */
-    FramebufferData->PixelsPerScanLine = ScreenWidth;
-
-    /* Physical format of the pixel */
-    FramebufferData->BitsPerPixel = (8 * BytesPerPixel);
-    RtlZeroMemory(&FramebufferData->PixelInformation,
-                  sizeof(FramebufferData->PixelInformation));
+    ULONG_PTR BaseAddress;
+    ULONG BufferSize;
+    VidFbGetFbDeviceData(&BaseAddress, &BufferSize, FramebufferData);
+    ASSERT(BaseAddress == (ULONG_PTR)FrameBuffer);
+    ASSERT(BufferSize == FrameBufferSize);
+    ASSERT(FramebufferData->ScreenWidth == ScreenWidth);
+    ASSERT(FramebufferData->ScreenHeight == ScreenHeight);
+    ASSERT(((FramebufferData->BitsPerPixel + 7) & ~7) / 8 == BytesPerPixel);
 
     FldrCreateComponentKey(BusKey,
                            ControllerClass,
@@ -239,6 +237,8 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
                            PartialResourceList,
                            Size,
                            &ControllerKey);
+
+    // NOTE: Don't add a MonitorPeripheral for now.
 }
 
 static
