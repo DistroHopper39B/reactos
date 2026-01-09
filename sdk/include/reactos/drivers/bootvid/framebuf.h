@@ -116,6 +116,7 @@ typedef struct _ROSEFI_FRAMEBUFFER_DATA
  * See UEFI Spec Rev.2.10 Section 12.9 "Graphics Output Protocol":
  * example code "GetPixelElementSize()" function.
  **/
+/*
 FORCEINLINE
 ULONG
 PixelBitmasksToBpp(
@@ -138,6 +139,7 @@ PixelBitmasksToBpp(
     return ret;
 #endif
 }
+*/
 
 #ifdef __cplusplus
 }

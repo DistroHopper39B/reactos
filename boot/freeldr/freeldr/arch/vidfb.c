@@ -11,8 +11,6 @@
 #include "vidfb.h"
 #include "vgafont.h"
 
-#include <Uefi.h>
-#include <GraphicsOutput.h>
 #include <drivers/bootvid/framebuf.h>
 
 #include <debug.h>
@@ -417,7 +415,7 @@ DetectDisplayController(
     // ASSERT(sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL) == 4);
     // For now we'll just hardcode to PixelBlueGreenRedReserved8BitPerColor.
     FramebufferData->BitsPerPixel = framebufInfo.BitsPerPixel;
-    *(EFI_PIXEL_BITMASK*)&FramebufferData->PixelInformation = EfiPixelMasks[PixelBlueGreenRedReserved8BitPerColor];
+    *(PIXEL_BITMASK*)&FramebufferData->PixelInformation = framebufInfo.PixelMasks;
 
     FldrCreateComponentKey(BusKey,
                            ControllerClass,

@@ -30,7 +30,7 @@ AppleTVConsPutChar(int c)
     NeedScroll = (CurrentCursorY >= Height);
     if (NeedScroll)
     {
-        VidFbScrollUp(CurrentAttr);
+        FbConsScrollUp(CurrentAttr);
         --CurrentCursorY;
     }
 
@@ -51,7 +51,7 @@ AppleTVConsPutChar(int c)
     }
     else
     {
-        AppleTVVideoPutChar(c, CurrentAttr, CurrentCursorX, CurrentCursorY);
+        FbConsPutChar(c, CurrentAttr, CurrentCursorX, CurrentCursorY);
         CurrentCursorX++;
     }
 

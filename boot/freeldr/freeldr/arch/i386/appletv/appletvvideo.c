@@ -23,18 +23,25 @@ extern UCHAR BitmapFont8x16[256 * 16];
 
 UCHAR MachDefaultTextColor = COLOR_GRAY;
 
+static PIXEL_BITMASK EfiPixelMasks[] =
+{ /* Red,        Green,      Blue,       Reserved */
+    {0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000},   // PixelRedGreenBlueReserved8BitPerColor
+    {0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000},   // PixelBlueGreenRedReserved8BitPerColor
+    {0,          0,          0,          0}             // PixelBitMask, PixelBltOnly, ...
+};
+
 /* FUNCTIONS ******************************************************************/
 
 VOID
 AppleTVVideoClearScreen(UCHAR Attr)
 {
-    VidFbClearScreen(Attr);
+    FbConsClearScreen(Attr);
 }
 
 VOID
 AppleTVVideoPutChar(int Ch, UCHAR Attr, unsigned X, unsigned Y)
 {
-    VidFbPutChar(Ch, Attr, X, Y);
+    FbConsPutChar(Ch, Attr, X, Y);
 }
 
 VOID
@@ -52,7 +59,7 @@ AppleTVVideoGetBufferSize(VOID)
 VOID
 AppleTVVideoCopyOffScreenBufferToVRAM(PVOID Buffer)
 {
-    VidFbCopyOffScreenBufferToVRAM(Buffer);
+    FbConsCopyOffScreenBufferToVRAM(Buffer);
 }
 
 VOID
@@ -60,12 +67,15 @@ AppleTVInitializeVideo(VOID)
 {
     PMACH_VIDEO Video = &BootArgs->Video;
     
+    PIXEL_BITMASK AppleTVBitMask = EfiPixelMasks[PixelBlueGreenRedReserved8BitPerColor];
+    
     VidFbInitializeVideo(Video->BaseAddress,
                             (Video->Pitch * Video->Height),
                             Video->Width,
                             Video->Height,
                             (Video->Pitch / 4),
-                            Video->Depth);
+                            Video->Depth,
+                            &AppleTVBitMask);
 }
 
 VIDEODISPLAYMODE
