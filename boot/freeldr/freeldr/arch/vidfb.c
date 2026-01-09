@@ -16,7 +16,7 @@ DBG_DEFAULT_CHANNEL(UI);
 #define TRACE ERR
 
 /* This is used to introduce artificial symmetric borders at the top and bottom */
-#define TOP_BOTTOM_LINES (2 * CHAR_HEIGHT) // 0
+#define TOP_BOTTOM_LINES 0 // (2 * CHAR_HEIGHT) // 0
 
 typedef ULONG RGBQUAD; // , COLORREF;
 
@@ -553,6 +553,36 @@ VidFbGetFbDeviceData(
     FbData->BitsPerPixel = framebufInfo.BitsPerPixel;
 
     RtlCopyMemory(&FbData->PixelMasks, &framebufInfo.PixelMasks, sizeof(framebufInfo.PixelMasks));
+
+////////////
+    // For fun: resize the framebuffer so that it can be contained
+    // within the FreeLoader display menu.
+    {
+extern UIVTBL UiVtbl;
+// extern const UIVTBL TuiVtbl;
+extern VOID TuiDrawBackdrop(ULONG);
+extern ULONG UiScreenWidth;
+extern ULONG UiScreenHeight;
+#ifndef TUI_TITLE_BOX_CHAR_HEIGHT // See tui.h
+#define TUI_TITLE_BOX_CHAR_HEIGHT    5
+#endif
+    // if (UiVtbl == TuiVtbl)
+    if (UiVtbl.DrawBackdrop == TuiDrawBackdrop)
+    {
+        /*
+         * Put the "guest" framebuffer below the UI header
+         * (0,0):(UiScreenWidth-1,TUI_TITLE_BOX_CHAR_HEIGHT-1)
+         */
+        FbData->ScreenWidth  = UiScreenWidth * CHAR_WIDTH * VidpXScale;
+        FbData->ScreenHeight = (UiScreenHeight - TUI_TITLE_BOX_CHAR_HEIGHT) * CHAR_HEIGHT * VidpYScale;
+
+        *BaseAddress = (ULONG_PTR)framebufInfo.BaseAddress
+                        + (TUI_TITLE_BOX_CHAR_HEIGHT * CHAR_HEIGHT * VidpYScale) * framebufInfo.Delta
+                        + (0 * CHAR_WIDTH * VidpXScale) * framebufInfo.BytesPerPixel;
+        *BufferSize = FbData->ScreenHeight * framebufInfo.Delta;
+    }
+    }
+////////////
 }
 
 /**

@@ -221,11 +221,14 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
     ULONG_PTR BaseAddress;
     ULONG BufferSize;
     VidFbGetFbDeviceData(&BaseAddress, &BufferSize, FramebufferData);
-    ASSERT(BaseAddress == (ULONG_PTR)FrameBuffer);
-    ASSERT(BufferSize == FrameBufferSize);
+    // ASSERT(BaseAddress == (ULONG_PTR)FrameBuffer);
+    // ASSERT(BufferSize == FrameBufferSize);
     ASSERT(FramebufferData->ScreenWidth == ScreenWidth);
     ASSERT(FramebufferData->ScreenHeight == ScreenHeight);
     ASSERT(((FramebufferData->BitsPerPixel + 7) & ~7) / 8 == BytesPerPixel);
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
+    PartialDescriptor->u.Memory.Start.LowPart = (BaseAddress & 0x0FFFFFFF);
+    PartialDescriptor->u.Memory.Length = BufferSize;
 
     FldrCreateComponentKey(BusKey,
                            ControllerClass,

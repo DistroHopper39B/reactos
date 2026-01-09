@@ -135,7 +135,7 @@ VidInitialize(
     INTERFACE_TYPE Interface;
     ULONG BusNumber;
 
-__debugbreak();
+//__debugbreak();
     /* Find boot-time (POST) framebuffer display information from
      * LoaderBlock or BgContext */
     RtlZeroMemory(&gBootDisp, sizeof(gBootDisp));
@@ -284,11 +284,11 @@ ResetDisplay(
 {
     SIZE_T BackBufferSize = SCREEN_WIDTH * (SCREEN_HEIGHT + (BOOTCHAR_HEIGHT + 1));
 
-    // RtlZeroMemory(BackBuffer, BackBufferSize);
-    RtlFillMemory(BackBuffer, BackBufferSize, 0xAA); // FIXME: Testing purposes!
+    RtlZeroMemory(BackBuffer, BackBufferSize);
+    // RtlFillMemory(BackBuffer, BackBufferSize, 0xAA); // FIXME: Testing purposes!
 
     // RtlZeroMemory((PVOID)FrameBufferStart, gBootDisp.BufferSize);
-    RtlFillMemoryUlong((PVOID)FrameBufferStart, gBootDisp.BufferSize, 0x00FFCC); // FIXME: Testing purposes!
+    // RtlFillMemoryUlong((PVOID)FrameBufferStart, gBootDisp.BufferSize, 0x00FFCC); // FIXME: Testing purposes!
 
     /* Re-initialize the palette and fill the screen black */
     InitializePalette();

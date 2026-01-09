@@ -1665,8 +1665,11 @@ DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
         ULONG_PTR BaseAddress;
         ULONG BufferSize;
         VidFbGetFbDeviceData(&BaseAddress, &BufferSize, FramebufferData);
-        ASSERT(BaseAddress == (ULONG_PTR)FrameBuffer);
-        ASSERT(BufferSize == FrameBufferSize);
+        // ASSERT(BaseAddress == (ULONG_PTR)FrameBuffer);
+        // ASSERT(BufferSize == FrameBufferSize);
+        PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
+        PartialDescriptor->u.Memory.Start.QuadPart = BaseAddress;
+        PartialDescriptor->u.Memory.Length = BufferSize;
     }
     else
     {
