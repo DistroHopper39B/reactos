@@ -310,34 +310,359 @@ SymbolicName=MSG_COMMAND_ASSIGN
 Severity=Informational
 Facility=System
 Language=English
-<Add ASSIGN command help text here>
+    Assigns a drive letter or mounted folder pathname to the volume with focus.
+
+Syntax:  ASSIGN [LETTER=<D> | MOUNT=<PATH>] [NOERR]
+
+    LETTER=<D>  The drive letter to assign to the volume.
+
+    MOUNT=<PATH>
+                The mounted folder pathname to assign to the volume.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder is specified, the next available drive
+    letter is assigned. If the drive letter or mounted folder is already in use,
+    an error is generated.
+
+    By using the ASSIGN command, you can change the drive letter associated
+    with a removable drive.
+
+    You cannot assign drive letters to boot volumes or
+    volumes that contain the paging file. In addition, you cannot assign
+    a drive letter to an Original Equipment Manufacturer (OEM) partition
+    unless booted to Windows PE, or any GUID Partition Table (GPT) partition
+    other than a basic data partition, an ESP partition or a recovery
+    partition.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    ASSIGN LETTER=D
 .
 Language=German
-<Add ASSIGN command help text here>
+    Weist dem Volume mit dem Fokus einen Laufwerkbuchstaben oder
+    den Pfadnamen des eingebundenen Ordners zu.
+
+Syntax:  ASSIGN [LETTER=<D> | MOUNT=<PATH>] [NOERR]
+
+    LETTER=<D>  Der Laufwerkbuchstabe, den Sie dem Volume zuweisen
+                möchten.
+
+    MOUNT=<PATH>
+                Der Pfadname des eingebundenen Ordners, den Sie dem Volume
+                zuweisen möchten.
+
+    NOERR       Nur für Skripting. Bei einem Fehler wird die Verarbeitung
+                von Befehlen fortgesetzt, als sei der Fehler nicht aufge-
+                treten. Ohne den NOERR-Parameter wird "DiskPart" bei
+                einem Fehler mit dem entsprechenden Fehlercode beendet.
+
+    Wenn kein Laufwerkbuchstabe oder eingebundener Ordner angegeben ist,
+    wird der nächste verfügbare Laufwerkbuchstabe zugewiesen. Ein Fehler
+    wird generiert, wenn der Laufwerkbuchstabe oder Bereitstellungspunkt
+    bereits verwendet wird.
+
+    Mit dem Befehl "ASSIGN" können Sie den Laufwerkbuchstaben ändern,
+    der einem Wechseldatenträger zugeordnet ist.
+
+    Startvolumes oder Volumes, die die Auslagerungsdatei
+    enthalten, können keine Laufwerkbuchstaben zugewiesen werden. Dar\xFCber
+    hinaus können Laufwerkbuchstaben weder OEM-Partitionen
+    (sofern kein Start in Windows PE erfolgt) noch GPT-Partitionen (GUID-
+    Partitionstabelle) zugewiesen werden, die keine Basisdatenpartitionen,
+    ESP-Partitionen oder Wiederherstellungspartitionen sind.
+
+    Damit dieser Vorgang erfolgreich ausgeführt werden kann, muss ein
+    Volume ausgewählt werden.
+
+Beispiel:
+
+    ASSIGN LETTER=D
 .
 Language=Polish
-<Add ASSIGN command help text here>
+    Assigns a drive letter or mounted folder pathname to the volume with focus.
+
+Syntax:  ASSIGN [LETTER=<D> | MOUNT=<PATH>] [NOERR]
+
+    LETTER=<D>  The drive letter to assign to the volume.
+
+    MOUNT=<PATH>
+                The mounted folder pathname to assign to the volume.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder is specified, the next available drive
+    letter is assigned. If the drive letter or mounted folder is already in use,
+    an error is generated.
+
+    By using the ASSIGN command, you can change the drive letter associated
+    with a removable drive.
+
+    You cannot assign drive letters to boot volumes or
+    volumes that contain the paging file. In addition, you cannot assign
+    a drive letter to an Original Equipment Manufacturer (OEM) partition
+    unless booted to Windows PE, or any GUID Partition Table (GPT) partition
+    other than a basic data partition, an ESP partition or a recovery
+    partition.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    ASSIGN LETTER=D
 .
 Language=Portugese
-<Add ASSIGN command help text here>
+    Assigns a drive letter or mounted folder pathname to the volume with focus.
+
+Syntax:  ASSIGN [LETTER=<D> | MOUNT=<PATH>] [NOERR]
+
+    LETTER=<D>  The drive letter to assign to the volume.
+
+    MOUNT=<PATH>
+                The mounted folder pathname to assign to the volume.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder is specified, the next available drive
+    letter is assigned. If the drive letter or mounted folder is already in use,
+    an error is generated.
+
+    By using the ASSIGN command, you can change the drive letter associated
+    with a removable drive.
+
+    You cannot assign drive letters to boot volumes or
+    volumes that contain the paging file. In addition, you cannot assign
+    a drive letter to an Original Equipment Manufacturer (OEM) partition
+    unless booted to Windows PE, or any GUID Partition Table (GPT) partition
+    other than a basic data partition, an ESP partition or a recovery
+    partition.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    ASSIGN LETTER=D
 .
 Language=Romanian
-<Adăugați aici textul de ajutor pentru comanda ASSIGN>
+    Assigns a drive letter or mounted folder pathname to the volume with focus.
+
+Syntax:  ASSIGN [LETTER=<D> | MOUNT=<PATH>] [NOERR]
+
+    LETTER=<D>  The drive letter to assign to the volume.
+
+    MOUNT=<PATH>
+                The mounted folder pathname to assign to the volume.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder is specified, the next available drive
+    letter is assigned. If the drive letter or mounted folder is already in use,
+    an error is generated.
+
+    By using the ASSIGN command, you can change the drive letter associated
+    with a removable drive.
+
+    You cannot assign drive letters to boot volumes or
+    volumes that contain the paging file. In addition, you cannot assign
+    a drive letter to an Original Equipment Manufacturer (OEM) partition
+    unless booted to Windows PE, or any GUID Partition Table (GPT) partition
+    other than a basic data partition, an ESP partition or a recovery
+    partition.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    ASSIGN LETTER=D
 .
 Language=Russian
-<Add ASSIGN command help text here>
+    Assigns a drive letter or mounted folder pathname to the volume with focus.
+
+Syntax:  ASSIGN [LETTER=<D> | MOUNT=<PATH>] [NOERR]
+
+    LETTER=<D>  The drive letter to assign to the volume.
+
+    MOUNT=<PATH>
+                The mounted folder pathname to assign to the volume.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder is specified, the next available drive
+    letter is assigned. If the drive letter or mounted folder is already in use,
+    an error is generated.
+
+    By using the ASSIGN command, you can change the drive letter associated
+    with a removable drive.
+
+    You cannot assign drive letters to boot volumes or
+    volumes that contain the paging file. In addition, you cannot assign
+    a drive letter to an Original Equipment Manufacturer (OEM) partition
+    unless booted to Windows PE, or any GUID Partition Table (GPT) partition
+    other than a basic data partition, an ESP partition or a recovery
+    partition.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    ASSIGN LETTER=D
 .
 Language=Albanian
-<Add ASSIGN command help text here>
+    Assigns a drive letter or mounted folder pathname to the volume with focus.
+
+Syntax:  ASSIGN [LETTER=<D> | MOUNT=<PATH>] [NOERR]
+
+    LETTER=<D>  The drive letter to assign to the volume.
+
+    MOUNT=<PATH>
+                The mounted folder pathname to assign to the volume.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder is specified, the next available drive
+    letter is assigned. If the drive letter or mounted folder is already in use,
+    an error is generated.
+
+    By using the ASSIGN command, you can change the drive letter associated
+    with a removable drive.
+
+    You cannot assign drive letters to boot volumes or
+    volumes that contain the paging file. In addition, you cannot assign
+    a drive letter to an Original Equipment Manufacturer (OEM) partition
+    unless booted to Windows PE, or any GUID Partition Table (GPT) partition
+    other than a basic data partition, an ESP partition or a recovery
+    partition.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    ASSIGN LETTER=D
 .
 Language=Turkish
-<Add ASSIGN command help text here>
+    Assigns a drive letter or mounted folder pathname to the volume with focus.
+
+Syntax:  ASSIGN [LETTER=<D> | MOUNT=<PATH>] [NOERR]
+
+    LETTER=<D>  The drive letter to assign to the volume.
+
+    MOUNT=<PATH>
+                The mounted folder pathname to assign to the volume.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder is specified, the next available drive
+    letter is assigned. If the drive letter or mounted folder is already in use,
+    an error is generated.
+
+    By using the ASSIGN command, you can change the drive letter associated
+    with a removable drive.
+
+    You cannot assign drive letters to boot volumes or
+    volumes that contain the paging file. In addition, you cannot assign
+    a drive letter to an Original Equipment Manufacturer (OEM) partition
+    unless booted to Windows PE, or any GUID Partition Table (GPT) partition
+    other than a basic data partition, an ESP partition or a recovery
+    partition.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    ASSIGN LETTER=D
 .
 Language=Chinese
-<Add ASSIGN command help text here>
+    Assigns a drive letter or mounted folder pathname to the volume with focus.
+
+Syntax:  ASSIGN [LETTER=<D> | MOUNT=<PATH>] [NOERR]
+
+    LETTER=<D>  The drive letter to assign to the volume.
+
+    MOUNT=<PATH>
+                The mounted folder pathname to assign to the volume.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder is specified, the next available drive
+    letter is assigned. If the drive letter or mounted folder is already in use,
+    an error is generated.
+
+    By using the ASSIGN command, you can change the drive letter associated
+    with a removable drive.
+
+    You cannot assign drive letters to boot volumes or
+    volumes that contain the paging file. In addition, you cannot assign
+    a drive letter to an Original Equipment Manufacturer (OEM) partition
+    unless booted to Windows PE, or any GUID Partition Table (GPT) partition
+    other than a basic data partition, an ESP partition or a recovery
+    partition.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    ASSIGN LETTER=D
 .
 Language=Taiwanese
-<Add ASSIGN command help text here>
+    Assigns a drive letter or mounted folder pathname to the volume with focus.
+
+Syntax:  ASSIGN [LETTER=<D> | MOUNT=<PATH>] [NOERR]
+
+    LETTER=<D>  The drive letter to assign to the volume.
+
+    MOUNT=<PATH>
+                The mounted folder pathname to assign to the volume.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder is specified, the next available drive
+    letter is assigned. If the drive letter or mounted folder is already in use,
+    an error is generated.
+
+    By using the ASSIGN command, you can change the drive letter associated
+    with a removable drive.
+
+    You cannot assign drive letters to boot volumes or
+    volumes that contain the paging file. In addition, you cannot assign
+    a drive letter to an Original Equipment Manufacturer (OEM) partition
+    unless booted to Windows PE, or any GUID Partition Table (GPT) partition
+    other than a basic data partition, an ESP partition or a recovery
+    partition.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    ASSIGN LETTER=D
 .
 
 
@@ -7840,34 +8165,513 @@ SymbolicName=MSG_COMMAND_REMOVE
 Severity=Informational
 Facility=System
 Language=English
-<Add REMOVE command help text here>
+    Removes a drive letter or mounted folder pathname from the volume
+    with focus.
+
+Syntax:  REMOVE [LETTER=<D> | MOUNT=<PATH> | ALL] [DISMOUNT] [NOERR]
+
+    LETTER=<D>  The drive letter to be removed.
+
+    MOUNT=<PATH>
+                The mounted folder path to be removed.
+
+    ALL         Removes all current drive letters and mounted folder paths.
+
+    DISMOUNT    This parameter may be used if 1) all drive letters and
+                mounted folder paths have been removed from the volume, or
+                2) the ALL parameter is specified.  This parameter
+                specifies that the file system is to be dismounted and
+                the volume taken offline. If other processes are using
+                the volume, DiskPart closes any open handles before
+                dismounting the file system and taking the volume offline.
+                You can bring the volume online by assigning it a driver
+                letter, by creating a mounted folder path to the volume, or
+                by using the ONLINE command. DISMOUNT will fail if used
+                on a volume that has any remaining drive letters or mounted
+                folder paths. For scripting, using REMOVE ALL DISMOUNT is
+                recommended.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder path is specified, DiskPart removes
+    the first drive letter or mounted folder path it encounters. If the ALL
+    parameter is used, all current drive letters and mounted folder paths
+    are removed. If the DISMOUNT parameter is used, DiskPart closes all open
+    handles to the volume and then dismounts the volume and takes it offline.
+
+    The REMOVE command can be used to change the drive letter associated with a
+    removable drive. You cannot remove the drive letters on boot or
+    paging volumes.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    REMOVE LETTER=K
+    REMOVE MOUNT=G:\\MountH
+    REMOVE ALL DISMOUNT
 .
 Language=German
-<Add REMOVE command help text here>
+    Entfernt einen Laufwerkbuchstaben oder Pfadnamen für eingebundene Ordner
+    vom Volume, das den Fokus hat.
+
+Syntax:  REMOVE [LETTER=<D> | MOUNT=<PFAD> | ALL] [DISMOUNT] [NOERR]
+
+    LETTER=<D>  Der Laufwerkbuchstabe, der entfernt werden soll.
+
+    MOUNT=<PFAD>
+                Der Pfad des eingebundenen Ordners, der entfernt werden
+                soll.
+
+    ALL         Entfernt alle aktuellen Laufwerksbuchstaben und Pfade der
+                eingebundenen Ordner.
+
+    DISMOUNT    Der Parameter kann verwendet werden, falls 1) alle
+                Laufwerkbuchstaben und Pfade der eingebundenen Ordner vom
+                Volume entfernt wurden oder 2) falls der Parameter ALL
+                angegeben wird. Durch diesen Parameter wird angegeben, dass die
+                Bereitstellung des Dateisystems aufgehoben und das Volume
+                in den Offlinezustand versetzt werden soll. Wird das
+                Volume in anderen Prozessen verwendet, werden von DiskPart alle
+                geöffneten Handles geschlossen, bevor die Bereitstellung des
+                Dateisystems aufgehoben und das Volume in den Offlinezustand
+                versetzt wird.
+                Sie können das Volume in den Onlinezustand versetzen, indem Sie
+                ihm einen Laufwerkbuchstaben zuweisen. Erstellen Sie dazu einen
+                Pfad für einen eingebundenen Ordner zum Volume, oder
+                verwenden Sie den Befehl ONLINE.
+                Der Befehl DISMOUNT schlägt fehl, falls er auf einem Volume
+                ausgeführt wird, das verbleibende Laufwerkbuchstaben oder Pfade
+                für eingebundene Ordner beinhaltet. Für Skripting wird der
+                Befehl REMOVE ALL DISMOUNT empfohlen.
+
+    NOERR       Nur für Skripting. Bei einem Fehler setzt DiskPart die
+                Verarbeitung von Befehlen fort, als sei der Fehler nicht
+                aufgetreten. Ohne den Parameter NOERR wird DiskPart bei
+                einem Fehler mit entsprechendem Fehlercode beendet.
+
+    Wurde kein Laufwerkbuchstabe oder Pfad für einen eingebundenen Ordner
+    angegeben, wird von DiskPart der erste erkannte Laufwerkbuchstabe oder Pfad
+    für eingebundene Ordner entfernt. Bei Verwendung des Parameters ALL
+    werden alle aktuellen Laufwerkbuchstaben und Pfade für eingebundene Ordner
+    entfernt. Bei Verwendung des Parameters DISMOUNT werden von DiskPart alle
+    geöffneten Handles für das Volume geschlossen, bevor die Bereitstellung des
+    Volumes aufgehoben und dieses in den Offlinezustand versetzt wird.
+
+    Der Befehl REMOVE kann zum Ändern des Laufwerkbuchstabens verwendet werden,
+    der einem Wechseldatenträger zugeordnet ist. Sie können die
+    Laufwerkbuchstaben auf Start- oder Auslagerungsvolumes nicht entfernen.
+
+    Damit dieser Vorgang erfolgreich verläuft, muss ein Volume ausgewählt werden.
+
+Beispiel:
+
+    REMOVE LETTER=K
+    REMOVE MOUNT=G:\\MountH
+    REMOVE ALL DISMOUNT
 .
 Language=Polish
-<Add REMOVE command help text here>
+    Removes a drive letter or mounted folder pathname from the volume
+    with focus.
+
+Syntax:  REMOVE [LETTER=<D> | MOUNT=<PATH> | ALL] [DISMOUNT] [NOERR]
+
+    LETTER=<D>  The drive letter to be removed.
+
+    MOUNT=<PATH>
+                The mounted folder path to be removed.
+
+    ALL         Removes all current drive letters and mounted folder paths.
+
+    DISMOUNT    This parameter may be used if 1) all drive letters and
+                mounted folder paths have been removed from the volume, or
+                2) the ALL parameter is specified.  This parameter
+                specifies that the file system is to be dismounted and
+                the volume taken offline. If other processes are using
+                the volume, DiskPart closes any open handles before
+                dismounting the file system and taking the volume offline.
+                You can bring the volume online by assigning it a driver
+                letter, by creating a mounted folder path to the volume, or
+                by using the ONLINE command. DISMOUNT will fail if used
+                on a volume that has any remaining drive letters or mounted
+                folder paths. For scripting, using REMOVE ALL DISMOUNT is
+                recommended.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder path is specified, DiskPart removes
+    the first drive letter or mounted folder path it encounters. If the ALL
+    parameter is used, all current drive letters and mounted folder paths
+    are removed. If the DISMOUNT parameter is used, DiskPart closes all open
+    handles to the volume and then dismounts the volume and takes it offline.
+
+    The REMOVE command can be used to change the drive letter associated with a
+    removable drive. You cannot remove the drive letters on boot or
+    paging volumes.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    REMOVE LETTER=K
+    REMOVE MOUNT=G:\\MountH
+    REMOVE ALL DISMOUNT
 .
 Language=Portugese
-<Add REMOVE command help text here>
+    Removes a drive letter or mounted folder pathname from the volume
+    with focus.
+
+Syntax:  REMOVE [LETTER=<D> | MOUNT=<PATH> | ALL] [DISMOUNT] [NOERR]
+
+    LETTER=<D>  The drive letter to be removed.
+
+    MOUNT=<PATH>
+                The mounted folder path to be removed.
+
+    ALL         Removes all current drive letters and mounted folder paths.
+
+    DISMOUNT    This parameter may be used if 1) all drive letters and
+                mounted folder paths have been removed from the volume, or
+                2) the ALL parameter is specified.  This parameter
+                specifies that the file system is to be dismounted and
+                the volume taken offline. If other processes are using
+                the volume, DiskPart closes any open handles before
+                dismounting the file system and taking the volume offline.
+                You can bring the volume online by assigning it a driver
+                letter, by creating a mounted folder path to the volume, or
+                by using the ONLINE command. DISMOUNT will fail if used
+                on a volume that has any remaining drive letters or mounted
+                folder paths. For scripting, using REMOVE ALL DISMOUNT is
+                recommended.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder path is specified, DiskPart removes
+    the first drive letter or mounted folder path it encounters. If the ALL
+    parameter is used, all current drive letters and mounted folder paths
+    are removed. If the DISMOUNT parameter is used, DiskPart closes all open
+    handles to the volume and then dismounts the volume and takes it offline.
+
+    The REMOVE command can be used to change the drive letter associated with a
+    removable drive. You cannot remove the drive letters on boot or
+    paging volumes.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    REMOVE LETTER=K
+    REMOVE MOUNT=G:\\MountH
+    REMOVE ALL DISMOUNT
 .
 Language=Romanian
-<Adăugați aici textul de ajutor pentru comanda REMOVE>
+    Removes a drive letter or mounted folder pathname from the volume
+    with focus.
+
+Syntax:  REMOVE [LETTER=<D> | MOUNT=<PATH> | ALL] [DISMOUNT] [NOERR]
+
+    LETTER=<D>  The drive letter to be removed.
+
+    MOUNT=<PATH>
+                The mounted folder path to be removed.
+
+    ALL         Removes all current drive letters and mounted folder paths.
+
+    DISMOUNT    This parameter may be used if 1) all drive letters and
+                mounted folder paths have been removed from the volume, or
+                2) the ALL parameter is specified.  This parameter
+                specifies that the file system is to be dismounted and
+                the volume taken offline. If other processes are using
+                the volume, DiskPart closes any open handles before
+                dismounting the file system and taking the volume offline.
+                You can bring the volume online by assigning it a driver
+                letter, by creating a mounted folder path to the volume, or
+                by using the ONLINE command. DISMOUNT will fail if used
+                on a volume that has any remaining drive letters or mounted
+                folder paths. For scripting, using REMOVE ALL DISMOUNT is
+                recommended.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder path is specified, DiskPart removes
+    the first drive letter or mounted folder path it encounters. If the ALL
+    parameter is used, all current drive letters and mounted folder paths
+    are removed. If the DISMOUNT parameter is used, DiskPart closes all open
+    handles to the volume and then dismounts the volume and takes it offline.
+
+    The REMOVE command can be used to change the drive letter associated with a
+    removable drive. You cannot remove the drive letters on boot or
+    paging volumes.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    REMOVE LETTER=K
+    REMOVE MOUNT=G:\\MountH
+    REMOVE ALL DISMOUNT
 .
 Language=Russian
-<Add REMOVE command help text here>
+    Removes a drive letter or mounted folder pathname from the volume
+    with focus.
+
+Syntax:  REMOVE [LETTER=<D> | MOUNT=<PATH> | ALL] [DISMOUNT] [NOERR]
+
+    LETTER=<D>  The drive letter to be removed.
+
+    MOUNT=<PATH>
+                The mounted folder path to be removed.
+
+    ALL         Removes all current drive letters and mounted folder paths.
+
+    DISMOUNT    This parameter may be used if 1) all drive letters and
+                mounted folder paths have been removed from the volume, or
+                2) the ALL parameter is specified.  This parameter
+                specifies that the file system is to be dismounted and
+                the volume taken offline. If other processes are using
+                the volume, DiskPart closes any open handles before
+                dismounting the file system and taking the volume offline.
+                You can bring the volume online by assigning it a driver
+                letter, by creating a mounted folder path to the volume, or
+                by using the ONLINE command. DISMOUNT will fail if used
+                on a volume that has any remaining drive letters or mounted
+                folder paths. For scripting, using REMOVE ALL DISMOUNT is
+                recommended.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder path is specified, DiskPart removes
+    the first drive letter or mounted folder path it encounters. If the ALL
+    parameter is used, all current drive letters and mounted folder paths
+    are removed. If the DISMOUNT parameter is used, DiskPart closes all open
+    handles to the volume and then dismounts the volume and takes it offline.
+
+    The REMOVE command can be used to change the drive letter associated with a
+    removable drive. You cannot remove the drive letters on boot or
+    paging volumes.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    REMOVE LETTER=K
+    REMOVE MOUNT=G:\\MountH
+    REMOVE ALL DISMOUNT
 .
 Language=Albanian
-<Add REMOVE command help text here>
+    Removes a drive letter or mounted folder pathname from the volume
+    with focus.
+
+Syntax:  REMOVE [LETTER=<D> | MOUNT=<PATH> | ALL] [DISMOUNT] [NOERR]
+
+    LETTER=<D>  The drive letter to be removed.
+
+    MOUNT=<PATH>
+                The mounted folder path to be removed.
+
+    ALL         Removes all current drive letters and mounted folder paths.
+
+    DISMOUNT    This parameter may be used if 1) all drive letters and
+                mounted folder paths have been removed from the volume, or
+                2) the ALL parameter is specified.  This parameter
+                specifies that the file system is to be dismounted and
+                the volume taken offline. If other processes are using
+                the volume, DiskPart closes any open handles before
+                dismounting the file system and taking the volume offline.
+                You can bring the volume online by assigning it a driver
+                letter, by creating a mounted folder path to the volume, or
+                by using the ONLINE command. DISMOUNT will fail if used
+                on a volume that has any remaining drive letters or mounted
+                folder paths. For scripting, using REMOVE ALL DISMOUNT is
+                recommended.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder path is specified, DiskPart removes
+    the first drive letter or mounted folder path it encounters. If the ALL
+    parameter is used, all current drive letters and mounted folder paths
+    are removed. If the DISMOUNT parameter is used, DiskPart closes all open
+    handles to the volume and then dismounts the volume and takes it offline.
+
+    The REMOVE command can be used to change the drive letter associated with a
+    removable drive. You cannot remove the drive letters on boot or
+    paging volumes.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    REMOVE LETTER=K
+    REMOVE MOUNT=G:\\MountH
+    REMOVE ALL DISMOUNT
 .
 Language=Turkish
-<Add REMOVE command help text here>
+    Removes a drive letter or mounted folder pathname from the volume
+    with focus.
+
+Syntax:  REMOVE [LETTER=<D> | MOUNT=<PATH> | ALL] [DISMOUNT] [NOERR]
+
+    LETTER=<D>  The drive letter to be removed.
+
+    MOUNT=<PATH>
+                The mounted folder path to be removed.
+
+    ALL         Removes all current drive letters and mounted folder paths.
+
+    DISMOUNT    This parameter may be used if 1) all drive letters and
+                mounted folder paths have been removed from the volume, or
+                2) the ALL parameter is specified.  This parameter
+                specifies that the file system is to be dismounted and
+                the volume taken offline. If other processes are using
+                the volume, DiskPart closes any open handles before
+                dismounting the file system and taking the volume offline.
+                You can bring the volume online by assigning it a driver
+                letter, by creating a mounted folder path to the volume, or
+                by using the ONLINE command. DISMOUNT will fail if used
+                on a volume that has any remaining drive letters or mounted
+                folder paths. For scripting, using REMOVE ALL DISMOUNT is
+                recommended.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder path is specified, DiskPart removes
+    the first drive letter or mounted folder path it encounters. If the ALL
+    parameter is used, all current drive letters and mounted folder paths
+    are removed. If the DISMOUNT parameter is used, DiskPart closes all open
+    handles to the volume and then dismounts the volume and takes it offline.
+
+    The REMOVE command can be used to change the drive letter associated with a
+    removable drive. You cannot remove the drive letters on boot or
+    paging volumes.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    REMOVE LETTER=K
+    REMOVE MOUNT=G:\\MountH
+    REMOVE ALL DISMOUNT
 .
 Language=Chinese
-<Add REMOVE command help text here>
+    Removes a drive letter or mounted folder pathname from the volume
+    with focus.
+
+Syntax:  REMOVE [LETTER=<D> | MOUNT=<PATH> | ALL] [DISMOUNT] [NOERR]
+
+    LETTER=<D>  The drive letter to be removed.
+
+    MOUNT=<PATH>
+                The mounted folder path to be removed.
+
+    ALL         Removes all current drive letters and mounted folder paths.
+
+    DISMOUNT    This parameter may be used if 1) all drive letters and
+                mounted folder paths have been removed from the volume, or
+                2) the ALL parameter is specified.  This parameter
+                specifies that the file system is to be dismounted and
+                the volume taken offline. If other processes are using
+                the volume, DiskPart closes any open handles before
+                dismounting the file system and taking the volume offline.
+                You can bring the volume online by assigning it a driver
+                letter, by creating a mounted folder path to the volume, or
+                by using the ONLINE command. DISMOUNT will fail if used
+                on a volume that has any remaining drive letters or mounted
+                folder paths. For scripting, using REMOVE ALL DISMOUNT is
+                recommended.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder path is specified, DiskPart removes
+    the first drive letter or mounted folder path it encounters. If the ALL
+    parameter is used, all current drive letters and mounted folder paths
+    are removed. If the DISMOUNT parameter is used, DiskPart closes all open
+    handles to the volume and then dismounts the volume and takes it offline.
+
+    The REMOVE command can be used to change the drive letter associated with a
+    removable drive. You cannot remove the drive letters on boot or
+    paging volumes.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    REMOVE LETTER=K
+    REMOVE MOUNT=G:\\MountH
+    REMOVE ALL DISMOUNT
 .
 Language=Taiwanese
-<Add REMOVE command help text here>
+    Removes a drive letter or mounted folder pathname from the volume
+    with focus.
+
+Syntax:  REMOVE [LETTER=<D> | MOUNT=<PATH> | ALL] [DISMOUNT] [NOERR]
+
+    LETTER=<D>  The drive letter to be removed.
+
+    MOUNT=<PATH>
+                The mounted folder path to be removed.
+
+    ALL         Removes all current drive letters and mounted folder paths.
+
+    DISMOUNT    This parameter may be used if 1) all drive letters and
+                mounted folder paths have been removed from the volume, or
+                2) the ALL parameter is specified.  This parameter
+                specifies that the file system is to be dismounted and
+                the volume taken offline. If other processes are using
+                the volume, DiskPart closes any open handles before
+                dismounting the file system and taking the volume offline.
+                You can bring the volume online by assigning it a driver
+                letter, by creating a mounted folder path to the volume, or
+                by using the ONLINE command. DISMOUNT will fail if used
+                on a volume that has any remaining drive letters or mounted
+                folder paths. For scripting, using REMOVE ALL DISMOUNT is
+                recommended.
+
+    NOERR       For scripting only. When an error is encountered, DiskPart
+                continues to process commands as if the error did not occur.
+                Without the NOERR parameter, an error causes DiskPart to exit
+                with an error code.
+
+    If no drive letter or mounted folder path is specified, DiskPart removes
+    the first drive letter or mounted folder path it encounters. If the ALL
+    parameter is used, all current drive letters and mounted folder paths
+    are removed. If the DISMOUNT parameter is used, DiskPart closes all open
+    handles to the volume and then dismounts the volume and takes it offline.
+
+    The REMOVE command can be used to change the drive letter associated with a
+    removable drive. You cannot remove the drive letters on boot or
+    paging volumes.
+
+    A volume must be selected for this operation to succeed.
+
+Example:
+
+    REMOVE LETTER=K
+    REMOVE MOUNT=G:\\MountH
+    REMOVE ALL DISMOUNT
 .
 
 

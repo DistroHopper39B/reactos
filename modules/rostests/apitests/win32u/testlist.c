@@ -28,6 +28,7 @@ extern void func_NtGdiGetFontResourceInfoInternalW(void);
 extern void func_NtGdiGetRandomRgn(void);
 extern void func_NtGdiGetStockObject(void);
 extern void func_NtGdiIntersectClipRect(void);
+extern void func_NtGdiLineTo(void);
 extern void func_NtGdiOffsetClipRgn(void);
 extern void func_NtGdiPolyPolyDraw(void);
 extern void func_NtGdiRestoreDC(void);
@@ -54,6 +55,7 @@ extern void func_NtUserEnumDisplaySettings(void);
 extern void func_NtUserFindExistingCursorIcon(void);
 extern void func_NtUserGetAsyncKeyState(void);
 extern void func_NtUserGetClassInfo(void);
+extern void func_NtUserGetCursorInfo(void);
 //extern void func_NtUserGetIconInfo(void);
 extern void func_NtUserGetKeyboardLayoutName(void);
 extern void func_NtUserGetThreadState(void);
@@ -96,6 +98,7 @@ const struct test winetest_testlist[] =
     { "NtGdiGetRandomRgn", func_NtGdiGetRandomRgn },
     { "NtGdiGetStockObject", func_NtGdiGetStockObject },
     { "NtGdiIntersectClipRect", func_NtGdiIntersectClipRect },
+    { "NtGdiLineTo", func_NtGdiLineTo },
     { "NtGdiOffsetClipRgn", func_NtGdiOffsetClipRgn },
     { "NtGdiPolyPolyDraw", func_NtGdiPolyPolyDraw },
     { "NtGdiRestoreDC", func_NtGdiRestoreDC },
@@ -124,6 +127,7 @@ const struct test winetest_testlist[] =
     { "NtUserFindExistingCursorIcon", func_NtUserFindExistingCursorIcon },
     { "NtUserGetAsyncKeyState", func_NtUserGetAsyncKeyState },
     { "NtUserGetClassInfo", func_NtUserGetClassInfo },
+    { "NtUserGetCursorInfo", func_NtUserGetCursorInfo },
     //{ "NtUserGetIconInfo", func_NtUserGetIconInfo },
     { "NtUserGetKeyboardLayoutName", func_NtUserGetKeyboardLayoutName },
     { "NtUserGetThreadState", func_NtUserGetThreadState },

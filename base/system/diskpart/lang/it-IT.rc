@@ -22,6 +22,7 @@ Usage: DISKPART [/S filename] [/T timeout] [/?]\n\n\
     IDS_APP_PROMPT "DISKPART> "
 END
 
+/* ACTIVE command strings */
 STRINGTABLE
 BEGIN
     IDS_ACTIVE_FAIL "\nDiskPart non ha potuto segnare la partizione come attiva.\nAssicurarsi che la partizione sia valida.\n"
@@ -30,6 +31,17 @@ BEGIN
     IDS_ACTIVE_NO_MBR "\nThe selected disk is not an MBR disk.\nThe ACTIVE command can only be used on an MBR disk.\n"
 END
 
+/* ASSIGN command strings */
+STRINGTABLE
+BEGIN
+    IDS_ASSIGN_FAIL "\nDiskPart could not assign the drive letter or mount point.\nMake sure the drive letter or mount point is valid.\n"
+    IDS_ASSIGN_SUCCESS "\nDiskPart successfully assigned the drive letter or mount point.\n"
+    IDS_ASSIGN_ALREADY_ASSIGNED "\nThe specified letter has already been assigned to this drive.\n"
+    IDS_ASSIGN_INVALID_LETTER "\nThe letter you specified is not a valid volume letter.\n"
+    IDS_ASSIGN_NO_MORE_LETTER "\nThere are no free drive letters to assign to this volume.\nPlease free up a drive letter and try again.\n"
+END
+
+/* AUTOMOUNT command strings */
 STRINGTABLE
 BEGIN
     IDS_AUTOMOUNT_ENABLED "\nAutomatic mounting of new volumes enabled.\n"
@@ -100,8 +112,17 @@ STRINGTABLE
 BEGIN
     IDS_FILESYSTEMS_CURRENT "Filesystem corrente\n"
     IDS_FILESYSTEMS_FORMATTING "Filesystem disponibili per la formattazione\n"
-    IDS_FILESYSTEMS_TYPE "Tipo              : %s\n"
-    IDS_FILESYSTEMS_CLUSTERSIZE "Dimensione cluster: %lu\n"
+    IDS_FILESYSTEMS_TYPE "  Tipo              : %s\n"
+    IDS_FILESYSTEMS_CLUSTERSIZE "  Dimensione cluster: %s\n"
+    IDS_FILESYSTEMS_SERIAL_NUMBER "  Serial number     : %08lx\n"
+    IDS_FILESYSTEMS_DEFAULT " (Default)"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FORMAT_FAIL "\nDiskPart failed to format the selected volume.\n"
+    IDS_FORMAT_SUCCESS "\nDiskPart successfully formated the selected volume.\n"
+    IDS_FORMAT_PROGRESS "\r  %3lu percent completed"
 END
 
 STRINGTABLE
@@ -134,12 +155,21 @@ BEGIN
     IDS_LIST_PARTITION_FORMAT "%c Partizione %-3lu  %-16s  %4I64u %-2s  %4I64u %-2s\n"
     IDS_LIST_PARTITION_NO_DISK "\nNon c'è nessun disco per mostrare partizioni.\nSelezionare un disco e riprova.\n\n"
     IDS_LIST_PARTITION_NONE "\nThere are no partitions on this disk to show.\n"
-    IDS_LIST_VOLUME_HEAD "  Volume ###  Ltr  Etichetta    FS     Tipo        Dimensione  Stato  Info\n"
-    IDS_LIST_VOLUME_LINE "  ----------  ---  -----------  -----  ----------  ----------  -----  --------\n"
-    IDS_LIST_VOLUME_FORMAT "%c Volume %-3lu   %c   %-11.11s  %-5s  %-10.10s  %4I64u %-2s\n"
+    IDS_LIST_VOLUME_HEAD "  Volume ###  Ltr  Etichetta    FS     Tipo        Dimensione  Stato      Info\n"
+    IDS_LIST_VOLUME_LINE "  ----------  ---  -----------  -----  ----------  ----------  ---------  --------\n"
+    IDS_LIST_VOLUME_FORMAT "%c Volume %-3lu   %c   %-11.11s  %-5s  %-10.10s  %4I64u %-2s  %-9s  %-8s\n"
 END
 
-/* RESCAN command string */
+/* REMOVE command strings */
+STRINGTABLE
+BEGIN
+    IDS_REMOVE_FAIL "\nDiskPart could not remove the drive letter or mount point.\nMake sure the drive letter or mount point is valid.\n"
+    IDS_REMOVE_SUCCESS "\nDiskPart successfully removed the drive letter or mount point.\n"
+    IDS_REMOVE_NO_LETTER "\nThe selected volume has no letter or mount point to remove.\n"
+    IDS_REMOVE_WRONG_LETTER "\nThe letter you specified is not assigned to that volume.\n"
+END
+
+/* RESCAN command strings */
 STRINGTABLE
 BEGIN
     IDS_RESCAN_START "\nSi prega di attendere mentre DiskPart esanima la tua configurazione...\n"

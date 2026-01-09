@@ -27,9 +27,15 @@
 #define IDS_AUTOMOUNT_DISABLED         1011
 #define IDS_AUTOMOUNT_SCRUBBED         1012
 
-#define IDS_CLEAN_FAIL                 1020
-#define IDS_CLEAN_SUCCESS              1021
-#define IDS_CLEAN_SYSTEM               1022
+#define IDS_ASSIGN_FAIL                1020
+#define IDS_ASSIGN_SUCCESS             1021
+#define IDS_ASSIGN_ALREADY_ASSIGNED    1022
+#define IDS_ASSIGN_INVALID_LETTER      1023
+#define IDS_ASSIGN_NO_MORE_LETTER      1024
+
+#define IDS_CLEAN_FAIL                 1030
+#define IDS_CLEAN_SUCCESS              1031
+#define IDS_CLEAN_SYSTEM               1032
 
 #define IDS_CONVERT_GPT_ALREADY        1040
 #define IDS_CONVERT_GPT_NOT_EMPTY      1041
@@ -71,10 +77,16 @@
 #define IDS_DETAIL_NO_DISKS            1137
 #define IDS_DETAIL_NO_VOLUME           1138
 
-#define IDS_FILESYSTEMS_CURRENT        1180
-#define IDS_FILESYSTEMS_FORMATTING     1181
-#define IDS_FILESYSTEMS_TYPE           1182
-#define IDS_FILESYSTEMS_CLUSTERSIZE    1183
+#define IDS_FILESYSTEMS_CURRENT        1170
+#define IDS_FILESYSTEMS_FORMATTING     1171
+#define IDS_FILESYSTEMS_TYPE           1172
+#define IDS_FILESYSTEMS_CLUSTERSIZE    1173
+#define IDS_FILESYSTEMS_SERIAL_NUMBER  1174
+#define IDS_FILESYSTEMS_DEFAULT        1175
+
+#define IDS_FORMAT_FAIL                1180
+#define IDS_FORMAT_SUCCESS             1181
+#define IDS_FORMAT_PROGRESS            1182
 
 #define IDS_GPT_FAIL                   1190
 #define IDS_GPT_SUCCESS                1191
@@ -97,6 +109,11 @@
 #define IDS_LIST_VOLUME_HEAD           3308
 #define IDS_LIST_VOLUME_LINE           3309
 #define IDS_LIST_VOLUME_FORMAT         3310
+
+#define IDS_REMOVE_FAIL                4000
+#define IDS_REMOVE_SUCCESS             4001
+#define IDS_REMOVE_NO_LETTER           4002
+#define IDS_REMOVE_WRONG_LETTER        4003
 
 #define IDS_RESCAN_START               4100
 #define IDS_RESCAN_END                 4101
