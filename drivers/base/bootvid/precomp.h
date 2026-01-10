@@ -14,20 +14,28 @@
 #include <drivers/bootvid/bootvid.h>
 
 /* Arch-specific includes */
-#if defined(_M_IX86) || defined(_M_AMD64)
-#if defined(SARCH_PC98)
-#include "i386/pc98/pc98.h"
-#elif defined(SARCH_XBOX)
-#include "i386/xbox/xbox.h"
+#if defined(BOOT_FB)
+    #include "framebuf/framebuf.h"
 #else
-#include "i386/pc/vga.h"
-#include "i386/pc/pc.h"
+#if defined(_M_IX86)
+#if defined(SARCH_PC98)
+    #include "i386/pc98/pc98.h"
+#elif defined(SARCH_XBOX)
+    #include "i386/xbox/xbox.h"
+#endif
+#endif // _M_IX86
+#if defined(_M_IX86) || defined(_M_AMD64)
+#if !defined(SARCH_PC98) && !defined(SARCH_XBOX)
+    #include "i386/pc/pc.h"
 #endif
 #elif defined(_M_ARM)
-#include "arm/arm.h"
+    #include "arm/arm.h"
 #else
-#error Unknown architecture
+    #error Unknown architecture
 #endif
+#endif // BOOT_FB
+
+#ifndef TEXT_VGA
 
 /* Define if FontData has upside-down characters */
 #undef CHAR_GEN_UPSIDE_DOWN
@@ -57,6 +65,18 @@ typedef struct tagBITMAPINFOHEADER
 
 typedef ULONG RGBQUAD;
 
+#else
+
+/*
+ * So that:
+ * TEXT_WIDTH == (SCREEN_WIDTH / BOOTCHAR_WIDTH) == 80
+ * TEXT_HEIGHT == (SCREEN_HEIGHT / BOOTCHAR_HEIGHT) == 25
+ */
+#define BOOTCHAR_HEIGHT 19
+#define BOOTCHAR_WIDTH  8
+
+#endif // TEXT_VGA
+
 typedef struct _URECT
 {
     ULONG Left;
@@ -72,6 +92,9 @@ extern UCHAR VidpTextColor;
 extern ULONG VidpCurrentX;
 extern ULONG VidpCurrentY;
 extern URECT VidpScrollRegion;
+
+#ifndef TEXT_VGA
+
 extern const UCHAR VidpFontData[256 * BOOTCHAR_HEIGHT];
 extern const RGBQUAD VidpDefaultPalette[BV_MAX_COLORS];
 
@@ -90,6 +113,8 @@ extern const RGBQUAD VidpDefaultPalette[BV_MAX_COLORS];
 # define GetFontPtr(_Char)  (&VidpFontData[(_Char) * BOOTCHAR_HEIGHT])
 # define FONT_PTR_DELTA     (1)
 #endif
+
+#endif // TEXT_VGA
 
 
 VOID

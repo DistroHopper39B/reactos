@@ -100,7 +100,7 @@ UefiInitializeVideo(VOID)
         case PixelBltOnly:
         default:
         {
-            ERR("Unsupported UFEI GOP format %lu\n", PixelFormat);
+            ERR("Unsupported UEFI GOP format %lu\n", PixelFormat);
             pPixelBitmask = NULL;
             BitsPerPixel = 0;
             break;
@@ -113,7 +113,7 @@ UefiInitializeVideo(VOID)
                          gop->Mode->Info->VerticalResolution,
                          gop->Mode->Info->PixelsPerScanLine,
                          BitsPerPixel,
-                         (PPIXEL_BITMASK)pPixelBitmask);
+                         (PPIXEL_FORMAT)pPixelBitmask, TRUE);
     return Status;
 }
 

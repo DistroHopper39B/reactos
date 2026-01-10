@@ -8,6 +8,10 @@
 /* INCLUDES ******************************************************************/
 
 #include <uefildr.h>
+#include <drivers/bootvid/framebuf.h>
+#include "../vidfb.h"
+#define ARC_VERSION 1
+#define ARC_REVISION 2
 
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(WARNING);
@@ -127,6 +131,147 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     }
 }
 
+// extern FRAMEBUFFER_INFO framebufInfo; // FIXME
+
+static VOID
+DetectDisplayController(PCONFIGURATION_COMPONENT_DATA BusKey)
+{
+    PCONFIGURATION_COMPONENT_DATA ControllerKey;
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR PartialDescriptor;
+    PCM_FRAMEBUF_DEVICE_DATA FramebufferData;
+    ULONG Size;
+
+    ULONG_PTR FrameBuffer;
+    ULONG FrameBufferSize;
+    CM_FRAMEBUF_DEVICE_DATA TempFbData;
+    VidFbGetFbDeviceData(&FrameBuffer, &FrameBufferSize, &TempFbData);
+
+    if (FrameBuffer == 0 || FrameBufferSize == 0)
+        return;
+
+    ERR("\nStructure sizes:\n"
+        "    sizeof(CM_PARTIAL_RESOURCE_LIST)       = %lu\n"
+        "    sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) = %lu\n"
+        "    sizeof(CM_FRAMEBUF_DEVICE_DATA)        = %lu\n\n",
+        sizeof(CM_PARTIAL_RESOURCE_LIST),
+        sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR),
+        sizeof(CM_FRAMEBUF_DEVICE_DATA));
+
+    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) +
+           sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR) +
+           sizeof(CM_FRAMEBUF_DEVICE_DATA);
+    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+    if (PartialResourceList == NULL)
+    {
+        ERR("Failed to allocate resource descriptor\n");
+        return;
+    }
+
+    /* Initialize resource descriptor */
+    RtlZeroMemory(PartialResourceList, Size);
+    PartialResourceList->Version  = ARC_VERSION;
+    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Count = 2;
+
+    /* Set Memory */
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
+    PartialDescriptor->Type = CmResourceTypeMemory;
+    PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
+    PartialDescriptor->Flags = CM_RESOURCE_MEMORY_READ_WRITE;
+    PartialDescriptor->u.Memory.Start.QuadPart = FrameBuffer; // framebufInfo.BaseAddress;
+    PartialDescriptor->u.Memory.Length = FrameBufferSize; // framebufInfo.BufferSize;
+
+    /* Set framebuffer-specific data */
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
+    PartialDescriptor->Type = CmResourceTypeDeviceSpecific;
+    PartialDescriptor->ShareDisposition = CmResourceShareUndetermined;
+    PartialDescriptor->Flags = 0;
+    PartialDescriptor->u.DeviceSpecificData.DataSize =
+        sizeof(CM_FRAMEBUF_DEVICE_DATA);
+
+    /* Get pointer to framebuffer-specific data */
+    FramebufferData = (PVOID)(PartialDescriptor + 1);
+    // RtlZeroMemory(FramebufferData, sizeof(*FramebufferData));
+    RtlCopyMemory(FramebufferData, &TempFbData, sizeof(TempFbData));
+    FramebufferData->Version  = 2;
+    FramebufferData->Revision = 0;
+
+    FramebufferData->VideoClock = 0; // FIXME: Use EDID
+
+    //
+    // TODO: Investigate display rotation!
+    //
+    // See OpenCorePkg OcConsoleLib/ConsoleGop.c
+    // if ((mGop.Rotation == 90) || (mGop.Rotation == 270))
+    if (FramebufferData->ScreenWidth < FramebufferData->ScreenHeight)
+    {
+        #define SWAP(x, y) { (x) ^= (y); (y) ^= (x); (x) ^= (y); }
+        SWAP(FramebufferData->ScreenWidth, FramebufferData->ScreenHeight);
+        FramebufferData->PixelsPerScanLine = FramebufferData->ScreenWidth;
+        #undef SWAP
+    }
+
+    FldrCreateComponentKey(BusKey,
+                           ControllerClass,
+                           DisplayController,
+                           Output | ConsoleOut,
+                           0,
+                           0xFFFFFFFF,
+                           "UEFI GOP Framebuffer",
+                           PartialResourceList,
+                           Size,
+                           &ControllerKey);
+
+    // NOTE: Don't add a MonitorPeripheral for now.
+    // We should use EDID data for it.
+}
+
+static
+VOID
+DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
+{
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCONFIGURATION_COMPONENT_DATA BusKey;
+    ULONG Size;
+
+    /* Set 'Configuration Data' value */
+    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) -
+           sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR);
+    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+    if (PartialResourceList == NULL)
+    {
+        ERR("Failed to allocate resource descriptor\n");
+        return;
+    }
+
+    /* Initialize resource descriptor */
+    RtlZeroMemory(PartialResourceList, Size);
+    PartialResourceList->Version  = ARC_VERSION;
+    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Count = 0;
+
+    /* Create new bus key */
+    FldrCreateComponentKey(SystemKey,
+                           AdapterClass,
+                           MultiFunctionAdapter,
+                           0,
+                           0,
+                           0xFFFFFFFF,
+                           "UEFI Internal",
+                           PartialResourceList,
+                           Size,
+                           &BusKey);
+
+    /* Increment bus number */
+    (*BusNumber)++;
+
+    /* Detect devices that do not belong to "standard" buses */
+    DetectDisplayController(BusKey);
+
+    /* FIXME: Detect more devices */
+}
+
 PCONFIGURATION_COMPONENT_DATA
 UefiHwDetect(
     _In_opt_ PCSTR Options)
@@ -147,6 +292,7 @@ UefiHwDetect(
     #error Please define a system key for your architecture
 #endif
 
+    DetectInternal(SystemKey, &BusNumber);
     /* Detect ACPI */
     DetectAcpiBios(SystemKey, &BusNumber);
 

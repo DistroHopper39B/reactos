@@ -42,6 +42,11 @@ static FREELDR_MEMORY_DESCRIPTOR PcMemoryMap[MAX_BIOS_DESCRIPTORS + 1];
 #endif
 ULONG PcMapCount;
 
+#if !defined(SARCH_XBOX) && !defined(SARCH_PC98)
+extern PVOID FrameBuffer;
+extern ULONG FrameBufferSize;
+#endif
+
 ULONG
 AddMemoryDescriptor(
     IN OUT PFREELDR_MEMORY_DESCRIPTOR List,
@@ -666,6 +671,16 @@ PcMemGetMemoryMap(ULONG *MemoryMapSize)
     SetMemory(PcMemoryMap, 0x0A0000, 0x50000, LoaderFirmwarePermanent); // Video memory
     SetMemory(PcMemoryMap, 0x0F0000, 0x10000, LoaderSpecialMemory); // ROM
     SetMemory(PcMemoryMap, 0xFFF000, 0x01000, LoaderSpecialMemory); // unusable memory (do we really need this?)
+
+    if (FrameBuffer && FrameBufferSize &&
+        !(0x0A0000 <= (ULONG_PTR)FrameBuffer &&
+          (ULONG_PTR)FrameBuffer /*+ FrameBufferSize*/ <= 0x0A0000 + 0x50000))
+    {
+        SetMemory(PcMemoryMap,
+                  (ULONG_PTR)FrameBuffer,
+                  FrameBufferSize,
+                  LoaderFirmwarePermanent); // Video memory
+    }
 
     *MemoryMapSize = PcMemFinalizeMemoryMap(PcMemoryMap);
     return PcMemoryMap;
