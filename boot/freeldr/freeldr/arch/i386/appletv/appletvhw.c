@@ -305,9 +305,6 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     PRSDP_DESCRIPTOR                Rsdp;
     PACPI_BIOS_DATA                 AcpiBiosData;
     ULONG                           TableSize;
-    #if 0
-    USHORT                          WindowsVersion = 0;
-    #endif
     EFI_SYSTEM_TABLE                *SystemTable;
     EFI_GUID                        Guid;
     
@@ -315,8 +312,8 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     
     // Detect what version of NT we're running
     // Note: This information should probably be passed into HwDetect
-    #if 0
-    WindowsVersion = WinLdrDetectVersion();
+#if 1
+    USHORT WindowsVersion = WinLdrDetectVersion();
     ASSERT(WindowsVersion != 0);
 
     if (WindowsVersion >= _WIN32_WINNT_WINXP)
@@ -331,9 +328,9 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         // devices.
         Guid = (EFI_GUID) ACPI_10_TABLE_GUID;
     }
-    #else
+#else
     Guid = (EFI_GUID) ACPI_10_TABLE_GUID;
-    #endif
+#endif
     
     Rsdp = FindUefiVendorTable(SystemTable, Guid);
 

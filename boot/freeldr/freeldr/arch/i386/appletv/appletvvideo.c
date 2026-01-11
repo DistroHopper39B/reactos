@@ -47,13 +47,13 @@ AppleTVVideoPutChar(int Ch, UCHAR Attr, unsigned X, unsigned Y)
 VOID
 AppleTVVideoGetDisplaySize(PULONG Width, PULONG Height, PULONG Depth)
 {
-    VidFbGetDisplaySize(Width, Height, Depth);
+    FbConsGetDisplaySize(Width, Height, Depth);
 }
 
 ULONG
 AppleTVVideoGetBufferSize(VOID)
 {
-    return VidFbGetBufferSize();
+    return FbConsGetBufferSize();
 }
 
 VOID
