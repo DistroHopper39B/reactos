@@ -32,6 +32,7 @@
 #define IDS_ASSIGN_ALREADY_ASSIGNED    1022
 #define IDS_ASSIGN_INVALID_LETTER      1023
 #define IDS_ASSIGN_NO_MORE_LETTER      1024
+#define IDS_ASSIGN_SYSTEM_VOLUME       1025
 
 #define IDS_CLEAN_FAIL                 1030
 #define IDS_CLEAN_SUCCESS              1031
@@ -50,6 +51,7 @@
 
 #define IDS_DELETE_PARTITION_FAIL      1070
 #define IDS_DELETE_PARTITION_SUCCESS   1071
+#define IDS_DELETE_PARTITION_SYSTEM    1072
 
 #define IDS_DETAIL_DISK_DESCRIPTION    1106
 #define IDS_DETAIL_DISK_ID             1107
@@ -146,6 +148,8 @@
 #define IDS_STATUS_ONLINE       36
 #define IDS_STATUS_OFFLINE      37
 #define IDS_STATUS_NO_MEDIA     38
+#define IDS_INFO_BOOT           39
+#define IDS_INFO_SYSTEM         40
 
 #define IDS_MSG_ARG_SYNTAX_ERROR   41
 
@@ -251,3 +255,22 @@
 #define IDS_BUSTYPE_UFS          5119
 #define IDS_BUSTYPE_NVMEOF       5120
 #define IDS_BUSTYPE_OTHER        5121
+
+#define IDS_PARTITION_TYPE_EXTENDED     5200
+#define IDS_PARTITION_TYPE_LOGICAL      5201
+#define IDS_PARTITION_TYPE_PRIMARY      5202
+#define IDS_PARTITION_TYPE_RESERVED     5203
+#define IDS_PARTITION_TYPE_SYSTEM       5204
+#define IDS_PARTITION_TYPE_UNKNOWN      5205
+#define IDS_PARTITION_TYPE_UNUSED       5206
+
+#define IDS_VOLUME_TYPE_DVD             5250
+#define IDS_VOLUME_TYPE_PARTITION       5251
+#define IDS_VOLUME_TYPE_REMOVABLE       5252
+#define IDS_VOLUME_TYPE_UNKNOWN         5253
+
+#define IDS_UNIT_TB                     5260
+#define IDS_UNIT_GB                     5261
+#define IDS_UNIT_MB                     5262
+#define IDS_UNIT_KB                     5263
+#define IDS_UNIT_B                      5264

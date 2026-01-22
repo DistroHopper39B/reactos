@@ -2,7 +2,7 @@
  * PROJECT:     FreeLoader
  * LICENSE:     MIT (https://spdx.org/licenses/MIT)
  * PURPOSE:     ATA/ATAPI programmed I/O driver.
- * COPYRIGHT:   Copyright 2019-2025 Dmitry Borisov (di.sean@protonmail.com)
+ * COPYRIGHT:   Copyright 2019-2026 Dmitry Borisov <di.sean@protonmail.com>
  */
 
 /* INCLUDES *******************************************************************/
@@ -40,21 +40,6 @@ static PHW_DEVICE_UNIT AtapUnits[CHANNEL_MAX_CHANNELS * CHANNEL_MAX_DEVICES];
 
 /* PRIVATE FUNCTIONS **********************************************************/
 
-#if defined(ATA_SUPPORT_32_BIT_IO)
-static
-inline
-BOOLEAN
-AtapIs32BitIoSupported(
-    _In_ PHW_DEVICE_UNIT DeviceUnit)
-{
-#if defined(ATA_ALWAYS_DO_32_BIT_IO)
-    return TRUE;
-#else
-    return !!(DeviceUnit->P.Flags & ATA_DEVICE_FLAG_IO32);
-#endif
-}
-#endif
-
 static
 VOID
 AtapSelectDevice(
@@ -71,11 +56,12 @@ AtapSelectDevice(
 }
 
 static
-BOOLEAN
-AtapWaitForNotBusy(
+UCHAR
+AtapWait(
     _In_ PIDE_REGISTERS Registers,
     _In_range_(>, 0) ULONG Timeout,
-    _Out_opt_ PUCHAR Result)
+    _In_ UCHAR Mask,
+    _In_ UCHAR Value)
 {
     UCHAR IdeStatus;
     ULONG i;
@@ -85,12 +71,8 @@ AtapWaitForNotBusy(
     for (i = 0; i < Timeout; ++i)
     {
         IdeStatus = ATA_READ(Registers->Status);
-        if (!(IdeStatus & IDE_STATUS_BUSY))
-        {
-            if (Result)
-                *Result = IdeStatus;
-            return TRUE;
-        }
+        if ((IdeStatus & Mask) == Value)
+            break;
 
         if (IdeStatus == 0xFF)
             break;
@@ -98,34 +80,7 @@ AtapWaitForNotBusy(
         StallExecutionProcessor(10);
     }
 
-    if (Result)
-        *Result = IdeStatus;
-    return FALSE;
-}
-
-static
-BOOLEAN
-AtapWaitForIdle(
-    _In_ PIDE_REGISTERS Registers,
-    _Out_ PUCHAR Result)
-{
-    UCHAR IdeStatus;
-    ULONG i;
-
-    for (i = 0; i < ATA_TIME_DRQ_CLEAR; ++i)
-    {
-        IdeStatus = ATA_READ(Registers->Status);
-        if (!(IdeStatus & (IDE_STATUS_DRQ | IDE_STATUS_BUSY)))
-        {
-            *Result = IdeStatus;
-            return TRUE;
-        }
-
-        StallExecutionProcessor(2);
-    }
-
-    *Result = IdeStatus;
-    return FALSE;
+    return IdeStatus;
 }
 
 static
@@ -135,40 +90,14 @@ AtapSendCdb(
     _In_ PATA_DEVICE_REQUEST Request)
 {
 #if defined(ATA_SUPPORT_32_BIT_IO)
-    if (AtapIs32BitIoSupported(DeviceUnit))
-    {
-        ATA_WRITE_BLOCK_32(DeviceUnit->Registers.Data,
-                           Request->Cdb,
-                           DeviceUnit->CdbSize / sizeof(USHORT));
-    }
-    else
+    ATA_WRITE_BLOCK_32(DeviceUnit->Registers.Data,
+                       Request->Cdb,
+                       DeviceUnit->CdbSize / sizeof(USHORT));
+#else
+    ATA_WRITE_BLOCK_16(DeviceUnit->Registers.Data,
+                       Request->Cdb,
+                       DeviceUnit->CdbSize);
 #endif
-    {
-        ATA_WRITE_BLOCK_16(DeviceUnit->Registers.Data,
-                           Request->Cdb,
-                           DeviceUnit->CdbSize);
-    }
-
-    /*
-     * In polled mode (interrupts disabled)
-     * the NEC CDR-260 drive clears BSY before updating the interrupt reason register.
-     * As a workaround, we will wait for the phase change.
-     */
-    if (DeviceUnit->P.Flags & ATA_DEVICE_IS_NEC_CDR260)
-    {
-        ULONG i;
-
-        ATA_IO_WAIT();
-
-        for (i = 0; i < ATA_TIME_PHASE_CHANGE; ++i)
-        {
-            UCHAR InterruptReason = ATA_READ(DeviceUnit->Registers.InterruptReason);
-            if (InterruptReason != ATAPI_INT_REASON_COD)
-                break;
-
-            StallExecutionProcessor(10);
-        }
-    }
 }
 
 static
@@ -180,7 +109,7 @@ AtapPioDataIn(
     ByteCount = min(ByteCount, DeviceUnit->BytesToTransfer);
 
 #if defined(ATA_SUPPORT_32_BIT_IO)
-    if (AtapIs32BitIoSupported(DeviceUnit))
+    if (!(ByteCount & (sizeof(ULONG) - 1)))
     {
         ATA_READ_BLOCK_32(DeviceUnit->Registers.Data,
                           (PULONG)DeviceUnit->DataBuffer,
@@ -236,13 +165,35 @@ AtapSoftwareReset(
 }
 
 static
+VOID
+AtapDrainDeviceBuffer(
+    _In_ PIDE_REGISTERS Registers)
+{
+    UCHAR IdeStatus;
+    ULONG i;
+
+    /* Try to clear the DRQ indication */
+    for (i = 0; i < 0x10000 / sizeof(USHORT); ++i)
+    {
+        IdeStatus = ATA_READ(Registers->Status);
+        if (!(IdeStatus & IDE_STATUS_DRQ))
+            break;
+
+        READ_PORT_USHORT((PUSHORT)(ULONG_PTR)Registers->Data);
+    }
+}
+
+static
 BOOLEAN
 AtapPerformSoftwareReset(
     _In_ PHW_DEVICE_UNIT DeviceUnit)
 {
     PIDE_REGISTERS Registers = &DeviceUnit->Registers;
+    UCHAR IdeStatus;
 
     ERR("Reset device at %X:%u\n", Registers->Data, DeviceUnit->DeviceNumber);
+
+    AtapDrainDeviceBuffer(Registers);
 
     /* Perform a software reset */
     AtapSoftwareReset(Registers);
@@ -255,7 +206,8 @@ AtapPerformSoftwareReset(
     }
 
     /* Now wait for busy to clear */
-    if (!AtapWaitForNotBusy(Registers, ATA_TIME_BUSY_RESET, NULL))
+    IdeStatus = AtapWait(Registers, ATA_TIME_BUSY_RESET, IDE_STATUS_BUSY, 0);
+    if (IdeStatus & IDE_STATUS_BUSY)
         return FALSE;
 
     return TRUE;
@@ -273,6 +225,23 @@ AtapProcessAtapiRequest(
     InterruptReason = ATA_READ(DeviceUnit->Registers.InterruptReason);
     InterruptReason &= ATAPI_INT_REASON_MASK;
     InterruptReason |= IdeStatus & IDE_STATUS_DRQ;
+
+    /*
+     * The NEC CDR-C251 drive is not fully ATAPI-compliant
+     * and clears BSY before raising the DRQ bit and updating the interrupt reason register.
+     * As a workaround, we will wait a bit more in the case the valid IR is not quite there yet.
+     */
+    if ((InterruptReason == ATAPI_INT_REASON_COD) || (InterruptReason == ATAPI_INT_REASON_IO))
+    {
+        IdeStatus = AtapWait(&DeviceUnit->Registers,
+                             ATA_TIME_DRQ_ASSERT,
+                             IDE_STATUS_DRQ,
+                             IDE_STATUS_DRQ);
+
+        InterruptReason = ATA_READ(DeviceUnit->Registers.InterruptReason);
+        InterruptReason &= ATAPI_INT_REASON_MASK;
+        InterruptReason |= IdeStatus & IDE_STATUS_DRQ;
+    }
 
     switch (InterruptReason)
     {
@@ -343,8 +312,20 @@ AtapProcessAtaRequest(
     /* Read command */
     if (Request->DataBuffer)
     {
+        /*
+         * The NEC CDR-C251 drive clears BSY before raising the DRQ bit
+         * while processing the ATAPI identify command.
+         * Give the device a chance to assert that bit.
+         */
         if (!(IdeStatus & IDE_STATUS_DRQ))
-            return ATA_STATUS_RESET;
+        {
+            IdeStatus = AtapWait(&DeviceUnit->Registers,
+                                 ATA_TIME_DRQ_ASSERT,
+                                 IDE_STATUS_DRQ,
+                                 IDE_STATUS_DRQ);
+            if (!(IdeStatus & IDE_STATUS_DRQ))
+                return ATA_STATUS_RESET;
+        }
 
         /* Read the next data block */
         AtapPioDataIn(DeviceUnit, DeviceUnit->DrqByteCount);
@@ -353,7 +334,11 @@ AtapProcessAtaRequest(
             return ATA_STATUS_PENDING;
 
         /* All data has been transferred, wait for DRQ to clear */
-        if (!AtapWaitForIdle(&DeviceUnit->Registers, &IdeStatus))
+        IdeStatus = AtapWait(&DeviceUnit->Registers,
+                             ATA_TIME_DRQ_CLEAR,
+                             IDE_STATUS_BUSY | IDE_STATUS_DRQ,
+                             0);
+        if (IdeStatus & (IDE_STATUS_BUSY | IDE_STATUS_DRQ))
             return ATA_STATUS_RESET;
 
         if (IdeStatus & (IDE_STATUS_ERROR | IDE_STATUS_DEVICE_FAULT))
@@ -365,16 +350,49 @@ AtapProcessAtaRequest(
 }
 
 static
-BOOLEAN
+UCHAR
 AtapProcessRequest(
     _In_ PHW_DEVICE_UNIT DeviceUnit,
     _In_ PATA_DEVICE_REQUEST Request,
     _In_ UCHAR IdeStatus)
 {
-    if (Request->Flags & REQUEST_FLAG_PACKET_COMMAND)
-        return AtapProcessAtapiRequest(DeviceUnit, Request, IdeStatus);
-    else
+    UCHAR AtaStatus;
+
+    if (!(Request->Flags & REQUEST_FLAG_PACKET_COMMAND))
         return AtapProcessAtaRequest(DeviceUnit, Request, IdeStatus);
+
+    AtaStatus = AtapProcessAtapiRequest(DeviceUnit, Request, IdeStatus);
+
+    /*
+     * In polled mode (interrupts disabled), the NEC CDR-260 drive behaves quite differently
+     * that other devices. This drive does not raise BSY immediately
+     * in response to a CDB or buffer write. The status and interrupt reason registers
+     * remain invalid and unchanged for the time of media access.
+     * As a workaround, we will wait for the phase change.
+     */
+    if ((DeviceUnit->P.Flags & ATA_DEVICE_IS_NEC_CDR260) && (AtaStatus == ATA_STATUS_PENDING))
+    {
+        UCHAR OldInterruptReason, NewInterruptReason;
+        ULONG i;
+
+        OldInterruptReason = ATA_READ(DeviceUnit->Registers.InterruptReason);
+
+        /* Set a long timeout on purpose */
+        for (i = ATA_TIME_BUSY_POLL; i > 0; i--)
+        {
+            NewInterruptReason = ATA_READ(DeviceUnit->Registers.InterruptReason);
+            if (NewInterruptReason != OldInterruptReason)
+                break;
+
+            StallExecutionProcessor(10);
+        }
+        if (i == 0)
+        {
+            AtaStatus = ATA_STATUS_RESET;
+        }
+    }
+
+    return AtaStatus;
 }
 
 static
@@ -440,14 +458,15 @@ AtapSendCommand(
     _In_ PHW_DEVICE_UNIT DeviceUnit,
     _In_ PATA_DEVICE_REQUEST Request)
 {
-    UCHAR AtaStatus;
+    UCHAR IdeStatus, AtaStatus;
 
     DeviceUnit->BytesToTransfer = Request->DataTransferLength;
     DeviceUnit->DataBuffer = Request->DataBuffer;
 
     /* Select the device */
     AtapSelectDevice(&DeviceUnit->Registers, DeviceUnit->DeviceNumber);
-    if (!AtapWaitForNotBusy(&DeviceUnit->Registers, ATA_TIME_BUSY_SELECT, NULL))
+    IdeStatus = AtapWait(&DeviceUnit->Registers, ATA_TIME_BUSY_SELECT, IDE_STATUS_BUSY, 0);
+    if (IdeStatus & IDE_STATUS_BUSY)
         return ATA_STATUS_RETRY;
 
     /* Always disable interrupts, otherwise it may lead to problems in underlying BIOS firmware */
@@ -460,11 +479,10 @@ AtapSendCommand(
 
     while (TRUE)
     {
-        UCHAR IdeStatus;
-
         ATA_IO_WAIT();
 
-        if (!AtapWaitForNotBusy(&DeviceUnit->Registers, ATA_TIME_BUSY_POLL, &IdeStatus))
+        IdeStatus = AtapWait(&DeviceUnit->Registers, ATA_TIME_BUSY_POLL, IDE_STATUS_BUSY, 0);
+        if (IdeStatus & IDE_STATUS_BUSY)
             return ATA_STATUS_RESET;
 
         AtaStatus = AtapProcessRequest(DeviceUnit, Request, IdeStatus);
@@ -556,10 +574,6 @@ AtapIssueCommand(
                     if (ATA_READ(DeviceUnit->Registers.Status) == 0)
                         return FALSE;
                 }
-
-                /* Turn off various things and retry the command */
-                DeviceUnit->MultiSectorTransfer = 0;
-                DeviceUnit->P.Flags &= ~ATA_DEVICE_FLAG_IO32;
 
                 if (!AtapPerformSoftwareReset(DeviceUnit))
                     return FALSE;
@@ -740,7 +754,8 @@ AtapIsDevicePresent(
     if (ATA_READ(Registers->ByteCountHigh) != 0xAA)
         return FALSE;
 
-    if (!AtapWaitForNotBusy(Registers, ATA_TIME_BUSY_ENUM, &IdeStatus))
+    IdeStatus = AtapWait(&DeviceUnit->Registers, ATA_TIME_BUSY_ENUM, IDE_STATUS_BUSY, 0);
+    if (IdeStatus & (IDE_STATUS_BUSY | IDE_STATUS_DRQ))
     {
         ERR("Device %X:%u is busy %02x\n", Registers->Data, DeviceUnit->DeviceNumber, IdeStatus);
 
@@ -1092,7 +1107,7 @@ AtapAtaInitDevice(
     else
     {
         /* Using CHS addressing mode */
-        TotalSectors = Cylinders * Heads * SectorsPerTrack;
+        TotalSectors = (ULONG64)Cylinders * Heads * SectorsPerTrack;
     }
 
     if (TotalSectors == 0)
@@ -1223,6 +1238,7 @@ AtaReadLogicalSectors(
     PHW_DEVICE_UNIT Unit = (PHW_DEVICE_UNIT)DeviceUnit;
     ATA_DEVICE_REQUEST Request = { 0 };
 
+    ASSERT(Unit);
     ASSERT((SectorNumber + SectorCount) <= Unit->P.TotalSectors);
     ASSERT(SectorCount != 0);
 
