@@ -109,36 +109,22 @@ UefiConvertToFreeldrDesc(EFI_MEMORY_TYPE EfiMemoryType)
 {
     switch (EfiMemoryType)
     {
-        case EfiReservedMemoryType:
-            return LoaderReserve;
-        case EfiLoaderCode:
-            return LoaderLoadedProgram;
-        case EfiLoaderData:
-            return LoaderLoadedProgram;
         case EfiBootServicesCode:
-            return LoaderFirmwareTemporary;
         case EfiBootServicesData:
+        case EfiLoaderCode:
+        case EfiLoaderData:
             return LoaderFirmwareTemporary;
-        case EfiRuntimeServicesCode:
-            return LoaderFirmwarePermanent;
-        case EfiRuntimeServicesData:
-            return LoaderFirmwarePermanent;
         case EfiConventionalMemory:
             return LoaderFree;
-        case EfiUnusableMemory:
-            return LoaderBad;
-        case EfiACPIReclaimMemory:
-            return LoaderFirmwareTemporary;
-        case EfiACPIMemoryNVS:
-            return LoaderReserve;
+        case EfiReservedMemoryType:
         case EfiMemoryMappedIO:
-            return LoaderReserve;
         case EfiMemoryMappedIOPortSpace:
             return LoaderReserve;
+        case EfiUnusableMemory:
+            return LoaderBad;
         default:
-            break;
+            return LoaderSpecialMemory;
     }
-    return LoaderReserve;
 }
 
 PFREELDR_MEMORY_DESCRIPTOR
