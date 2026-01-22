@@ -109,8 +109,12 @@ TYPE_OF_MEMORY
 UefiConvertToFreeldrDesc(EFI_MEMORY_TYPE EfiMemoryType)
 {
     switch (EfiMemoryType)
-    {   case EfiLoaderCode:
+    {
+        case EfiBootServicesCode:
+        case EfiBootServicesData:
+        case EfiLoaderCode:
         case EfiLoaderData:
+            return LoaderFirmwareTemporary;
         case EfiConventionalMemory:
             return LoaderFree;
         case EfiReservedMemoryType:
