@@ -116,13 +116,13 @@ set_target_properties(freeldr_pe
     DEFINE_SYMBOL "")
 
 if(MSVC)
-    target_link_options(freeldr_pe PRIVATE /ignore:4078 /ignore:4254 /DYNAMICBASE:NO /FIXED /FILEALIGN:4096 /ALIGN:4096)
+    target_link_options(freeldr_pe PRIVATE /ignore:4078 /ignore:4254 /DYNAMICBASE:NO /FIXED /FILEALIGN:512 /ALIGN:512)
     add_linker_script(freeldr_pe freeldr_i386.msvc.lds)
     # We don't need hotpatching
     remove_target_compile_option(freeldr_pe "/hotpatch")
     remove_target_compile_option(freeldr_common "/hotpatch")
 else()
-    target_link_options(freeldr_pe PRIVATE -Wl,--exclude-all-symbols,--file-alignment,0x1000,--section-alignment,0x1000)
+    target_link_options(freeldr_pe PRIVATE -Wl,--exclude-all-symbols,--file-alignment,0x200,--section-alignment,0x200)
     add_linker_script(freeldr_pe freeldr_gcc.lds)
     # Strip everything, including rossym data
     add_custom_command(TARGET freeldr_pe

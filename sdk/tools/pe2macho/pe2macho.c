@@ -21,7 +21,11 @@
 #define __builtin_ctz(x) _tzcnt_u32(x)
 #endif
 
-#define HEADER_ADDITIONAL_BYTES 0x1000 // 1 page (UEFI)
+#define EFI_PAGE_SIZE 0x1000
+#define HEADER_ADDITIONAL_BYTES EFI_PAGE_SIZE
+
+#define ROUND_DOWN(n, align) (((ULONG)n) & ~((align) - 1l))
+#define ROUND_UP(n, align) ROUND_DOWN(((ULONG)n) + (align) - 1, (align))
 
 static
 PIMAGE_FILE_HEADER
@@ -63,7 +67,6 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     PMACHO_HEADER               MachoHeader;
     PMACHO_SEGMENT_COMMAND      MachoSegmentCommand;
     PMACHO_THREAD_COMMAND_X86   MachoUnixThread;
-    UINT32                      SizeOfExecData;
     
     MachoInfoSize = sizeof(MACHO_HEADER)
                     + sizeof(MACHO_SEGMENT_COMMAND)
@@ -77,9 +80,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     }
     
     memset(MachoHeader, 0, MachoInfoSize);
-    
-    SizeOfExecData = PeSize - 0x1000;
-    
+        
     // Fill out Mach-O header.
     MachoHeader->MagicNumber    = MACHO_MAGIC;
     
@@ -102,10 +103,10 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     strcpy(MachoSegmentCommand->SegmentName, "__TEXT");
     
     MachoSegmentCommand->VMAddress          = OptionalHeader->ImageBase - HEADER_ADDITIONAL_BYTES;
-    MachoSegmentCommand->VMSize             = SizeOfExecData + HEADER_ADDITIONAL_BYTES;
+    MachoSegmentCommand->VMSize             = ROUND_UP(OptionalHeader->SizeOfImage, EFI_PAGE_SIZE) + 1;
     
     MachoSegmentCommand->FileOffset         = 0;
-    MachoSegmentCommand->FileSize           = SizeOfExecData + HEADER_ADDITIONAL_BYTES;
+    MachoSegmentCommand->FileSize           = PeSize;
     
     MachoSegmentCommand->MaximumProtection  = 7; // ???
     MachoSegmentCommand->InitialProtection  = 5; // ???
@@ -146,7 +147,7 @@ main(INT argc, PCHAR argv[])
     // Check arguments
     if (argc != 3)
     {
-        fprintf(stderr, "Usage: pe2macho [input file] [output file]\n");
+        fprintf(stderr, "Usage: pe2macho [input file] [output file] (fullsize)\n");
         return 1;
     }
     
