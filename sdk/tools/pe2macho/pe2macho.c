@@ -72,15 +72,13 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
                     + sizeof(MACHO_SEGMENT_COMMAND)
                     + sizeof(MACHO_THREAD_COMMAND_X86);
                     
-    MachoHeader = malloc(MachoInfoSize);
+    MachoHeader = calloc(1, MachoInfoSize);
     if (!MachoHeader)
     {
         fprintf(stderr, "Could not allocate %d bytes for Mach-O info\n", MachoInfoSize);
         return NULL;
     }
-    
-    memset(MachoHeader, 0, MachoInfoSize);
-        
+            
     // Fill out Mach-O header.
     MachoHeader->MagicNumber    = MACHO_MAGIC;
     
@@ -103,6 +101,11 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     strcpy(MachoSegmentCommand->SegmentName, "__TEXT");
     
     MachoSegmentCommand->VMAddress          = OptionalHeader->ImageBase - HEADER_ADDITIONAL_BYTES;
+    
+    /* 
+     * SizeOfImage should always be a multiple of SectionAlignment, but it isn't on GCC and boot.efi wants it to
+     * also be aligned to the EFI page size (0x1000), plus one so that BootArgs is allocated correctly.
+     */
     MachoSegmentCommand->VMSize             = ROUND_UP(OptionalHeader->SizeOfImage, EFI_PAGE_SIZE) + 1;
     
     MachoSegmentCommand->FileOffset         = 0;
@@ -147,7 +150,7 @@ main(INT argc, PCHAR argv[])
     // Check arguments
     if (argc != 3)
     {
-        fprintf(stderr, "Usage: pe2macho [input file] [output file] (fullsize)\n");
+        fprintf(stderr, "Usage: pe2macho [input file] [output file]\n");
         return 1;
     }
     
@@ -223,13 +226,12 @@ main(INT argc, PCHAR argv[])
     
     // Allocate new buffer for output file
     OutputFileLength = InputFileLength + HEADER_ADDITIONAL_BYTES;
-    OutputFileBuffer = malloc(OutputFileLength);
+    OutputFileBuffer = calloc(1, OutputFileLength);
     if (!OutputFileBuffer)
     {
         fprintf(stderr, "Failed to allocate %d bytes for output file\n", OutputFileLength);
         return 10;
     }
-    memset(OutputFileBuffer, 0, OutputFileLength);
     
     // Copy Mach-O header to top of buffer
     memcpy(OutputFileBuffer, MachoHeader, MachoSize);
