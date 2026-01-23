@@ -76,6 +76,8 @@ add_library(freeldr_common
     ${APPLETVLDR_BOOTMGR_SOURCE}
     ${FREELDR_NTLDR_SOURCE})
 
+target_compile_definitions(freeldr_common PRIVATE _FRLDRLIB_)
+    
 if(MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
     # We need to reduce the binary size
     target_compile_options(freeldr_common PRIVATE "/Os")

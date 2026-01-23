@@ -13,10 +13,11 @@
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(WARNING);
 
+/* GLOBALS *******************************************************************/
+
 #define NEXT_MEMORY_DESCRIPTOR(Descriptor, DescriptorSize) \
     (EFI_MEMORY_DESCRIPTOR*)((char*)(Descriptor) + (DescriptorSize))
-
-/* GLOBALS *******************************************************************/
+#define UNUSED_MAX_DESCRIPTOR_COUNT 10000
 
 ULONG
 AddMemoryDescriptor(
@@ -26,204 +27,53 @@ AddMemoryDescriptor(
     IN PFN_NUMBER PageCount,
     IN TYPE_OF_MEMORY MemoryType);
 
-// BIOS/E820 memory map, this is passed to Windows for ACPI support
-BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS];
-UINT32 BiosMapNumberOfEntries = 0;
-
-INT FreeldrDescCount;
-FREELDR_MEMORY_DESCRIPTOR FreeldrMemMap[MAX_BIOS_DESCRIPTORS + 1];
+INT FreeldrDescCount = 0;
+PFREELDR_MEMORY_DESCRIPTOR FreeldrMemMap = NULL;
 
 /* FUNCTIONS *****************************************************************/
 
-VOID
-ReserveMemory(
-    PFREELDR_MEMORY_DESCRIPTOR MemoryMap,
-    ULONG_PTR BaseAddress,
-    SIZE_T Size,
-    TYPE_OF_MEMORY MemoryType,
-    PCHAR Usage)
-{
-    ULONG_PTR BasePage, PageCount;
-    ULONG i;
-
-    BasePage = BaseAddress / PAGE_SIZE;
-    PageCount = ADDRESS_AND_SIZE_TO_SPAN_PAGES(BaseAddress, Size);
-
-    for (i = 0; i < FreeldrDescCount; i++)
-    {
-        /* Check for conflicting descriptor */
-        if ((MemoryMap[i].BasePage < BasePage + PageCount) &&
-            (MemoryMap[i].BasePage + MemoryMap[i].PageCount > BasePage))
-        {
-            /* Check if the memory is free */
-            if (MemoryMap[i].MemoryType != LoaderFree)
-            {
-                FrLdrBugCheckWithMessage(
-                    MEMORY_INIT_FAILURE,
-                    __FILE__,
-                    __LINE__,
-                    "Failed to reserve memory in the range 0x%Ix - 0x%Ix for %s",
-                    BaseAddress,
-                    BaseAddress + Size,
-                    Usage);
-            }
-        }
-    }
-
-    /* Add the memory descriptor */
-    FreeldrDescCount = AddMemoryDescriptor(MemoryMap,
-                                        MAX_BIOS_DESCRIPTORS,
-                                        BasePage,
-                                        PageCount,
-                                        MemoryType);
-}
-
-VOID
-SetMemory(
-    PFREELDR_MEMORY_DESCRIPTOR MemoryMap,
-    ULONG_PTR BaseAddress,
-    SIZE_T Size,
-    TYPE_OF_MEMORY MemoryType)
-{
-    ULONG_PTR BasePage, PageCount;
-
-    BasePage = BaseAddress / PAGE_SIZE;
-    PageCount = ADDRESS_AND_SIZE_TO_SPAN_PAGES(BaseAddress, Size);
-
-    /* Add the memory descriptor */
-    FreeldrDescCount = AddMemoryDescriptor(MemoryMap,
-                                        MAX_BIOS_DESCRIPTORS,
-                                        BasePage,
-                                        PageCount,
-                                        MemoryType);
-}
-
 static
-BIOS_MEMORY_TYPE
-UefiConvertToBiosType(EFI_MEMORY_TYPE MemoryType)
+VOID
+UefiSetMemory(
+    _Inout_ PFREELDR_MEMORY_DESCRIPTOR MemoryMap,
+    _In_ ULONG_PTR BaseAddress,
+    _In_ PFN_COUNT SizeInPages,
+    _In_ TYPE_OF_MEMORY MemoryType)
 {
-    switch (MemoryType)
-    {
-        // Unusable memory types
-        case EfiReservedMemoryType:
-        case EfiUnusableMemory:
-        case EfiMemoryMappedIO:
-        case EfiMemoryMappedIOPortSpace:
-        case EfiPalCode:
-        case EfiRuntimeServicesCode:
-        case EfiRuntimeServicesData:
-            return BiosMemoryReserved;
-        // Types usable after ACPI initialization
-        case EfiACPIReclaimMemory:
-            return BiosMemoryAcpiReclaim;
-        // Usable memory types
-        case EfiBootServicesCode:
-        case EfiBootServicesData:
-        case EfiConventionalMemory:
-        case EfiLoaderCode:
-        case EfiLoaderData:
-            return BiosMemoryUsable;
-        // NVS memory
-        case EfiACPIMemoryNVS:
-            return BiosMemoryAcpiNvs;
-        default:
-            ERR("Unknown type. Memory map probably corrupted!\n");
-            return BiosMemoryUnusable;
-    }
+    ULONG_PTR BasePage, PageCount;
+
+    BasePage = BaseAddress / EFI_PAGE_SIZE;
+    PageCount = SizeInPages;
+
+    /* Add the memory descriptor */
+    FreeldrDescCount = AddMemoryDescriptor(MemoryMap,
+                                           UNUSED_MAX_DESCRIPTOR_COUNT,
+                                           BasePage,
+                                           PageCount,
+                                           MemoryType);
 }
 
 static
 TYPE_OF_MEMORY
-BiosConvertToFreeldrType(BIOS_MEMORY_TYPE MemoryType)
+UefiConvertToFreeldrDesc(EFI_MEMORY_TYPE EfiMemoryType)
 {
-    switch (MemoryType)
+    switch (EfiMemoryType)
     {
-        case BiosMemoryUsable:
+        case EfiBootServicesCode:
+        case EfiBootServicesData:
+        case EfiLoaderCode:
+        case EfiLoaderData:
+            return LoaderFirmwareTemporary;
+        case EfiConventionalMemory:
             return LoaderFree;
-        case BiosMemoryReserved:
-            return LoaderFirmwarePermanent;
+        case EfiReservedMemoryType:
+        case EfiMemoryMappedIO:
+        case EfiMemoryMappedIOPortSpace:
+            return LoaderReserve;
+        case EfiUnusableMemory:
+            return LoaderBad;
         default:
             return LoaderSpecialMemory;
-    }
-}
-
-static
-VOID
-BiosAddMemoryRegion(PBIOS_MEMORY_MAP MemoryMap,
-                    UINT32 *BiosNumberOfEntries,
-                    UINT64 Start,
-                    UINT64 Size,
-                    BIOS_MEMORY_TYPE Type)
-{
-    UINT32 NumEntries = *BiosNumberOfEntries;
-    if (NumEntries == MAX_BIOS_DESCRIPTORS)
-    {
-        ERR("Too many entries!\n");
-        FrLdrBugCheckWithMessage(
-            MEMORY_INIT_FAILURE,
-            __FILE__,
-            __LINE__,
-            "Cannot create more than 80 BIOS memory descriptors!");
-    }
-    // Add on to existing entry if we can
-    if ((NumEntries > 0)
-        && (MemoryMap[NumEntries - 1].BaseAddress + MemoryMap[NumEntries - 1].Length == Start)
-        && (MemoryMap[NumEntries - 1].Type == Type))
-    {
-        MemoryMap[NumEntries - 1].Length += Size;
-    }
-    else
-    {
-        MemoryMap[NumEntries].BaseAddress   = Start;
-        MemoryMap[NumEntries].Length        = Size;
-        MemoryMap[NumEntries].Type          = Type;
-        (*BiosNumberOfEntries)++;
-    }
-}
-
-static
-PBIOS_MEMORY_MAP
-UefiConvertToBiosMemoryMap(EFI_MEMORY_DESCRIPTOR *EfiMemoryMap,
-                            SIZE_T MemoryMapSize,
-                            SIZE_T MemoryDescriptorSize,
-                            UINT32 *BiosNumberOfEntries)
-{
-    // we love statically allocated memory, don't we?
-    BIOS_MEMORY_TYPE    BiosMemoryType;
-    UINTN               i;
-    UINTN               EfiNumberOfEntries = 0;
-    
-    EfiNumberOfEntries = (MemoryMapSize / MemoryDescriptorSize);
-    
-    for (i = 0; i < EfiNumberOfEntries; i++)
-    {
-        BiosMemoryType = UefiConvertToBiosType(EfiMemoryMap->Type);
-        BiosAddMemoryRegion(BiosMap,
-                            BiosNumberOfEntries,
-                            EfiMemoryMap->PhysicalStart,
-                            (EfiMemoryMap->NumberOfPages << EFI_PAGE_SHIFT),
-                            BiosMemoryType);
-        EfiMemoryMap = NEXT_MEMORY_DESCRIPTOR(EfiMemoryMap, MemoryDescriptorSize);
-    }
-        
-    return BiosMap;
-}
-
-static
-VOID
-BiosConvertToFreeldrMap(PBIOS_MEMORY_MAP BiosMap,
-                        UINT32 BiosMapNumberOfEntries)
-{
-    INT             i;
-    TYPE_OF_MEMORY  MemoryType;
-    
-    for (i = 0; i < BiosMapNumberOfEntries; i++)
-    {
-        MemoryType = BiosConvertToFreeldrType(BiosMap[i].Type);
-        SetMemory(FreeldrMemMap,
-                BiosMap[i].BaseAddress,
-                BiosMap[i].Length,
-                MemoryType);
     }
 }
 
@@ -231,43 +81,83 @@ PFREELDR_MEMORY_DESCRIPTOR
 AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
 {
     EFI_MEMORY_DESCRIPTOR   *EfiMemoryMap;
+    EFI_MEMORY_DESCRIPTOR   *CurrentDescriptor;
     SIZE_T                  EfiMemoryMapSize;
     SIZE_T                  EfiMemoryDescriptorSize;
-    
-    PBIOS_MEMORY_MAP        BiosMapPtr = BiosMap;
-    
-    // Convert EFI memory map to BIOS memory map.
+    SIZE_T                  EfiNumberOfEntries;
+    SIZE_T                  FreeldrMemMapSize;
+    ULONG                   i;
+        
     EfiMemoryMap            = (EFI_MEMORY_DESCRIPTOR *) BootArgs->EfiMemoryMap;
     EfiMemoryMapSize        = BootArgs->EfiMemoryMapSize;
     EfiMemoryDescriptorSize = BootArgs->EfiMemoryDescriptorSize;
     
-    BiosMapPtr = UefiConvertToBiosMemoryMap(EfiMemoryMap,
-                                        EfiMemoryMapSize,
-                                        EfiMemoryDescriptorSize,
-                                        &BiosMapNumberOfEntries);
-    // Convert BIOS memory map to FreeLoader memory map
-    BiosConvertToFreeldrMap(BiosMapPtr,
-                            BiosMapNumberOfEntries);
+    // The number of FreeLoader entries tends to be higher than the number of EFI entries.
+    // We multiply the size by 2 to compensate for this.
+    // This is a hack.
+    EfiNumberOfEntries = (EfiMemoryMapSize / EfiMemoryDescriptorSize);
+    FreeldrMemMapSize = (EfiNumberOfEntries * sizeof(FREELDR_MEMORY_DESCRIPTOR)) * 2;
     
-    // Reserve a few static ranges
-    // Windows requires page #1 to be reserved
-    SetMemory(FreeldrMemMap,
-            0x0,
-            PAGE_SIZE,
-            LoaderSpecialMemory);
-    
-    // FreeLoader stack
-    SetMemory(FreeldrMemMap,
-        STACKLOW,
-        STACKADDR - STACKLOW,
-        LoaderOsloaderStack);
+    // Find a free space above the FreeLoader image for the memory map
+    CurrentDescriptor = EfiMemoryMap;
+    for (i = 0; i < EfiNumberOfEntries; i++)
+    {
+        if (CurrentDescriptor->PhysicalStart > FREELDR_BASE + FrLdrImageSize &&
+            CurrentDescriptor->NumberOfPages > FreeldrMemMapSize &&
+            CurrentDescriptor->Type == EfiConventionalMemory)
+        {
+            // We found where to put the memory map.
+            ERR("Putting memory map @ 0x%X\n", CurrentDescriptor->PhysicalStart);
+            FreeldrMemMap = (PFREELDR_MEMORY_DESCRIPTOR)((ULONG_PTR) CurrentDescriptor->PhysicalStart);
+            break;
+        }
         
-    // FreeLoader program
-    SetMemory(FreeldrMemMap,
-        FREELDR_BASE,
-        FrLdrImageSize,
-        LoaderLoadedProgram);
+        CurrentDescriptor = NEXT_MEMORY_DESCRIPTOR(CurrentDescriptor, EfiMemoryDescriptorSize);
+    }
     
+    ASSERT(FreeldrMemMap != NULL);
+    
+    RtlZeroMemory(FreeldrMemMap, FreeldrMemMapSize);
+    
+    UefiSetMemory(FreeldrMemMap,
+                (ULONG_PTR) FreeldrMemMap,
+                EFI_SIZE_TO_PAGES(FreeldrMemMapSize),
+                LoaderSpecialMemory);
+    
+    CurrentDescriptor = EfiMemoryMap;
+    for (i = 0; i < EfiNumberOfEntries; i++)
+    {
+        TYPE_OF_MEMORY MemoryType = UefiConvertToFreeldrDesc(CurrentDescriptor->Type);
+        if (MemoryType != LoaderReserve)
+        {
+            UefiSetMemory(FreeldrMemMap,
+                    CurrentDescriptor->PhysicalStart,
+                    CurrentDescriptor->NumberOfPages,
+                    MemoryType);
+        }
+        
+        CurrentDescriptor = NEXT_MEMORY_DESCRIPTOR(CurrentDescriptor, EfiMemoryDescriptorSize);
+    }
+    
+    // Reserve a few static ranges here
+    // First page
+    UefiSetMemory(FreeldrMemMap,
+                0x0,
+                1,
+                LoaderFirmwarePermanent);
+        
+    // FreeLoader stack
+    UefiSetMemory(FreeldrMemMap,
+                STACKLOW,
+                EFI_SIZE_TO_PAGES(STACKADDR - STACKLOW),
+                LoaderOsloaderStack);
+                
+    // FreeLoader program
+    UefiSetMemory(FreeldrMemMap,
+                FREELDR_BASE,
+                EFI_SIZE_TO_PAGES(FrLdrImageSize),
+                LoaderLoadedProgram);
+                
     *MemoryMapSize = FreeldrDescCount;
         
     return FreeldrMemMap;

@@ -19,9 +19,6 @@ DBG_DEFAULT_CHANNEL(WARNING);
 
 /* GLOBALS *******************************************************************/
 
-extern UINT32 FreeldrDescCount; /* appletvmem.c */
-extern BIOS_MEMORY_MAP BiosMap[MAX_BIOS_DESCRIPTORS]; /* appletvmem.c */
-
 BOOLEAN AcpiPresent = FALSE;
 
 static unsigned int delay_count = 1;
@@ -340,8 +337,7 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         AcpiPresent = TRUE;
 
         /* Calculate the table size */
-        TableSize = FreeldrDescCount * sizeof(BIOS_MEMORY_MAP) +
-            sizeof(ACPI_BIOS_DATA) - sizeof(BIOS_MEMORY_MAP);
+        TableSize = sizeof(ACPI_BIOS_DATA);
 
         /* Set 'Configuration Data' value */
         PartialResourceList = FrLdrHeapAlloc(sizeof(CM_PARTIAL_RESOURCE_LIST) +
@@ -375,10 +371,6 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
             TRACE("ACPI 1.0, using RSDT address\n");
             AcpiBiosData->RSDTAddress.LowPart = Rsdp->rsdt_physical_address;
         }
-
-        //AcpiBiosData->Count = FreeldrDescCount;
-        //memcpy(AcpiBiosData->MemoryMap, (void *) BiosMap,
-        //    FreeldrDescCount * sizeof(BIOS_MEMORY_MAP));
 
         TRACE("RSDT %p, data size %x\n", Rsdp->rsdt_physical_address, TableSize);
 

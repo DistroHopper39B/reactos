@@ -25,10 +25,10 @@
 #define DEV_SLAVE(DeviceNumber)   (DeviceNumber)
 #endif
 
-#if defined(SARCH_XBOX)
+#if defined(SARCH_XBOX) || defined(SARCH_APPLETV)
 /* It's safe to enable the multiple mode */
 #define ATA_ENABLE_MULTIPLE_MODE
-/* nVidia PCI IDE controllers have a 32-bit data port */
+/* nVidia and ICH7 PCI IDE controllers have a 32-bit data port */
 #define ATA_SUPPORT_32_BIT_IO
 #endif
 
