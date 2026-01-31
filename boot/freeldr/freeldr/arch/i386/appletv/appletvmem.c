@@ -107,7 +107,7 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
             CurrentDescriptor->Type == EfiConventionalMemory)
         {
             // We found where to put the memory map.
-            ERR("Putting memory map @ 0x%X\n", CurrentDescriptor->PhysicalStart);
+            TRACE("Putting memory map @ 0x%X\n", CurrentDescriptor->PhysicalStart);
             FreeldrMemMap = (PFREELDR_MEMORY_DESCRIPTOR)((ULONG_PTR) CurrentDescriptor->PhysicalStart);
             break;
         }
