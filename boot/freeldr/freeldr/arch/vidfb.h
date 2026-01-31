@@ -157,8 +157,3 @@ FbConsCopyOffScreenBufferToVRAM(
 VOID
 FbConsScrollUp(
     _In_ UCHAR Attr);
-    
-VOID
-DetectDisplayController(
-    _Inout_ PCONFIGURATION_COMPONENT_DATA BusKey,
-    _In_ PCSTR IdentifierString);

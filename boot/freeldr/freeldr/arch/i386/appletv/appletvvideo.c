@@ -19,6 +19,10 @@
 #define CHAR_HEIGHT 16
 #define TOP_BOTTOM_LINES 0
 
+ULONG_PTR VramAddress;
+ULONG VramSize;
+PCM_FRAMEBUF_DEVICE_DATA FrameBufferData = NULL;
+
 extern UCHAR BitmapFont8x16[256 * 16];
 
 UCHAR MachDefaultTextColor = COLOR_GRAY;
@@ -67,15 +71,20 @@ AppleTVInitializeVideo(VOID)
 {
     PMACH_VIDEO Video = &BootArgs->Video;
     
+    VramAddress = Video->BaseAddress;
+    VramSize = (Video->Pitch * Video->Height);
     PIXEL_BITMASK AppleTVBitMask = EfiPixelMasks[PixelBlueGreenRedReserved8BitPerColor];
     
-    VidFbInitializeVideo(Video->BaseAddress,
-                            (Video->Pitch * Video->Height),
-                            Video->Width,
-                            Video->Height,
-                            (Video->Pitch / 4),
-                            Video->Depth,
-                            &AppleTVBitMask);
+    
+    
+    VidFbInitializeVideo(&FrameBufferData,
+                        VramAddress,
+                        VramSize,
+                        Video->Width,
+                        Video->Height,
+                        (Video->Pitch / 4),
+                        Video->Depth,
+                        &AppleTVBitMask);
 }
 
 VIDEODISPLAYMODE

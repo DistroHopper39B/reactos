@@ -41,6 +41,10 @@ USHORT WinLdrDetectVersion(VOID); /* winldr.c */
 
 #define SMBIOS_TABLE_LOW 0xF0000
 
+extern ULONG_PTR VramAddress;
+extern ULONG VramSize;
+extern PCM_FRAMEBUF_DEVICE_DATA FrameBufferData;
+
 /* FUNCTIONS *****************************************************************/
 
 BOOLEAN IsAcpiPresent(VOID)
@@ -397,6 +401,70 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     }
 }
 
+static VOID
+DetectDisplayController(
+    _In_ PCONFIGURATION_COMPONENT_DATA BusKey)
+{
+    PCONFIGURATION_COMPONENT_DATA ControllerKey;
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR PartialDescriptor;
+    PCM_FRAMEBUF_DEVICE_DATA FramebufData;
+    ULONG Size;
+
+    if (!VramAddress || (VramSize == 0) || !FrameBufferData)
+        return;
+
+    Size = FIELD_OFFSET(CM_PARTIAL_RESOURCE_LIST, PartialDescriptors[2]) + sizeof(*FramebufData);
+    PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
+    if (PartialResourceList == NULL)
+    {
+        ERR("Failed to allocate resource descriptor\n");
+        return;
+    }
+
+    /* Initialize resource descriptor */
+    RtlZeroMemory(PartialResourceList, Size);
+    PartialResourceList->Version  = 1;
+    PartialResourceList->Revision = 2;
+    PartialResourceList->Count = 2;
+
+    /* Set Memory */
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[0];
+    PartialDescriptor->Type = CmResourceTypeMemory;
+    PartialDescriptor->ShareDisposition = CmResourceShareDeviceExclusive;
+    PartialDescriptor->Flags = CM_RESOURCE_MEMORY_READ_WRITE;
+    PartialDescriptor->u.Memory.Start.QuadPart = VramAddress;
+    PartialDescriptor->u.Memory.Length = VramSize;
+
+    /* Set framebuffer-specific data */
+    PartialDescriptor = &PartialResourceList->PartialDescriptors[1];
+    PartialDescriptor->Type = CmResourceTypeDeviceSpecific;
+    PartialDescriptor->ShareDisposition = CmResourceShareUndetermined;
+    PartialDescriptor->Flags = 0;
+    PartialDescriptor->u.DeviceSpecificData.DataSize = sizeof(*FramebufData);
+
+    /* Get pointer to framebuffer-specific data */
+    FramebufData = (PCM_FRAMEBUF_DEVICE_DATA)(PartialDescriptor + 1);
+    RtlCopyMemory(FramebufData, FrameBufferData, sizeof(*FrameBufferData));
+    FramebufData->Version  = 1;
+    FramebufData->Revision = 3;
+    FramebufData->VideoClock = 0; // FIXME: Use EDID
+
+    FldrCreateComponentKey(BusKey,
+                           ControllerClass,
+                           DisplayController,
+                           Output | ConsoleOut,
+                           0,
+                           0xFFFFFFFF,
+                           "Apple TV Framebuffer",
+                           PartialResourceList,
+                           Size,
+                           &ControllerKey);
+
+    // NOTE: Don't add a MonitorPeripheral for now.
+    // We should use EDID data for it.
+}
+
 static
 VOID
 DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
@@ -405,9 +473,8 @@ DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     PCONFIGURATION_COMPONENT_DATA BusKey;
     ULONG Size;
 
-    // Set 'Configuration Data' value
-    Size = sizeof(CM_PARTIAL_RESOURCE_LIST) -
-           sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR);
+    /* Set 'Configuration Data' value */
+    Size = FIELD_OFFSET(CM_PARTIAL_RESOURCE_LIST, PartialDescriptors);
     PartialResourceList = FrLdrHeapAlloc(Size, TAG_HW_RESOURCE_LIST);
     if (PartialResourceList == NULL)
     {
@@ -415,13 +482,13 @@ DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         return;
     }
 
-    // Initialize resource descriptor
+    /* Initialize resource descriptor */
     RtlZeroMemory(PartialResourceList, Size);
-    PartialResourceList->Version  = ARC_VERSION;
-    PartialResourceList->Revision = ARC_REVISION;
+    PartialResourceList->Version  = 1;
+    PartialResourceList->Revision = 1;
     PartialResourceList->Count = 0;
 
-    // Create new bus key
+    /* Create new bus key */
     FldrCreateComponentKey(SystemKey,
                            AdapterClass,
                            MultiFunctionAdapter,
@@ -432,13 +499,14 @@ DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
                            PartialResourceList,
                            Size,
                            &BusKey);
-    //Increment bus number
+
+    /* Increment bus number */
     (*BusNumber)++;
 
-    // Detect devices that do not belong to "standard" buses
-    DetectDisplayController(BusKey, "Apple TV Framebuffer");
+    /* Detect devices that do not belong to "standard" buses */
+    DetectDisplayController(BusKey);
 
-    //FIXME: Detect more devices
+    /* FIXME: Detect more devices */
 }
 
 static

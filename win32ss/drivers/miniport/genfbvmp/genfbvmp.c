@@ -217,9 +217,9 @@ GenFbVmpSetupCurrentMode(
     // VideoData->PixelFormat;
     if (VideoData->BitsPerPixel > 8) // (BytesPerPixel > 1)
     {
-        if (VideoData->PixelInformation.RedMask   == 0 &&
-            VideoData->PixelInformation.GreenMask == 0 &&
-            VideoData->PixelInformation.BlueMask  == 0)
+        if (VideoData->PixelMasks.RedMask   == 0 &&
+            VideoData->PixelMasks.GreenMask == 0 &&
+            VideoData->PixelMasks.BlueMask  == 0)
         {
             /* Determine pixel mask given color depth and color channel */
             switch (VideoData->BitsPerPixel)
@@ -253,17 +253,17 @@ GenFbVmpSetupCurrentMode(
         }
         else
         {
-            VideoMode->RedMask   = VideoData->PixelInformation.RedMask;
-            VideoMode->GreenMask = VideoData->PixelInformation.GreenMask;
-            VideoMode->BlueMask  = VideoData->PixelInformation.BlueMask;
+            VideoMode->RedMask   = VideoData->PixelMasks.RedMask;
+            VideoMode->GreenMask = VideoData->PixelMasks.GreenMask;
+            VideoMode->BlueMask  = VideoData->PixelMasks.BlueMask;
         }
 
         VideoMode->NumberRedBits   = _vid_popcount(VideoMode->RedMask);
-            // VideoData->PixelInformation.NumberRedBits;
+            // VideoData->PixelMasks.NumberRedBits;
         VideoMode->NumberGreenBits = _vid_popcount(VideoMode->GreenMask);
-            // VideoData->PixelInformation.NumberGreenBits;
+            // VideoData->PixelMasks.NumberGreenBits;
         VideoMode->NumberBlueBits  = _vid_popcount(VideoMode->BlueMask);
-            // VideoData->PixelInformation.NumberBlueBits;
+            // VideoData->PixelMasks.NumberBlueBits;
     }
     else
     {
@@ -855,7 +855,7 @@ GenFbVmpSetPowerState(
 
     /* Unused */
     DPRINT1("GenFbVmpSetPowerState(%p)\n", HwDeviceExtension);
-    __debugbreak();
+    // __debugbreak();
     return ERROR_INVALID_FUNCTION; // NO_ERROR;
 }
 
@@ -870,7 +870,7 @@ GenFbVmpGetPowerState(
 
     /* Unused */
     DPRINT1("GenFbVmpGetPowerState(%p)\n", HwDeviceExtension);
-    __debugbreak();
+    // __debugbreak();
     return ERROR_INVALID_FUNCTION; // NO_ERROR;
 }
 
@@ -888,7 +888,7 @@ GenFbVmpGetVideoChildDescriptor(
 
     /* Unused */
     DPRINT1("GenFbVmpGetVideoChildDescriptor(%p)\n", HwDeviceExtension);
-    __debugbreak();
+    // __debugbreak();
     return NO_ERROR; // FIXME: Should return VIDEO_ENUM_NO_MORE_DEVICES;
 }
 
