@@ -2,7 +2,8 @@
  * PROJECT:     FreeLoader
  * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
  * PURPOSE:     Real-time clock access routine for the original Apple TV
- * COPYRIGHT:   Copyright 2023 Sylas Hollander (distrohopper39b.business@gmail.com)
+ * COPYRIGHT:   Authors of xboxrtc.c
+ *              Copyright 2023-2024 Sylas Hollander (distrohopper39b.business@gmail.com)
  */
 
 /* INCLUDES ******************************************************************/

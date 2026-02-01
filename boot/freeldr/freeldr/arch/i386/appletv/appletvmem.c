@@ -2,7 +2,7 @@
  * PROJECT:     FreeLoader
  * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
  * PURPOSE:     Hardware-specific creating a memory map routine for the original Apple TV
- * COPYRIGHT:   Copyright 2023 Sylas Hollander (distrohopper39b.business@gmail.com)
+ * COPYRIGHT:   Copyright 2023-2026 Sylas Hollander (distrohopper39b.business@gmail.com)
  */
 
 /* INCLUDES ******************************************************************/
@@ -96,7 +96,7 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     // We multiply the size by 2 to compensate for this.
     // This is a hack.
     EfiNumberOfEntries = (EfiMemoryMapSize / EfiMemoryDescriptorSize);
-    FreeldrMemMapSize = (EfiNumberOfEntries * sizeof(FREELDR_MEMORY_DESCRIPTOR)) * 2;
+    FreeldrMemMapSize = EfiNumberOfEntries * sizeof(FREELDR_MEMORY_DESCRIPTOR);
     
     // Find a free space above the FreeLoader image for the memory map
     CurrentDescriptor = EfiMemoryMap;

@@ -2,7 +2,8 @@
  * PROJECT:     FreeLoader
  * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
  * PURPOSE:     Drive access routines for the original Apple TV
- * COPYRIGHT:   Copyright 2023 Sylas Hollander (distrohopper39b.business@gmail.com)
+ * COPYRIGHT:   Authors of xboxdisk.c
+ *              Copyright 2023-2026 Sylas Hollander (distrohopper39b.business@gmail.com)
  */
 
 /* INCLUDES ******************************************************************/
@@ -21,6 +22,47 @@ static BOOLEAN AtaInitialized = FALSE;
 
 UCHAR FrldrBootDrive = 0x80; // Drive 1
 ULONG FrldrBootPartition = 1; // Partition 1
+
+/* DISK IO ERROR SUPPORT *****************************************************/
+
+static LONG lReportError = 0; // >= 0: display errors; < 0: hide errors.
+
+LONG DiskReportError(BOOLEAN bShowError)
+{
+    /* Set the reference count */
+    if (bShowError) ++lReportError;
+    else            --lReportError;
+    return lReportError;
+}
+
+#if 0 // TODO: ATA/IDE error code descriptions.
+static PCSTR DiskGetErrorCodeString(ULONG ErrorCode)
+{
+    switch (ErrorCode)
+    {
+    default: return "unknown error code";
+    }
+}
+#endif
+
+static VOID DiskError(PCSTR ErrorString, ULONG ErrorCode)
+{
+    CHAR ErrorCodeString[200];
+
+    if (lReportError < 0)
+        return;
+
+#if 0 // TODO: ATA/IDE error code descriptions.
+    sprintf(ErrorCodeString, "%s\n\nError Code: 0x%lx\nError: %s",
+            ErrorString, ErrorCode, DiskGetErrorCodeString(ErrorCode));
+#else
+    UNREFERENCED_PARAMETER(ErrorCode);
+    sprintf(ErrorCodeString, "%s", ErrorString);
+#endif
+
+    ERR("%s\n", ErrorCodeString);
+    UiMessageBox(ErrorCodeString);
+}
 
 /* FUNCTIONS *****************************************************************/
 
@@ -96,6 +138,7 @@ AppleTVDiskReadLogicalSectors(
     OUT PVOID Buffer)
 {
     PDEVICE_UNIT DeviceUnit;
+    BOOLEAN Success;
 
     TRACE("AppleTVDiskReadLogicalSectors() DriveNumber: 0x%x SectorNumber: %I64d SectorCount: %d Buffer: 0x%x\n",
           DriveNumber, SectorNumber, SectorCount, Buffer);
@@ -104,7 +147,10 @@ AppleTVDiskReadLogicalSectors(
     if (!DeviceUnit)
         return FALSE;
 
-    return AtaReadLogicalSectors(DeviceUnit, SectorNumber, SectorCount, Buffer);
+    Success = AtaReadLogicalSectors(DeviceUnit, SectorNumber, SectorCount, Buffer);
+    if (!Success)
+        DiskError("Disk Read Failed", -1);
+    return Success;
 }
 
 BOOLEAN
@@ -143,16 +189,6 @@ AppleTVDiskGetCacheableBlockCount(UCHAR DriveNumber)
         return 64;
     else
         return DeviceUnit->SectorsPerTrack;
-}
-
-static LONG lReportError = 0; // >= 0: display errors; < 0: hide errors.
-
-LONG DiskReportError(BOOLEAN bShowError)
-{
-    /* Set the reference count */
-    if (bShowError) ++lReportError;
-    else            --lReportError;
-    return lReportError;
 }
 
 UCHAR
