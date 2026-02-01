@@ -15,8 +15,8 @@
 #include <drivers/bootvid/framebuf.c>
 
 /* Scaling of the bootvid 640x480 default virtual screen to the larger video framebuffer */
-#define SCALING_SUPPORT
-#define SCALING_PROPORTIONAL
+// #define SCALING_SUPPORT
+// #define SCALING_PROPORTIONAL
 
 /* Keep borders black or controlled with palette */
 // #define COLORED_BORDERS
