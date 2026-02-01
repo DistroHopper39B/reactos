@@ -2,7 +2,8 @@
  * PROJECT:     FreeLoader
  * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
  * PURPOSE:     Hardware-specific creating a memory map routine for the original Apple TV
- * COPYRIGHT:   Copyright 2023-2026 Sylas Hollander (distrohopper39b.business@gmail.com)
+ * COPYRIGHT:   Authors of uefimem.c
+ *              Copyright 2023-2026 Sylas Hollander (distrohopper39b.business@gmail.com)
  */
 
 /* INCLUDES ******************************************************************/
