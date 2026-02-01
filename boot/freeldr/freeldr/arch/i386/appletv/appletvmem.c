@@ -93,11 +93,14 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     EfiMemoryMapSize        = BootArgs->EfiMemoryMapSize;
     EfiMemoryDescriptorSize = BootArgs->EfiMemoryDescriptorSize;
     
-    // The number of FreeLoader entries tends to be higher than the number of EFI entries.
-    // We multiply the size by 2 to compensate for this.
-    // This is a hack.
+    /*
+     * The number of FreeLoader entries tends to be higher than the number of EFI entries.
+     * This can result in not enough space being allocated for the memory map, which causes
+     * an instant bugcheck.
+     * We multiply the size by 2 to compensate for this. This is a hack and should be replaced.
+     */
     EfiNumberOfEntries = (EfiMemoryMapSize / EfiMemoryDescriptorSize);
-    FreeldrMemMapSize = EfiNumberOfEntries * sizeof(FREELDR_MEMORY_DESCRIPTOR);
+    FreeldrMemMapSize = (EfiNumberOfEntries * sizeof(FREELDR_MEMORY_DESCRIPTOR)) * 2;
     
     // Find a free space above the FreeLoader image for the memory map
     CurrentDescriptor = EfiMemoryMap;
