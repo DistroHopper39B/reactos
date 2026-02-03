@@ -61,21 +61,22 @@ FindOptionalHeaderFromFileHeader(PIMAGE_FILE_HEADER FileHeader)
 
 static
 PMACHO_HEADER
-CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 PeSize, PUINT Size)
+CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader,
+                                UINT32 PeSize,
+                                PUINT MachoHeaderSize)
 {
-    UINT32                      MachoInfoSize;
     PMACHO_HEADER               MachoHeader;
     PMACHO_SEGMENT_COMMAND      MachoSegmentCommand;
     PMACHO_THREAD_COMMAND_X86   MachoUnixThread;
     
-    MachoInfoSize = sizeof(MACHO_HEADER)
+    *MachoHeaderSize = sizeof(MACHO_HEADER)
                     + sizeof(MACHO_SEGMENT_COMMAND)
                     + sizeof(MACHO_THREAD_COMMAND_X86);
                     
-    MachoHeader = calloc(1, MachoInfoSize);
+    MachoHeader = calloc(1, *MachoHeaderSize);
     if (!MachoHeader)
     {
-        fprintf(stderr, "Could not allocate %d bytes for Mach-O info\n", MachoInfoSize);
+        fprintf(stderr, "Could not allocate %d bytes for Mach-O info\n", *MachoHeaderSize);
         return NULL;
     }
             
@@ -88,7 +89,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     MachoHeader->FileType       = 2; // kernel (static linked)
     
     MachoHeader->NumberOfCmds   = 2;
-    MachoHeader->SizeOfCmds     = MachoInfoSize - sizeof(MACHO_HEADER);
+    MachoHeader->SizeOfCmds     = *MachoHeaderSize - sizeof(MACHO_HEADER);
     
     MachoHeader->Flags          = 1;
     
@@ -98,9 +99,9 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     MachoSegmentCommand->Command            = MACHO_LC_SEGMENT;
     MachoSegmentCommand->CommandSize        = sizeof(MACHO_SEGMENT_COMMAND);
     
-    strcpy(MachoSegmentCommand->SegmentName, "__TEXT");
+    strcpy(MachoSegmentCommand->SegmentName, "__PE_FILE__");
     
-    MachoSegmentCommand->VMAddress          = OptionalHeader->ImageBase - HEADER_ADDITIONAL_BYTES;
+    MachoSegmentCommand->VMAddress          = OptionalHeader->ImageBase;
     
     /* 
      * SizeOfImage should always be a multiple of SectionAlignment, but it isn't on GCC and boot.efi wants it to
@@ -108,7 +109,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
      */
     MachoSegmentCommand->VMSize             = ROUND_UP(OptionalHeader->SizeOfImage, EFI_PAGE_SIZE) + 1;
     
-    MachoSegmentCommand->FileOffset         = 0;
+    MachoSegmentCommand->FileOffset         = HEADER_ADDITIONAL_BYTES;
     MachoSegmentCommand->FileSize           = PeSize;
     
     MachoSegmentCommand->MaximumProtection  = 7; // ???
@@ -126,9 +127,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader, UINT32 Pe
     
     // all registers are blank except for EIP, which is the entry point!
     MachoUnixThread->State.Eip          = OptionalHeader->ImageBase + OptionalHeader->AddressOfEntryPoint;
-    
-    *Size = MachoInfoSize;
-    
+        
     return MachoHeader;
 }
 
@@ -144,7 +143,7 @@ main(INT argc, PCHAR argv[])
     PIMAGE_OPTIONAL_HEADER32    PeOptionalHeader;
     
     PMACHO_HEADER               MachoHeader;
-    UINT32                      MachoSize;
+    UINT32                      MachoHeaderSize;
     
     
     // Check arguments
@@ -217,7 +216,9 @@ main(INT argc, PCHAR argv[])
     }
     
     // Convert PE executable header to Mach-O
-    MachoHeader = CreateMachOHeaderFromPeHeader(PeOptionalHeader, InputFileLength, &MachoSize);
+    MachoHeader = CreateMachOHeaderFromPeHeader(PeOptionalHeader,
+                                                InputFileLength,
+                                                &MachoHeaderSize);
     if (!MachoHeader)
     {
         fprintf(stderr, "Failed to create Mach-O header!\n");
@@ -234,7 +235,7 @@ main(INT argc, PCHAR argv[])
     }
     
     // Copy Mach-O header to top of buffer
-    memcpy(OutputFileBuffer, MachoHeader, MachoSize);
+    memcpy(OutputFileBuffer, MachoHeader, MachoHeaderSize);
     
     // Copy output file 4096 bytes in
     // It will be loaded at its original load addr
