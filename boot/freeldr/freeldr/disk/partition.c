@@ -417,7 +417,7 @@ DiskGetPartitionEntry(
         }
         case PARTITION_STYLE_GPT:
         {
-#ifdef UEFIBOOT
+#if 0
             BOOLEAN UefiGetGptPartitionEntry(
                 IN UCHAR DriveNumber,
                 IN ULONG PartitionNumber,
