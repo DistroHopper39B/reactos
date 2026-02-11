@@ -885,7 +885,7 @@ VideoPortGetAccessRanges(
         return ERROR_NOT_ENOUGH_MEMORY;
 
     /* Return the slot number if the caller wants it */
-    if (Slot != NULL) *Slot = DeviceExtension->SystemIoBusNumber;
+    if (Slot != NULL) *Slot = DeviceExtension->SystemIoSlotNumber;
 
     FullList = AllocatedResources->List;
     ASSERT(AllocatedResources->Count == 1);
@@ -1186,7 +1186,7 @@ VideoPortVerifyAccessRanges(
     else
     {
         /* Track VGA access ranges on success for fallback handling */
-        if (DeviceExtension->IsVgaDriver)
+        if (DeviceExtension->IsVgaDriver && AccessRanges != VgaRanges)
         {
             KeWaitForMutexObject(&VgaSyncLock, Executive, KernelMode, FALSE, NULL);
             if (VgaRanges)

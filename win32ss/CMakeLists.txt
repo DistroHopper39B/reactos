@@ -4,10 +4,6 @@ set(USE_DIBLIB FALSE)
 # Give WIN32 subsystem its own project.
 PROJECT(WIN32SS)
 
-if (NATIVE_REACTX)
-    add_definitions(-DNATIVE_REACTX)
-endif()
-
 add_subdirectory(drivers)
 
 if(USE_DIBLIB)
@@ -26,9 +22,9 @@ add_subdirectory(win32u)
 
 spec2def(win32k.sys win32k.spec ADD_IMPORTLIB)
 
-# embed RTC libs
+# Link GCC stack protector lib
 if (STACK_PROTECTOR)
-    target_sources(libwin32k PRIVATE $<TARGET_OBJECTS:gcc_ssp_win32k>)
+    target_link_libraries(libwin32k INTERFACE gcc_ssp_win32k)
 endif()
 
 include_directories(
@@ -204,6 +200,7 @@ list(APPEND SOURCE
     gdi/ntgdi/region.c
     gdi/ntgdi/stockobj.c
     gdi/ntgdi/text.c
+    gdi/ntgdi/utils.c
     gdi/ntgdi/wingl.c
     gdi/ntgdi/xformobj.c
     gdi/eng/stubs.c

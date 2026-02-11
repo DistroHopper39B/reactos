@@ -158,6 +158,7 @@ add_library(freeldr_common
     ${FREELDR_BOOTLIB_SOURCE}
     ${PCATLDR_BOOTMGR_SOURCE}
 )
+target_compile_definitions(freeldr_common PRIVATE _FRLDRLIB_)
 
 if(MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
     # We need to reduce the binary size
@@ -227,7 +228,7 @@ target_link_libraries(freeldr_pe freeldr_common cportlib libcntpr blrtl)
 
 # dynamic analysis switches
 if(STACK_PROTECTOR)
-    target_sources(freeldr_pe PRIVATE $<TARGET_OBJECTS:gcc_ssp_nt>)
+    target_link_libraries(freeldr_pe gcc_ssp_nt)
 endif()
 
 if(RUNTIME_CHECKS)
