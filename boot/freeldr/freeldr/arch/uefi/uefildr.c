@@ -26,7 +26,7 @@ EfiEntry(
     _In_ EFI_HANDLE ImageHandle,
     _In_ EFI_SYSTEM_TABLE *SystemTable)
 {
-    PCSTR CmdLine = ""; // FIXME: Determine a command-line from UEFI boot options
+    PCSTR CmdLine = "debug=debugport=screen"; // FIXME: Determine a command-line from UEFI boot options
 
     SystemTable->ConOut->OutputString(SystemTable->ConOut, L"UEFI EntryPoint: Starting freeldr from UEFI");
     GlobalImageHandle = ImageHandle;
