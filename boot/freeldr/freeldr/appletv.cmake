@@ -7,7 +7,7 @@
 
 # UEFI headers (we have runtime services after all)
 include_directories(BEFORE
-                    ${REACTOS_SOURCE_DIR}/boot/environ/include/efi
+                    ${REACTOS_SOURCE_DIR}/sdk/include/reactos/edk2
                     ${REACTOS_SOURCE_DIR}/boot/freeldr/freeldr
                     ${REACTOS_SOURCE_DIR}/boot/freeldr/freeldr/include)
 
