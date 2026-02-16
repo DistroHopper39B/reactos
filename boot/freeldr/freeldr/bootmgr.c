@@ -59,8 +59,8 @@ OSLoadingMethods[] =
 #if defined(_M_IX86) || defined(_M_AMD64)
 #ifndef UEFIBOOT
     {"BootSector", EditCustomBootSector, LoadAndBootSector},
-    {"Linux"     , EditCustomBootLinux , LoadAndBootLinux },
 #endif
+    {"Linux"     , EditCustomBootLinux , LoadAndBootLinux },
 #endif
 #ifdef _M_IX86
     {"WindowsNT40" , EditCustomBootNTOS, LoadAndBootWindows},

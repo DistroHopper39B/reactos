@@ -121,6 +121,8 @@
 @ cdecl StallExecutionProcessor()
 @ cdecl MachGetBootSectorLoadAddress()
 
+@ cdecl LoadAndBootLinux(long str str)
+
 # Additional stuff for scsiport
 @ stdcall CpDoesPortExist(ptr)
 @ stdcall CpEnableFifo(ptr long)

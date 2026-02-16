@@ -11,7 +11,7 @@ list(APPEND ROSLOAD_SOURCE
     include/freeldr.h
     bootmgr.c
     custom.c
-    linuxboot.c
+    # linuxboot_new.c
     miscboot.c
     options.c
     oslist.c
@@ -37,7 +37,7 @@ if(ARCH STREQUAL "i386")
 
     list(APPEND ROSLOAD_ASM_SOURCE
         arch/i386/drvmap.S
-        arch/i386/linux.S)
+        arch/i386/linux_new.S)
 
 elseif(ARCH STREQUAL "amd64")
 
@@ -46,7 +46,7 @@ elseif(ARCH STREQUAL "amd64")
 
     list(APPEND ROSLOAD_ASM_SOURCE
         arch/amd64/misc.S
-        arch/amd64/linux.S
+        arch/amd64/linux_new.S
     )
 
 elseif(ARCH STREQUAL "arm")

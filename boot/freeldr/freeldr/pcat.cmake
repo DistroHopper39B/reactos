@@ -30,7 +30,7 @@ list(APPEND PCATLDR_ARC_SOURCE
 
 list(APPEND PCATLDR_BOOTMGR_SOURCE
     ${FREELDR_BOOTMGR_SOURCE}
-    linuxboot.c)
+    )
 
 list(APPEND PCATLDR_BASE_ASM_SOURCE)
 
@@ -45,7 +45,7 @@ if(ARCH STREQUAL "i386")
         arch/i386/irqsup.S
         arch/i386/pnpbios.S
         # arch/i386/i386trap.S
-        arch/i386/linux.S)
+        arch/i386/linux_new.S)
 
     list(APPEND PCATLDR_ARC_SOURCE
         # disk/scsiport.c
@@ -119,7 +119,7 @@ elseif(ARCH STREQUAL "amd64")
         arch/amd64/entry.S
         arch/amd64/int386.S
         arch/amd64/pnpbios.S
-        arch/amd64/linux.S)
+        arch/amd64/linux_new.S)
 
     list(APPEND PCATLDR_ARC_SOURCE
         lib/fs/pxe.c

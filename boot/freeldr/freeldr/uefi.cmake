@@ -29,10 +29,12 @@ if(ARCH STREQUAL "i386")
         arch/i386/i386idt.c)
     list(APPEND UEFILDR_COMMON_ASM_SOURCE
         arch/uefi/i386/uefiasm.S
-        arch/i386/i386trap.S)
+        arch/i386/i386trap.S
+        arch/i386/linux_new.S)
 elseif(ARCH STREQUAL "amd64")
     list(APPEND UEFILDR_COMMON_ASM_SOURCE
-        arch/uefi/amd64/uefiasm.S)
+        arch/uefi/amd64/uefiasm.S
+        arch/amd64/linux_new.S)
 elseif(ARCH STREQUAL "arm")
     list(APPEND UEFILDR_ARC_SOURCE
         arch/arm/macharm.c
@@ -49,6 +51,7 @@ list(APPEND UEFILDR_BOOTMGR_SOURCE
     custom.c
     options.c
     oslist.c
+    linuxboot_new.c
 )
 
 add_asm_files(uefifreeldr_common_asm ${FREELDR_COMMON_ASM_SOURCE} ${UEFILDR_COMMON_ASM_SOURCE})

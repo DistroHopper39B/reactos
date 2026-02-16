@@ -26,6 +26,7 @@ include_directories(
 add_definitions(-D_NTHAL_ -D_BLDR_ -D_NTSYSTEM_)
 
 list(APPEND FREELDR_ARC_SOURCE
+    linuxboot_new.c
     arcname.c
     arch/arcemul.c
     arch/archwsup.c

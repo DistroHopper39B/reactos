@@ -31,6 +31,10 @@ extern EFI_SYSTEM_TABLE* GlobalSystemTable;
 extern EFI_HANDLE GlobalImageHandle;
 
 EFI_MEMORY_DESCRIPTOR* EfiMemoryMap = NULL;
+UINTN MapSize;
+UINTN DescriptorSize;
+UINT32 DescriptorVersion;
+
 UINT32 FreeldrDescCount;
 PVOID OsLoaderBase;
 SIZE_T OsLoaderSize;
@@ -144,11 +148,8 @@ PFREELDR_MEMORY_DESCRIPTOR
 UefiMemGetMemoryMap(ULONG *MemoryMapSize)
 {
     EFI_LOADED_IMAGE_PROTOCOL *LoadedImage;
-    UINT32 DescriptorVersion;
     SIZE_T FreeldrMemMapSize;
-    UINTN DescriptorSize;
     EFI_STATUS Status;
-    UINTN MapSize;
     UINTN MapKey;
     UINT32 Index;
 
