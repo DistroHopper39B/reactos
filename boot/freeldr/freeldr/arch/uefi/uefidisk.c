@@ -165,7 +165,7 @@ UefiEnsureDiskReadBufferAligned(
         DiskReadBufferFromPool = FALSE;
         DiskReadBufferFallbackPool = FALSE;
     }
-
+    
     Status = GlobalSystemTable->BootServices->AllocatePool(EfiLoaderData,
                                                            DiskReadBufferSize + RequiredAlignment,
                                                            (void**)&DiskReadBufferRaw);
