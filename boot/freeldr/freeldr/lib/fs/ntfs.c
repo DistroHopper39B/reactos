@@ -382,7 +382,7 @@ static PNTFS_ATTR_CONTEXT NtfsFindAttributeHelper(
     const WCHAR *Name,
     ULONG NameLength,
     ULONG RecursionLimit,
-    USHORT Instance);
+    ULONG Instance);
 static BOOLEAN NtfsReadMftRecord(PNTFS_VOLUME_INFO Volume, ULONGLONG MFTIndex, PNTFS_MFT_RECORD Buffer);
 
 static PNTFS_ATTR_CONTEXT NtfsFindAttributeHelperList(
@@ -409,7 +409,7 @@ static PNTFS_ATTR_CONTEXT NtfsFindAttributeHelperList(
     {
         ULONGLONG MftIndex = AttrListRecord->BaseFileRef & NTFS_MFT_MASK;
         ULONG AttrType = AttrListRecord->Type;
-        USHORT AttrId = AttrListRecord->AttrId;
+        ULONG AttrId = AttrListRecord->AttrId;
 
         if (AttrType == NTFS_ATTR_TYPE_END)
             break;
@@ -473,7 +473,7 @@ static PNTFS_ATTR_CONTEXT NtfsFindAttributeHelper(
     const WCHAR *Name,
     ULONG NameLength,
     ULONG RecursionLimit,
-    USHORT Instance)
+    ULONG Instance)
 {
     PNTFS_ATTR_CONTEXT Context = NULL;
     PNTFS_ATTR_CONTEXT ListContext = NULL;
@@ -485,7 +485,7 @@ static PNTFS_ATTR_CONTEXT NtfsFindAttributeHelper(
     while (AttrRecord < AttrRecordEnd)
     {
         ULONG AttrType = AttrRecord->Type;
-        USHORT AttrInstance = AttrRecord->Instance;
+        ULONG AttrInstance = AttrRecord->Instance;
 
         if (AttrType == NTFS_ATTR_TYPE_END)
             break;
@@ -539,7 +539,7 @@ static PNTFS_ATTR_CONTEXT NtfsFindAttributeHelper(
             /* HACK for ntfs3 driver on linux! Because the ntfs3 likes to generate invalid
              * attribute size when mft record increases and I don't know how I will handle this */
             NtfsGetAttributeSize(AttrRecord) != 0 &&
-            (Instance == (USHORT)-1 || AttrInstance == Instance))
+            (Instance == (ULONG)-1 || AttrInstance == Instance))
         {
             PWCHAR AttrName;
 
