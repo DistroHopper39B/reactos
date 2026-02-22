@@ -302,6 +302,282 @@ GenFbVmpGetHwInitDataSize(
         return SIZE_OF_WXP_VIDEO_HW_INITIALIZATION_DATA; // Vista?
 }
 
+/*
+ * From a (VIDEO|MONITOR)_HARDWARE_CONFIGURATION_DATA structure, retrieve
+ * where the actual legacy data starts from. Based from the fact that the
+ * first two fields, InterfaceType and BusNumber, are common with the
+ * CM_FULL_RESOURCE_DESCRIPTOR header, and the actual data starts where
+ * the CM_FULL_RESOURCE_DESCRIPTOR::PartialResourceList member would start.
+ */
+#define GET_LEGACY_DATA(fullConfigData) \
+    ((PVOID)&(((PCM_FULL_RESOURCE_DESCRIPTOR)fullConfigData)->PartialResourceList))
+
+#define GET_LEGACY_DATA_LEN(fullConfigDataLen) \
+    ((fullConfigDataLen >= FIELD_OFFSET(CM_FULL_RESOURCE_DESCRIPTOR, PartialResourceList)) \
+   ? (fullConfigDataLen  - FIELD_OFFSET(CM_FULL_RESOURCE_DESCRIPTOR, PartialResourceList)) \
+   : 0)
+
+typedef struct _DISPLAY_CONTEXT
+{
+    /* Input parameters */
+    CONFIGURATION_TYPE DeviceType; // Which device type to search for.
+
+    /* Output data */
+    PHYSICAL_ADDRESS BaseAddress;
+    ULONG BufferSize;
+    INTERFACE_TYPE Interface;
+    ULONG BusNumber;
+
+    /* In input, contain pointers to the structures.
+     * These are initialized on output. */
+    PCM_FRAMEBUF_DEVICE_DATA VideoConfigData;
+    PCM_MONITOR_DEVICE_DATA MonitorConfigData;
+} DISPLAY_CONTEXT, *PDISPLAY_CONTEXT;
+
+/**
+ * @brief
+ * A PIO_QUERY_DEVICE_ROUTINE callback for IoQueryDeviceDescription()
+ * to return success when an enumerated display controller has been found.
+ **/
+static NTSTATUS
+NTAPI
+pEnumDisplayControllerCallback(
+    _In_ PVOID Context,
+    _In_ PUNICODE_STRING PathName,
+    _In_ INTERFACE_TYPE BusType,
+    _In_ ULONG BusNumber,
+    _In_ PKEY_VALUE_FULL_INFORMATION* BusInformation,
+    _In_ CONFIGURATION_TYPE ControllerType,
+    _In_ ULONG ControllerNumber,
+    _In_ PKEY_VALUE_FULL_INFORMATION* ControllerInformation,
+    _In_ CONFIGURATION_TYPE PeripheralType,
+    _In_ ULONG PeripheralNumber,
+    _In_ PKEY_VALUE_FULL_INFORMATION* PeripheralInformation)
+{
+#define GetDeviceInfoData(info) \
+    ((info) ? (PVOID)((ULONG_PTR)(info) + (info)->DataOffset) : NULL)
+
+#define GetDeviceInfoLength(info) \
+    ((info) ? (info)->DataLength : 0)
+
+    NTSTATUS Status;
+    PDISPLAY_CONTEXT DisplayContext = Context;
+    PKEY_VALUE_FULL_INFORMATION* DeviceInformation;
+    PWCHAR Identifier;
+    ULONG IdentifierLength;
+    PVOID ConfigurationData;
+    ULONG ConfigurationDataLength;
+    PCM_COMPONENT_INFORMATION CompInfo;
+    ULONG CompInfoLength;
+
+    UNREFERENCED_PARAMETER(PathName);
+    UNREFERENCED_PARAMETER(BusInformation);
+    UNREFERENCED_PARAMETER(ControllerType);
+    UNREFERENCED_PARAMETER(ControllerNumber);
+    UNREFERENCED_PARAMETER(PeripheralType);
+    UNREFERENCED_PARAMETER(PeripheralNumber);
+
+    /* The display controller has been found */
+    DPRINT1("pEnumDisplayControllerCallback():\n"
+            "    PathName:   '%wZ'\n"
+            "    BusType:    %lu\n"
+            "    BusNumber:  %lu\n"
+            "    CtrlType:   %lu\n"
+            "    CtrlNumber: %lu\n"
+            "    PeriType:   %lu\n"
+            "    PeriNumber: %lu\n"
+            "\n",
+            PathName, BusType, BusNumber,
+            ControllerType, ControllerNumber,
+            PeripheralType, PeripheralNumber);
+
+    /* Capture information and return it via Context */
+
+    switch (DisplayContext->DeviceType)
+    {
+        case DisplayController:
+        {
+            ASSERT(ControllerInformation);
+
+            /* Retrieve the pointers */
+            DeviceInformation = ControllerInformation;
+            ConfigurationData =
+                GetDeviceInfoData(DeviceInformation[IoQueryDeviceConfigurationData]);
+            ConfigurationDataLength =
+                GetDeviceInfoLength(DeviceInformation[IoQueryDeviceConfigurationData]);
+
+            CompInfo =
+                GetDeviceInfoData(DeviceInformation[IoQueryDeviceComponentInformation]);
+            CompInfoLength =
+                GetDeviceInfoLength(DeviceInformation[IoQueryDeviceComponentInformation]);
+
+            Identifier =
+                GetDeviceInfoData(DeviceInformation[IoQueryDeviceIdentifier]);
+            IdentifierLength =
+                GetDeviceInfoLength(DeviceInformation[IoQueryDeviceIdentifier]);
+
+            DPRINT1("Display: '%.*ws'\n",
+                    IdentifierLength/sizeof(WCHAR), Identifier);
+
+            if (CompInfo && (CompInfoLength == sizeof(CM_COMPONENT_INFORMATION)) &&
+                !(CompInfo->Flags.Output && CompInfo->Flags.ConsoleOut))
+            {
+                DPRINT1("Weird: this DisplayController has flags %lu\n", CompInfo->Flags);
+
+                /* Ignore */
+                return STATUS_SUCCESS;
+            }
+
+            ASSERT(DisplayContext->VideoConfigData);
+
+            Status = GetFramebufferVideoData(&DisplayContext->BaseAddress,
+                                             &DisplayContext->BufferSize,
+                                             DisplayContext->VideoConfigData,
+                                             GET_LEGACY_DATA(ConfigurationData),
+                                             GET_LEGACY_DATA_LEN(ConfigurationDataLength));
+
+            DisplayContext->Interface = BusType;
+            DisplayContext->BusNumber = BusNumber;
+            break;
+        }
+
+        case MonitorPeripheral:
+        {
+            ASSERT(ControllerInformation);
+            ASSERT(PeripheralInformation);
+
+            /* Retrieve the pointers */
+            DeviceInformation = PeripheralInformation;
+            ConfigurationData =
+                GetDeviceInfoData(DeviceInformation[IoQueryDeviceConfigurationData]);
+            ConfigurationDataLength =
+                GetDeviceInfoLength(DeviceInformation[IoQueryDeviceConfigurationData]);
+
+            CompInfo =
+                GetDeviceInfoData(DeviceInformation[IoQueryDeviceComponentInformation]);
+            CompInfoLength =
+                GetDeviceInfoLength(DeviceInformation[IoQueryDeviceComponentInformation]);
+
+            Identifier =
+                GetDeviceInfoData(DeviceInformation[IoQueryDeviceIdentifier]);
+            IdentifierLength =
+                GetDeviceInfoLength(DeviceInformation[IoQueryDeviceIdentifier]);
+
+            DPRINT1("Monitor: '%.*ws'\n",
+                    IdentifierLength/sizeof(WCHAR), Identifier);
+
+            if (CompInfo && (CompInfoLength == sizeof(CM_COMPONENT_INFORMATION)) &&
+                !(CompInfo->Flags.Output && CompInfo->Flags.ConsoleOut))
+            {
+                DPRINT1("Weird: this MonitorPeripheral has flags %lu\n", CompInfo->Flags);
+
+                /* Ignore */
+                return STATUS_SUCCESS;
+            }
+
+            ASSERT(DisplayContext->MonitorConfigData);
+
+            Status = GetFramebufferMonitorData(DisplayContext->MonitorConfigData,
+                                               GET_LEGACY_DATA(ConfigurationData),
+                                               GET_LEGACY_DATA_LEN(ConfigurationDataLength));
+            if (!NT_SUCCESS(Status))
+            {
+                DPRINT1("Invalid monitor data, ignoring.\n");
+                Status = STATUS_SUCCESS;
+            }
+
+            break;
+        }
+
+        default:
+            ASSERT(FALSE); // We should never be called there.
+            return STATUS_INVALID_PARAMETER;
+    }
+    
+    DPRINT1("Returning STATUS_SUCCESS\n");
+
+    return STATUS_SUCCESS;
+
+#undef GetDeviceInfoLength
+#undef GetDeviceInfoData
+}
+
+static
+NTSTATUS
+FindBootDisplayFromCachedConfigTree(
+    _Out_ PPHYSICAL_ADDRESS BaseAddress,    // Start // FrameBuffer
+    _Out_ PULONG BufferSize,                // Length
+    _Out_ PCM_FRAMEBUF_DEVICE_DATA VideoConfigData,
+    _Out_opt_ PCM_MONITOR_DEVICE_DATA MonitorConfigData,
+    _Out_ PINTERFACE_TYPE Interface, // FIXME: Make it opt?
+    _Out_ PULONG BusNumber)
+{
+    NTSTATUS Status;
+    INTERFACE_TYPE InterfaceType;
+    CONFIGURATION_TYPE ControllerType = DisplayController;
+    CONFIGURATION_TYPE PeripheralType = MonitorPeripheral;
+    ULONG ControllerNumber = 0;
+
+    DISPLAY_CONTEXT DisplayContext = {0};
+
+    /* Find the first DisplayController available on any bus in the system */
+    DisplayContext.DeviceType = ControllerType;
+    DisplayContext.VideoConfigData = VideoConfigData;
+    for (InterfaceType = 0; InterfaceType < MaximumInterfaceType; ++InterfaceType)
+    {
+        Status = IoQueryDeviceDescription(&InterfaceType,
+                                          NULL,
+                                          &ControllerType,
+                                          &ControllerNumber, // Should we specify that thing?
+                                          NULL,
+                                          NULL,
+                                          pEnumDisplayControllerCallback,
+                                          &DisplayContext);
+        /*
+         * It seems that Windows Vista at least returns STATUS_OBJECT_NAME_NOT_FOUND regardless of anything,
+         * but passes through the video parameters anyway. 
+         * Instead of using Status, we check to see if BaseAddress.QuadPart != 0. 
+         */
+        if (DisplayContext.BaseAddress.QuadPart != 0)
+            break;
+    }
+
+    if (DisplayContext.BaseAddress.QuadPart == 0) // || (InterfaceType >= MaximumInterfaceType)
+    {
+        DPRINT1("Boot console not found. DisplayContext.BaseAddress = %X\n", DisplayContext.BaseAddress);
+        return Status;
+    }
+
+    *BaseAddress = DisplayContext.BaseAddress;
+    *BufferSize  = DisplayContext.BufferSize;
+
+    *Interface = DisplayContext.Interface;
+    *BusNumber = DisplayContext.BusNumber;
+
+    // ASSERT(InterfaceType == DisplayContext.Interface);
+
+    /* If no monitor data to retrieve, just return success */
+    if (!MonitorConfigData)
+        return STATUS_SUCCESS;
+
+    /* Now find the optional MonitorPeripheral on this controller */
+    DisplayContext.DeviceType = PeripheralType;
+    DisplayContext.MonitorConfigData = MonitorConfigData;
+    Status = IoQueryDeviceDescription(&InterfaceType,
+                                      &DisplayContext.BusNumber,
+                                      &ControllerType,
+                                      &ControllerNumber,
+                                      &PeripheralType,
+                                      NULL, // In principle we should retrieve the 1st monitor.
+                                      pEnumDisplayControllerCallback,
+                                      &DisplayContext);
+    if (!NT_SUCCESS(Status))
+    {
+        /* The optional monitor was not found, just ignore */
+    }
+
+    return STATUS_SUCCESS;
+}
 
 /*********************************** Public ***********************************/
 
@@ -398,7 +674,7 @@ GenFbVmpFindAdapter(
      * Instead look at specific buses and enumerate the internal ARC
      * device tree set up by the bootloader.
      */
-    Status = FindBootDisplay(&DisplayInfo->BaseAddress,
+    Status = FindBootDisplayFromCachedConfigTree(&DisplayInfo->BaseAddress,
                              &DisplayInfo->BufferSize,
                              &DisplayInfo->VideoConfigData,
                              &DisplayInfo->MonitorConfigData,
