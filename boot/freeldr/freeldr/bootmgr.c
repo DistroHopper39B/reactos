@@ -69,6 +69,7 @@ OSLoadingMethods[] =
 
 #ifdef _M_IX86
     {"WindowsNT40" , EditCustomBootNTOS, LoadAndBootWindows},
+    {"Windows2000" , EditCustomBootNTOS, LoadAndBootWindows},
 #endif
     {"Windows"     , EditCustomBootNTOS, LoadAndBootWindows},
     {"Windows2003" , EditCustomBootNTOS, LoadAndBootWindows},
