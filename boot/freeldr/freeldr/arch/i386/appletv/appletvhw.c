@@ -295,11 +295,18 @@ DetectPciBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         /* Increment bus number */
         (*BusNumber)++;
     }
+}
 
+static PRSDP_DESCRIPTOR
+FindAcpiBios(VOID)
+{
+    EFI_SYSTEM_TABLE *SystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
+    
+    return FindUefiVendorTable(SystemTable, (EFI_GUID) EFI_ACPI_20_TABLE_GUID);
 }
 
 VOID
-DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
+DetectAcpiBios(USHORT OperatingSystemVersion, PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 {
     PCONFIGURATION_COMPONENT_DATA   BiosKey;
     PCM_PARTIAL_RESOURCE_LIST       PartialResourceList;
@@ -307,35 +314,9 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     PRSDP_DESCRIPTOR                Rsdp;
     PACPI_BIOS_DATA                 AcpiBiosData;
     ULONG                           TableSize;
-    EFI_SYSTEM_TABLE                *SystemTable;
-    EFI_GUID                        Guid;
     
-    SystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
+    Rsdp = FindAcpiBios();
     
-    // Detect what version of NT we're running
-    // Note: This information should probably be passed into HwDetect
-#if 1
-    USHORT WindowsVersion = WinLdrDetectVersion();
-    ASSERT(WindowsVersion != 0);
-
-    if (WindowsVersion >= _WIN32_WINNT_WINXP)
-    {
-        // Windows XP and later: Use ACPI 2.0 table.
-        Guid = (EFI_GUID) EFI_ACPI_20_TABLE_GUID;
-    }
-    else
-    {
-        // Windows 2000 and earlier: Use ACPI 1.0 table.
-        // Note: This breaks software reboot on the Apple TV and may be completely broken on newer
-        // devices.
-        Guid = (EFI_GUID) ACPI_10_TABLE_GUID;
-    }
-#else
-    Guid = (EFI_GUID) ACPI_10_TABLE_GUID;
-#endif
-    
-    Rsdp = FindUefiVendorTable(SystemTable, Guid);
-
     if (Rsdp)
     {
         /* Set up the flag in the loader block */
@@ -366,7 +347,7 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
         /* Fill the table */
         AcpiBiosData = (PACPI_BIOS_DATA)&PartialResourceList->PartialDescriptors[1];
 
-        if (Rsdp->revision > 0)
+        if (Rsdp->revision > 0 && OperatingSystemVersion >= _WIN32_WINNT_WINXP)
         {
             TRACE("ACPI >1.0, using XSDT address\n");
             AcpiBiosData->RSDTAddress.QuadPart = Rsdp->xsdt_physical_address;
@@ -535,7 +516,9 @@ DetectSmBios(VOID)
 
 
 PCONFIGURATION_COMPONENT_DATA
-AppleTVHwDetect(_In_opt_ PCSTR Options)
+AppleTVHwDetect(
+    _In_ USHORT OperatingSystemVersion,
+    _In_opt_ PCSTR Options)
 {
     PCONFIGURATION_COMPONENT_DATA SystemKey;
     ULONG BusNumber = 0;
@@ -546,7 +529,7 @@ AppleTVHwDetect(_In_opt_ PCSTR Options)
     FldrCreateSystemKey(&SystemKey, "Apple TV (1st generation)");
 
     DetectPciBios(SystemKey, &BusNumber);
-    DetectAcpiBios(SystemKey, &BusNumber);
+    DetectAcpiBios(OperatingSystemVersion, SystemKey, &BusNumber);
     DetectInternal(SystemKey, &BusNumber);
     DetectSmBios();
 
