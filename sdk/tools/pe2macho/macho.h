@@ -18,7 +18,8 @@
 #define i386_THREAD_STATE 1
 
 /* Mach-O header */
-typedef struct {
+typedef struct
+{
     UINT32 MagicNumber; /* Mach-O magic number. */
 
     INT32 CpuType; /* CPU type */
@@ -32,7 +33,8 @@ typedef struct {
     UINT32 Flags; /* Executable flags */
 } MACHO_HEADER, *PMACHO_HEADER;
 
-typedef struct {
+typedef struct
+{
     UINT32 Command; /* LC_SEGMENT */
     UINT32 CommandSize; /* Size of segment command */
 
@@ -52,7 +54,8 @@ typedef struct {
     UINT32 Flags; /* Segment flags */
 } MACHO_SEGMENT_COMMAND, *PMACHO_SEGMENT_COMMAND;
 
-typedef struct {
+typedef struct
+{
     UINT32 Eax;
     UINT32 Ebx;
     UINT32 Ecx;
@@ -69,20 +72,22 @@ typedef struct {
     UINT32 Es;
     UINT32 Fs;
     UINT32 Gs;
-} MACHO_THREAD_STATE_32;
+} MACHO_THREAD_STATE_I386;
 
-typedef struct {
+typedef struct
+{
     UINT32 Command; /* LC_UNIXTHREAD */
     UINT32 CommandSize; /* Size of segment command */
     UINT32 Flavor; /* Architecture of thread state */
     UINT32 Count; /* Size of saved state */
-    
-    MACHO_THREAD_STATE_32 State; /* State */
-} MACHO_THREAD_COMMAND_X86, *PMACHO_THREAD_COMMAND_X86;
+
+    MACHO_THREAD_STATE_I386 State; /* State */
+} MACHO_THREAD_COMMAND_I386, *PMACHO_THREAD_COMMAND_I386;
 
 #define i386_THREAD_STATE_COUNT	16
 
-typedef struct {
+typedef struct
+{
     char SectionName[16]; /* Name of this section */
     char SegmentName[16]; /* Segment this section goes in */
 
