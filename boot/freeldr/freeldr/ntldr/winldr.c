@@ -636,6 +636,7 @@ NtLdrDetectBootVid(
 #if defined(_M_IX86) && !defined(UEFIBOOT)
         {"PC-98", "pc98bvid.dll"},
         {"Xbox", "xboxbvid.dll"},
+        {"Apple TV", "lfbbvid.dll"},
 #endif
         {"EFI", "lfbbvid.dll"},
     };
