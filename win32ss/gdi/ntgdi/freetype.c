@@ -7655,80 +7655,34 @@ NtGdiGetCharABCWidthsW(
 /*
 * @implemented
 */
-BOOL
-APIENTRY
-NtGdiGetCharWidthW(
+BOOL APIENTRY
+GreGetCharWidthW(
     _In_ HDC hDC,
     _In_ UINT FirstChar,
     _In_ UINT Count,
-    _In_reads_opt_(Count) PCWCH UnSafepwc,
+    _In_reads_opt_(Count) PCWCH Safepwc,
     _In_ FLONG fl,
-    _Out_writes_bytes_(Count * sizeof(ULONG)) PVOID Buffer)
+    _Out_writes_bytes_(Count * sizeof(INT)) PVOID Buffer)
 {
-    NTSTATUS Status = STATUS_SUCCESS;
-    LPINT SafeBuff;
-    PFLOAT SafeBuffF = NULL;
     PDC dc;
     PDC_ATTR pdcattr;
     PTEXTOBJ TextObj;
     PFONTGDI FontGDI;
     FT_Face face;
     FT_CharMap charmap, found = NULL;
-    UINT i, glyph_index, BufferSize;
+    UINT i, glyph_index;
     HFONT hFont = 0;
-    PWCHAR Safepwc = NULL;
     LOGFONTW *plf;
-
-    if (UnSafepwc)
-    {
-        UINT pwcSize = Count * sizeof(WCHAR);
-        Safepwc = ExAllocatePoolWithTag(PagedPool, pwcSize, GDITAG_TEXT);
-
-        if(!Safepwc)
-        {
-            EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);
-            return FALSE;
-        }
-        _SEH2_TRY
-        {
-            ProbeForRead(UnSafepwc, pwcSize, 1);
-            RtlCopyMemory(Safepwc, UnSafepwc, pwcSize);
-        }
-        _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-        {
-            Status = _SEH2_GetExceptionCode();
-        }
-        _SEH2_END;
-    }
-
-    if (!NT_SUCCESS(Status))
-    {
-        SetLastNtError(Status);
-        return FALSE;
-    }
-
-    BufferSize = Count * sizeof(INT); // Same size!
-    SafeBuff = ExAllocatePoolWithTag(PagedPool, BufferSize, GDITAG_TEXT);
-    if (!fl) SafeBuffF = (PFLOAT) SafeBuff;
-    if (SafeBuff == NULL)
-    {
-        if(Safepwc)
-            ExFreePoolWithTag(Safepwc, GDITAG_TEXT);
-
-        EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);
-        return FALSE;
-    }
+    PINT SafeBuffI;
+    PFLOAT SafeBuffF;
 
     dc = DC_LockDc(hDC);
     if (dc == NULL)
     {
-        if(Safepwc)
-            ExFreePoolWithTag(Safepwc, GDITAG_TEXT);
-
-        ExFreePoolWithTag(SafeBuff, GDITAG_TEXT);
         EngSetLastError(ERROR_INVALID_HANDLE);
         return FALSE;
     }
+
     pdcattr = dc->pdcattr;
     hFont = pdcattr->hlfntNew;
     TextObj = RealizeFontInit(hFont);
@@ -7736,10 +7690,6 @@ NtGdiGetCharWidthW(
 
     if (TextObj == NULL)
     {
-        if(Safepwc)
-            ExFreePoolWithTag(Safepwc, GDITAG_TEXT);
-
-        ExFreePoolWithTag(SafeBuff, GDITAG_TEXT);
         EngSetLastError(ERROR_INVALID_HANDLE);
         return FALSE;
     }
@@ -7749,6 +7699,7 @@ NtGdiGetCharWidthW(
     face = FontGDI->SharedFace->Face;
     if (face->charmap == NULL)
     {
+        // FIXME: Select better charmap
         for (i = 0; i < (UINT)face->num_charmaps; i++)
         {
             charmap = face->charmaps[i];
@@ -7759,21 +7710,20 @@ NtGdiGetCharWidthW(
             }
         }
 
-        if (!found)
+        if (!found && FT_IS_SFNT(face)) // Not found and (TrueType or OpenType)?
         {
             DPRINT1("WARNING: Could not find desired charmap!\n");
-
-            if(Safepwc)
-                ExFreePoolWithTag(Safepwc, GDITAG_TEXT);
-
-            ExFreePoolWithTag(SafeBuff, GDITAG_TEXT);
             EngSetLastError(ERROR_INVALID_HANDLE);
+            TEXTOBJ_UnlockText(TextObj);
             return FALSE;
         }
 
-        IntLockFreeType();
-        FT_Set_Charmap(face, found);
-        IntUnLockFreeType();
+        if (found)
+        {
+            IntLockFreeType();
+            FT_Set_Charmap(face, found);
+            IntUnLockFreeType();
+        }
     }
 
     plf = &TextObj->logfont.elfEnumLogfontEx.elfLogFont;
@@ -7783,6 +7733,11 @@ NtGdiGetCharWidthW(
     IntRequestFontSize(dc, FontGDI, plf->lfWidth, plf->lfHeight);
     FT_Set_Transform(face, NULL, NULL);
 
+    if (!fl)
+        SafeBuffF = (PFLOAT)Buffer;
+    else
+        SafeBuffI = (PINT)Buffer;
+
     for (i = FirstChar; i < FirstChar+Count; i++)
     {
         if (Safepwc)
@@ -7791,23 +7746,20 @@ NtGdiGetCharWidthW(
             glyph_index = get_glyph_index_flagged(face, i, (fl & GCW_INDICES));
 
         FT_Load_Glyph(face, glyph_index, FT_LOAD_DEFAULT);
+
         if (!fl)
             SafeBuffF[i - FirstChar] = (FLOAT) ((face->glyph->advance.x + 32) >> 6);
         else
-            SafeBuff[i - FirstChar] = (face->glyph->advance.x + 32) >> 6;
+            SafeBuffI[i - FirstChar] = (face->glyph->advance.x + 32) >> 6;
     }
+
     IntUnLockFreeType();
     TEXTOBJ_UnlockText(TextObj);
-    MmCopyToCaller(Buffer, SafeBuff, BufferSize);
 
-    if(Safepwc)
-        ExFreePoolWithTag(Safepwc, GDITAG_TEXT);
-
-    ExFreePoolWithTag(SafeBuff, GDITAG_TEXT);
     return TRUE;
 }
 
-static BOOL IntGetFontDefaultChar(_In_ FT_Face Face, _In_ PWCHAR pDefChar)
+static BOOL IntGetFontDefaultChar(_In_ FT_Face Face, _Out_ PWCHAR pDefChar)
 {
     TT_OS2 *pOS2;
     FT_WinFNT_HeaderRec WinFNT;
@@ -7865,10 +7817,10 @@ NtGdiGetGlyphIndicesW(
     INT i;
     WCHAR DefChar = 0xffff;
     PWORD Buffer = NULL;
-    WORD StackBuffer[256];
+    WORD StackBuffer[40];
     size_t pwcSize;
     PWSTR Safepwc = NULL;
-    WCHAR pwcStack[256];
+    WCHAR pwcStack[40];
     LPCWSTR UnSafepwc = pwc;
     LPWORD UnSafepgi = pgi;
     FT_Face Face;
@@ -7935,7 +7887,6 @@ NtGdiGetGlyphIndicesW(
         if (!Buffer || !Safepwc)
         {
             Status = STATUS_NO_MEMORY;
-            DPRINT1("ExAllocatePoolWithTag\n");
             goto ErrorRet;
         }
     }
@@ -7948,17 +7899,7 @@ NtGdiGetGlyphIndicesW(
         IntUnLockFreeType();
     }
 
-    _SEH2_TRY
-    {
-        ProbeForRead(UnSafepwc, pwcSize, 1);
-        RtlCopyMemory(Safepwc, UnSafepwc, pwcSize);
-    }
-    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-    {
-        Status = _SEH2_GetExceptionCode();
-    }
-    _SEH2_END;
-
+    Status = MmCopyFromCaller(Safepwc, UnSafepwc, pwcSize);
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("Status: %08lX\n", Status);
@@ -7976,16 +7917,7 @@ NtGdiGetGlyphIndicesW(
     }
     IntUnLockFreeType();
 
-    _SEH2_TRY
-    {
-        ProbeForWrite(UnSafepgi, cwc * sizeof(WORD), 1);
-        RtlCopyMemory(UnSafepgi, Buffer, cwc * sizeof(WORD));
-    }
-    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-    {
-        Status = _SEH2_GetExceptionCode();
-    }
-    _SEH2_END;
+    Status = MmCopyToCaller(UnSafepgi, Buffer, cwc * sizeof(WORD));
 
 ErrorRet:
     if (Buffer && Buffer != StackBuffer)
