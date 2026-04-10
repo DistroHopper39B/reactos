@@ -65,8 +65,19 @@ typedef void (*handler_t) PROTO ((struct packet *));
 struct iaddr;
 struct interface_info;
 
-typedef struct _DHCP_ADAPTER {
+typedef struct _ALTERNATE_CONFIGURATION
+{
+    DWORD IpAddress;
+    DWORD SubnetMask;
+    DWORD DefaultGateway;
+    DWORD DnsServer1;
+    DWORD DnsServer2;
+} ALTERNATE_CONFIGURATION, *PALTERNATE_CONFIGURATION;
+
+typedef struct _DHCP_ADAPTER
+{
     LIST_ENTRY     ListEntry;
+    PALTERNATE_CONFIGURATION AlternateConfiguration;
     MIB_IFROW      IfMib;
     MIB_IPFORWARDROW RouterMib;
     MIB_IPADDRROW  IfAddr;
@@ -89,6 +100,8 @@ void stop_client(void);
 void AdapterInit(VOID);
 HANDLE StartAdapterDiscovery(HANDLE hStopEvent);
 void AdapterStop(VOID);
+HKEY FindAdapterKey(PDHCP_ADAPTER Adapter);
+DWORD LoadAlternateConfiguration(PDHCP_ADAPTER Adapter, HKEY AdapterKey);
 extern PDHCP_ADAPTER AdapterGetFirst(VOID);
 extern PDHCP_ADAPTER AdapterGetNext(PDHCP_ADAPTER);
 extern PDHCP_ADAPTER AdapterFindIndex( unsigned int AdapterIndex );

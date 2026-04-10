@@ -20,6 +20,7 @@ list(APPEND SOURCE
     softkbd.c
     utils.c
     win3.c
+    win3send.c
     ${CMAKE_CURRENT_BINARY_DIR}/imm32_stubs.c
     ${CMAKE_CURRENT_BINARY_DIR}/imm32.def)
 
@@ -31,3 +32,8 @@ set_module_type(imm32 win32dll UNICODE ENTRYPOINT ImmDllInitialize 12)
 target_link_libraries(imm32 wine win32ksys uuid)
 add_importlibs(imm32 advapi32 user32 gdi32 kernel32 ntdll)
 add_cd_file(TARGET imm32 DESTINATION reactos/system32 FOR all)
+
+option(IMM_WIN3_SUPPORT "IMM Win 3.x support" ON)
+if(IMM_WIN3_SUPPORT)
+    target_compile_definitions(imm32 PRIVATE IMM_WIN3_SUPPORT)
+endif()

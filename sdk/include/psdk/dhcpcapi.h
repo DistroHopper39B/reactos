@@ -35,6 +35,11 @@ DhcpEnumClasses(
 
 DWORD
 APIENTRY
+DhcpFallbackRefreshParams(
+    _In_ PWSTR AdapterName);
+
+DWORD
+APIENTRY
 DhcpHandlePnPEvent(
     _In_ DWORD Unknown1,
     _In_ DWORD Unknown2,

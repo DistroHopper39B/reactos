@@ -271,21 +271,21 @@ InstallNetDevice(
         goto cleanup;
     }
 
-    rc = RegSetValueExW(hInterfaceKey, L"DefaultGateway", 0, REG_SZ, (const BYTE*)L"0.0.0.0", (wcslen(L"0.0.0.0") + 1) * sizeof(WCHAR));
+    rc = RegSetValueExW(hInterfaceKey, L"DefaultGateway", 0, REG_MULTI_SZ, (const BYTE*)L"0.0.0.0\0", (wcslen(L"0.0.0.0") + 2) * sizeof(WCHAR));
     if (rc != ERROR_SUCCESS)
     {
         ERR("RegSetValueExW() failed with error 0x%lx\n", rc);
         goto cleanup;
     }
 
-    rc = RegSetValueExW(hInterfaceKey, L"IPAddress", 0, REG_SZ, (const BYTE*)L"0.0.0.0", (wcslen(L"0.0.0.0") + 1) * sizeof(WCHAR));
+    rc = RegSetValueExW(hInterfaceKey, L"IPAddress", 0, REG_MULTI_SZ, (const BYTE*)L"0.0.0.0\0", (wcslen(L"0.0.0.0") + 2) * sizeof(WCHAR));
     if (rc != ERROR_SUCCESS)
     {
         ERR("RegSetValueExW() failed with error 0x%lx\n", rc);
         goto cleanup;
     }
 
-    rc = RegSetValueExW(hInterfaceKey, L"SubnetMask", 0, REG_SZ, (const BYTE*)L"0.0.0.0", (wcslen(L"0.0.0.0") + 1) * sizeof(WCHAR));
+    rc = RegSetValueExW(hInterfaceKey, L"SubnetMask", 0, REG_MULTI_SZ, (const BYTE*)L"0.0.0.0\0", (wcslen(L"0.0.0.0") + 2) * sizeof(WCHAR));
     if (rc != ERROR_SUCCESS)
     {
         ERR("RegSetValueExW() failed with error 0x%lx\n", rc);

@@ -2,10 +2,11 @@
  * PROJECT:     ReactOS IMM32
  * LICENSE:     LGPL-2.1-or-later (https://spdx.org/licenses/LGPL-2.1-or-later)
  * PURPOSE:     Implementing IMM32 Win3.x compatibility
- * COPYRIGHT:   Copyright 2020-2021 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>
+ * COPYRIGHT:   Copyright 2020-2026 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>
  */
 
 #include "precomp.h"
+#include <wine/ime.h>
 
 WINE_DEFAULT_DEBUG_CHANNEL(imm);
 
@@ -178,10 +179,14 @@ WINNLSTranslateMessageK(DWORD dwCount, LPTRANSMSG pEntries, LPINPUTCONTEXTDX pIC
     return dwCount;
 }
 
+#endif /* def IMM_WIN3_SUPPORT */
+
+/* This function is used in ImmGenerateMessage and ImmTranslateMessage */
 DWORD
 WINNLSTranslateMessage(DWORD dwCount, LPTRANSMSG pEntries, HIMC hIMC, BOOL bAnsi, WORD wLang)
 {
-    BOOL ret = FALSE;
+#ifdef IMM_WIN3_SUPPORT
+    DWORD ret = 0;
     LPINPUTCONTEXTDX pIC;
     LPCOMPOSITIONSTRING pCS;
 
@@ -204,30 +209,7 @@ WINNLSTranslateMessage(DWORD dwCount, LPTRANSMSG pEntries, HIMC hIMC, BOOL bAnsi
     ImmUnlockIMCC(pIC->hCompStr);
     ImmUnlockIMC(hIMC);
     return ret;
-}
-
-#endif /* IMM_WIN3_SUPPORT */
-
-/***********************************************************************
- *		ImmSendIMEMessageExA(IMM32.@)
- */
-WORD WINAPI
-ImmSendIMEMessageExA(
-    _In_ HWND hWnd,
-    _In_ LPARAM lParam)
-{
-    FIXME("(%p, %p)\n", hWnd, lParam);
+#else
     return 0;
-}
-
-/***********************************************************************
- *		ImmSendIMEMessageExW(IMM32.@)
- */
-WORD WINAPI
-ImmSendIMEMessageExW(
-    _In_ HWND hWnd,
-    _In_ LPARAM lParam)
-{
-    FIXME("(%p, %p)\n", hWnd, lParam);
-    return 0;
+#endif
 }

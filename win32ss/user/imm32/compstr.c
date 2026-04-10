@@ -6,7 +6,7 @@
  *              Copyright 2002, 2003, 2007 CodeWeavers, Aric Stewart
  *              Copyright 2017 James Tabor <james.tabor@reactos.org>
  *              Copyright 2018 Amine Khaldi <amine.khaldi@reactos.org>
- *              Copyright 2020-2021 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>
+ *              Copyright 2020-2026 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>
  */
 
 #include "precomp.h"
@@ -214,6 +214,35 @@ Imm32CompClauseWideToAnsi(const DWORD *source, INT slen, LPCWSTR text,
 #define CS_DoAttr CS_DoStrA
 #define CS_DoClause CS_DoStrA
 
+static DWORD CS_DoPrivate(HIMC hIMC, const COMPOSITIONSTRING *pCS, PVOID pBuffer, DWORD dwBufLen)
+{
+    if (!CtfImmIsGuidMapEnable(hIMC) || pCS->dwPrivateSize < sizeof(COMPSTR_PRIVATE))
+        return IMM_ERROR_GENERAL;
+
+    /* Check boundary #1 (ReactOS only) */
+    DWORD dwPrivateOffset = pCS->dwPrivateOffset;
+    if (dwPrivateOffset >= pCS->dwSize || dwPrivateOffset + pCS->dwPrivateSize > pCS->dwSize)
+        return IMM_ERROR_GENERAL;
+
+    const BYTE *pbCS = (const BYTE *)pCS;
+    const COMPSTR_PRIVATE *pPrivate = (const COMPSTR_PRIVATE *)(pbCS + dwPrivateOffset);
+    DWORD dwLen = pPrivate->dwLen, dwOffset = pPrivate->dwOffset;
+
+    /* Check boundary #2 (ReactOS only) */
+    if (dwPrivateOffset + dwOffset > pCS->dwPrivateSize ||
+        dwPrivateOffset + dwOffset + dwLen > pCS->dwPrivateSize)
+    {
+        return IMM_ERROR_GENERAL;
+    }
+
+    if (!dwBufLen)
+        return dwLen;
+
+    DWORD ret = min(dwBufLen, dwLen);
+    CopyMemory(pBuffer, (const BYTE *)pPrivate + dwOffset, ret);
+    return ret;
+}
+
 static LONG
 Imm32GetCompStrA(HIMC hIMC, const COMPOSITIONSTRING *pCS, DWORD dwIndex,
                  LPVOID lpBuf, DWORD dwBufLen, BOOL bAnsiClient, UINT uCodePage)
@@ -269,6 +298,9 @@ Imm32GetCompStrA(HIMC hIMC, const COMPOSITIONSTRING *pCS, DWORD dwIndex,
             case GCS_RESULTCLAUSE:
                 CS_DoClause(pCS, ResultClause);
                 break;
+
+            case GCS_PRIVATE:
+                return CS_DoPrivate(hIMC, pCS, lpBuf, dwBufLen);
 
             default:
                 FIXME("0x%X\n", dwIndex);
@@ -354,6 +386,9 @@ Imm32GetCompStrA(HIMC hIMC, const COMPOSITIONSTRING *pCS, DWORD dwIndex,
                                                      CS_StrW(pCS, ResultStr),
                                                      lpBuf, dwBufLen, uCodePage);
                 break;
+
+            case GCS_PRIVATE:
+                return CS_DoPrivate(hIMC, pCS, lpBuf, dwBufLen);
 
             default:
                 FIXME("0x%X\n", dwIndex);
@@ -447,6 +482,9 @@ Imm32GetCompStrW(HIMC hIMC, const COMPOSITIONSTRING *pCS, DWORD dwIndex,
                                                      lpBuf, dwBufLen, uCodePage);
                 break;
 
+            case GCS_PRIVATE:
+                return CS_DoPrivate(hIMC, pCS, lpBuf, dwBufLen);
+
             default:
                 FIXME("0x%X\n", dwIndex);
                 return IMM_ERROR_GENERAL;
@@ -503,6 +541,9 @@ Imm32GetCompStrW(HIMC hIMC, const COMPOSITIONSTRING *pCS, DWORD dwIndex,
             case GCS_RESULTCLAUSE:
                 CS_DoClause(pCS, ResultClause);
                 break;
+
+            case GCS_PRIVATE:
+                return CS_DoPrivate(hIMC, pCS, lpBuf, dwBufLen);
 
             default:
                 FIXME("0x%X\n", dwIndex);

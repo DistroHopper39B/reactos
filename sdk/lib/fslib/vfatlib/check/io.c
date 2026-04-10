@@ -186,7 +186,7 @@ NTSTATUS fs_open(PUNICODE_STRING DriveRoot, int read_write)
                         FILE_GENERIC_READ | (read_write ? FILE_GENERIC_WRITE : 0),
                         &ObjectAttributes,
                         &Iosb,
-                        read_write ? 0 : FILE_SHARE_READ,
+                        read_write ? FILE_SHARE_READ : (FILE_SHARE_READ | FILE_SHARE_WRITE),
                         FILE_SYNCHRONOUS_IO_ALERT);
     if (!NT_SUCCESS(Status))
     {
@@ -373,6 +373,9 @@ void fs_write(off_t pos, int size, void *data)
             /* Patch data in memory */
             memcpy((char *)scratch + seek_delta, data, size);
         }
+
+        /* Seek back to the beginning of our read/write */ 
+        if (lseek(fd, seekpos_aligned, 0) != seekpos_aligned) pdie("Seek to %lld",seekpos_aligned);
 
         /* Write it back */
         if ((did = write(fd, scratch, readsize_aligned)) == (int)readsize_aligned)

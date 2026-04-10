@@ -13,7 +13,7 @@
 @ stub DhcpDeRegisterOptions
 @ stub DhcpDeRegisterParamChange
 @ stdcall DhcpEnumClasses(long wstr long long)
-@ stub DhcpFallbackRefreshParams
+@ stdcall DhcpFallbackRefreshParams(wstr)
 @ stdcall DhcpHandlePnPEvent(long long wstr long long)
 @ stub DhcpLeaseIpAddress
 @ stub DhcpLeaseIpAddressEx

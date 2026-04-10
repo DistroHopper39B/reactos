@@ -50,7 +50,7 @@ DECLARE_INTERFACE_(INetCfgComponentControl, IUnknown)
 #define INetCfgComponentControl_Release(p)                        (p)->lpVtbl->Release(p)
 #define INetCfgComponentControl_Initialize(p,a,b,c)               (p)->lpVtbl->Initialize(p,a,b,c)
 #define INetCfgComponentControl_ApplyRegistryChanges(p)           (p)->lpVtbl->ApplyRegistryChanges(p)
-#define INetCfgComponentControl_ApplyPnpChanges(p,a)              (p)->lpVtbl->ApplyRegistryChanges(p,a)
+#define INetCfgComponentControl_ApplyPnpChanges(p,a)              (p)->lpVtbl->ApplyPnpChanges(p,a)
 #define INetCfgComponentControl_CancelChanges(p)                  (p)->lpVtbl->CancelChanges(p)
 #endif
 
@@ -153,16 +153,64 @@ DECLARE_INTERFACE_(INetCfgComponentSetup, IUnknown)
 
 #if !defined(__cplusplus) || defined(CINTERFACE)
 /*** IUnknown methods ***/
-#define INetCfgComponentControl_QueryInterface(p,a,b)             (p)->lpVtbl->QueryInterface(p,a,b)
-#define INetCfgComponentControl_AddRef(p)                         (p)->lpVtbl->AddRef(p)
-#define INetCfgComponentControl_Release(p)                        (p)->lpVtbl->Release(p)
-#define INetCfgComponentControl_Install(p,a)                      (p)->lpVtbl->Initialize(p,a)
-#define INetCfgComponentControl_Upgrade(p,a,b)                    (p)->lpVtbl->Upgrade(p,a,b)
-#define INetCfgComponentControl_ReadAnswerFile(p,a,b)             (p)->lpVtbl->ReadAnswerFile(p,a,b)
-#define INetCfgComponentControl_Removing(p)                       (p)->lpVtbl->Removing(p)
+#define INetCfgComponentSetup_QueryInterface(p,a,b)             (p)->lpVtbl->QueryInterface(p,a,b)
+#define INetCfgComponentSetup_AddRef(p)                         (p)->lpVtbl->AddRef(p)
+#define INetCfgComponentSetup_Release(p)                        (p)->lpVtbl->Release(p)
+#define INetCfgComponentSetup_Install(p,a)                      (p)->lpVtbl->Initialize(p,a)
+#define INetCfgComponentSetup_Upgrade(p,a,b)                    (p)->lpVtbl->Upgrade(p,a,b)
+#define INetCfgComponentSetup_ReadAnswerFile(p,a,b)             (p)->lpVtbl->ReadAnswerFile(p,a,b)
+#define INetCfgComponentSetup_Removing(p)                       (p)->lpVtbl->Removing(p)
 #endif
 
 EXTERN_C const IID IID_INetCfgComponentSetup;
+
+#undef  INTERFACE
+#define INTERFACE   INetCfgComponentSysPrep
+DECLARE_INTERFACE_(INetCfgComponentSysPrep, IUnknown)
+{
+    STDMETHOD_(HRESULT,QueryInterface)(THIS_ REFIID riid, void **ppv) PURE;
+    STDMETHOD_(ULONG,AddRef)(THIS)  PURE;
+    STDMETHOD_(ULONG,Release) (THIS) PURE;
+    STDMETHOD_(HRESULT,SaveAdapterParameters) (THIS_ INetCfgSysPrep *pncsp, LPCWSTR pszwAnswerSections, GUID *pAdapterInstanceGuid) PURE;
+    STDMETHOD_(HRESULT,RestoreAdapterParameters) (THIS_ LPCWSTR pszwAnswerFile, LPCWSTR pszwAnswerSection, GUID *pAdapterInstanceGuid) PURE;
+};
+#undef INTERFACE
+
+#if !defined(__cplusplus) || defined(CINTERFACE)
+/*** IUnknown methods ***/
+#define INetCfgComponentSysPrep_QueryInterface(p,a,b)             (p)->lpVtbl->QueryInterface(p,a,b)
+#define INetCfgComponentSysPrep_AddRef(p)                         (p)->lpVtbl->AddRef(p)
+#define INetCfgComponentSysPrep_Release(p)                        (p)->lpVtbl->Release(p)
+#define INetCfgComponentSysPrep_SaveAdapterParameters(p,a,b,c)    (p)->lpVtbl->SaveAdapterParameters(p,a,b,c)
+#define INetCfgComponentSysPrep_RestoreAdapterParameters(p,a,b,c) (p)->lpVtbl->RestoreAdapterParameters(p,a,b,c)
+#endif
+
+EXTERN_C const IID IID_INetCfgComponentSysPrep;
+
+#undef  INTERFACE
+#define INTERFACE   INetCfgComponentUpperEdge
+DECLARE_INTERFACE_(INetCfgComponentUpperEdge, IUnknown)
+{
+    STDMETHOD_(HRESULT,QueryInterface)(THIS_ REFIID riid, void **ppv) PURE;
+    STDMETHOD_(ULONG,AddRef)(THIS)  PURE;
+    STDMETHOD_(ULONG,Release) (THIS) PURE;
+    STDMETHOD_(HRESULT,GetInterfaceIdsForAdapter) (THIS_ INetCfgComponent *pAdapter, DWORD *pdwNumInterfaces, GUID **ppguidInterfaceIds) PURE;
+    STDMETHOD_(HRESULT,AddInterfacesToAdapter) (THIS_ INetCfgComponent *pAdapter, DWORD dwNumInterfaces) PURE;
+    STDMETHOD_(HRESULT,RemoveInterfacesToAdapter) (THIS_ INetCfgComponent *pAdapter, DWORD dwNumInterfaces, const GUID *pguidInterfaceIds) PURE;
+};
+#undef INTERFACE
+
+#if !defined(__cplusplus) || defined(CINTERFACE)
+/*** IUnknown methods ***/
+#define INetCfgComponentUpperEdge_QueryInterface(p,a,b)               (p)->lpVtbl->QueryInterface(p,a,b)
+#define INetCfgComponentUpperEdge_AddRef(p)                           (p)->lpVtbl->AddRef(p)
+#define INetCfgComponentUpperEdge_Release(p)                          (p)->lpVtbl->Release(p)
+#define INetCfgComponentUpperEdge_GetInterfaceIdsForAdapter(p,a,b,c)  (p)->lpVtbl->GetInterfaceIdsForAdapter(p,a,b,c)
+#define INetCfgComponentUpperEdge_AddInterfacesToAdapter(p,a,b)       (p)->lpVtbl->AddInterfacesToAdapter(p,a,b)
+#define INetCfgComponentUpperEdge_RemoveInterfacesToAdapter(p,a,b,c)  (p)->lpVtbl->RemoveInterfacesToAdapter(p,a,b,c)
+#endif
+
+EXTERN_C const IID IID_INetCfgComponentUpperEdge;
 
 #undef  INTERFACE
 #define INTERFACE   INetLanConnectionUiInfo

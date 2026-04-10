@@ -118,24 +118,23 @@ typedef struct _FILE_OBJECT_EXTENSION
 // Determines if the IRP is Synchronous
 //
 #define IsIrpSynchronous(Irp, FileObject)               \
-    ((Irp->Flags & IRP_SYNCHRONOUS_API)  ||             \
-     (!(FileObject) ?                                   \
-        FALSE :                                         \
-        FileObject->Flags & FO_SYNCHRONOUS_IO))         \
+    (((Irp)->Flags & IRP_SYNCHRONOUS_API) ||            \
+     (!(FileObject) ? FALSE :                           \
+       (FileObject)->Flags & FO_SYNCHRONOUS_IO))
 
 //
 // Returns the internal Device Object Extension
 //
 #define IoGetDevObjExtension(DeviceObject)              \
     ((PEXTENDED_DEVOBJ_EXTENSION)                       \
-     (DeviceObject->DeviceObjectExtension))             \
+     ((DeviceObject)->DeviceObjectExtension))
 
 //
 // Returns the internal Driver Object Extension
 //
 #define IoGetDrvObjExtension(DriverObject)              \
     ((PEXTENDED_DRIVER_EXTENSION)                       \
-     (DriverObject->DriverExtension))                   \
+     ((DriverObject)->DriverExtension))
 
 /*
  * VOID

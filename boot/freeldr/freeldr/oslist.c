@@ -62,12 +62,20 @@ InitOperatingSystemList(
     CHAR BootType[80];
     CHAR TempBuffer[_countof(SettingValue)];
 
+    /* Default with an empty list */
+    *OperatingSystemCount = 0;
+
     /* Open the [Operating Systems] section */
     if (!IniOpenSection("Operating Systems", &OsSectionId))
+    {
+        UiMessageBox("Operating Systems section not found in freeldr.ini");
         return NULL;
+    }
 
     /* Count the number of operating systems in the section */
     Count = IniGetNumSectionItems(OsSectionId);
+    if (Count == 0) /* Fail if no operating systems are found */
+        return NULL;
 
     /* Allocate memory to hold operating system lists */
     Items = FrLdrHeapAlloc(Count * sizeof(OperatingSystemItem), TAG_OS_ITEM);

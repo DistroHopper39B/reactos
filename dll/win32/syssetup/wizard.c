@@ -2357,6 +2357,31 @@ RegisterComponents(
     SendMessage(pItemsData->hwndDlg, PM_ITEM_END, 0, Error);
 }
 
+static
+VOID
+SaveSettings(
+    PITEMSDATA pItemsData)
+{
+    LONG Steps = 0;
+    DWORD Error = NO_ERROR;
+    REGISTRATIONNOTIFY Notify;
+
+    ZeroMemory(&Notify, sizeof(Notify));
+
+    /* Count steps */
+    Steps = CountSecuritySteps();
+
+    /* Start the item */
+    DPRINT("Install security: %ld Steps\n", Steps);
+    SendMessage(pItemsData->hwndDlg, PM_ITEM_START, 2, (LPARAM)Steps);
+
+    /* Install steps */
+    Error = InstallSecurity(pItemsData, &Notify);
+
+    /* End the item */
+    DPRINT("Install security: done\n");
+    SendMessage(pItemsData->hwndDlg, PM_ITEM_END, 2, Error);
+}
 
 static
 DWORD
@@ -2376,7 +2401,11 @@ ItemCompletionThread(
     /* Step 1 - Installing start menu items */
     InstallStartMenuItems(pItemsData);
 
-    /* FIXME: Add completion steps here! */
+    /* Step 2 - Saving Settings */
+    SaveSettings(pItemsData);
+
+    /* Step 3 - Removing temporary files */
+//    RemoveTempFiles(pItemsData);
 
     // FIXME: Move this call to a separate cleanup page!
     RtlCreateBootStatusDataFile();
@@ -2526,9 +2555,7 @@ ProcessPageDlgProc(HWND hwndDlg,
             /* Save pointer to the global setup data */
             SetupData = (PSETUPDATA)((LPPROPSHEETPAGE)lParam)->lParam;
             SetWindowLongPtr(hwndDlg, GWLP_USERDATA, (DWORD_PTR)SetupData);
-            ShowWindow(GetDlgItem(hwndDlg, IDC_TASKTEXT3), SW_HIDE);
             ShowWindow(GetDlgItem(hwndDlg, IDC_TASKTEXT4), SW_HIDE);
-            ShowWindow(GetDlgItem(hwndDlg, IDC_CHECK3), SW_HIDE);
             ShowWindow(GetDlgItem(hwndDlg, IDC_CHECK4), SW_HIDE);
             s_hCheckIcon = LoadImageW(hDllInstance, MAKEINTRESOURCEW(IDI_CHECKICON), IMAGE_ICON, 16, 16, 0);
             s_hArrowIcon = LoadImageW(hDllInstance, MAKEINTRESOURCEW(IDI_ARROWICON), IMAGE_ICON, 16, 16, 0);

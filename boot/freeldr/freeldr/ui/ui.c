@@ -92,7 +92,7 @@ UIVTBL UiVtbl =
 BOOLEAN UiInitialize(BOOLEAN ShowUi)
 {
     VIDEODISPLAYMODE UiDisplayMode; // Tells us if we are in text or graphics mode
-    BOOLEAN UiMinimal = FALSE;      // Tells us if we are using a minimal console-like UI
+    BOOLEAN UiMinimal = TRUE;       // Tells us if we are using a minimal console-like UI
     ULONG_PTR SectionId;
     ULONG Depth;
     CHAR  SettingText[260];

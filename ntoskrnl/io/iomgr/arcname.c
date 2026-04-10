@@ -45,20 +45,20 @@ IopCreateArcNames(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     BOOLEAN FoundBoot = FALSE;
     UNICODE_STRING SystemDevice, LoaderPathNameW, BootDeviceName;
     PARC_DISK_INFORMATION ArcDiskInfo = LoaderBlock->ArcDiskInformation;
-    ANSI_STRING ArcSystemString, ArcString, LanmanRedirector, LoaderPathNameA;
+    ANSI_STRING ArcString, LanmanRedirector, LoaderPathNameA;
 
     /* Check if we only have one disk on the machine */
     SingleDisk = (ArcDiskInfo->DiskSignatureListHead.Flink->Flink ==
                  &ArcDiskInfo->DiskSignatureListHead);
 
-    /* Create the global HAL partition name */
+    /* Create the firmware system loader / HAL partition global name */
     sprintf(Buffer, "\\ArcName\\%s", LoaderBlock->ArcHalDeviceName);
     RtlInitAnsiString(&ArcString, Buffer);
     Status = RtlAnsiStringToUnicodeString(&IoArcHalDeviceName, &ArcString, TRUE);
     if (!NT_SUCCESS(Status))
         return Status;
 
-    /* Create the global system partition name */
+    /* Create the OS boot partition global name */
     sprintf(Buffer, "\\ArcName\\%s", LoaderBlock->ArcBootDeviceName);
     RtlInitAnsiString(&ArcString, Buffer);
     Status = RtlAnsiStringToUnicodeString(&IoArcBootDeviceName, &ArcString, TRUE);
@@ -84,9 +84,6 @@ IopCreateArcNames(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         /* Then disable single-disk mode, since there's a CD drive out there */
         SingleDisk = FALSE;
     }
-
-    /* Build the boot strings */
-    RtlInitAnsiString(&ArcSystemString, LoaderBlock->ArcHalDeviceName);
 
     /* If we are doing remote booting */
     if (IoRemoteBootClient)

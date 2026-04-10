@@ -150,7 +150,6 @@ UiDisplayMenu(
 {
     return TuiDisplayMenu(MenuHeader,
                           MenuFooter,
-                          ShowBootOptions,
                           MenuItemList,
                           MenuItemCount,
                           DefaultMenuItem,

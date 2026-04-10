@@ -962,7 +962,7 @@ IoGetDeviceInterfaces(IN CONST GUID *InterfaceClassGuid,
     if (PhysicalDeviceObject != NULL)
     {
         /* Parameters must pass three border of checks */
-        DeviceObjectExtension = (PEXTENDED_DEVOBJ_EXTENSION)PhysicalDeviceObject->DeviceObjectExtension;
+        DeviceObjectExtension = IoGetDevObjExtension(PhysicalDeviceObject);
 
         /* 1st level: Presence of a Device Node */
         if (DeviceObjectExtension->DeviceNode == NULL)
@@ -1463,7 +1463,7 @@ IoRegisterDeviceInterface(IN PDEVICE_OBJECT PhysicalDeviceObject,
         PhysicalDeviceObject, ReferenceString);
 
     /* Parameters must pass three border of checks */
-    DeviceObjectExtension = (PEXTENDED_DEVOBJ_EXTENSION)PhysicalDeviceObject->DeviceObjectExtension;
+    DeviceObjectExtension = IoGetDevObjExtension(PhysicalDeviceObject);
 
     /* 1st level: Presence of a Device Node */
     if (DeviceObjectExtension->DeviceNode == NULL)
@@ -1512,8 +1512,8 @@ IoRegisterDeviceInterface(IN PDEVICE_OBJECT PhysicalDeviceObject,
     ASSERT(PdoNameInfo->Name.Length);
 
     /* Create base key name for this interface: HKLM\SYSTEM\CurrentControlSet\Control\DeviceClasses\{GUID} */
-    ASSERT(((PEXTENDED_DEVOBJ_EXTENSION)PhysicalDeviceObject->DeviceObjectExtension)->DeviceNode);
-    InstancePath = &((PEXTENDED_DEVOBJ_EXTENSION)PhysicalDeviceObject->DeviceObjectExtension)->DeviceNode->InstancePath;
+    ASSERT(IoGetDevObjExtension(PhysicalDeviceObject)->DeviceNode);
+    InstancePath = &(IoGetDevObjExtension(PhysicalDeviceObject)->DeviceNode->InstancePath);
     BaseKeyName.Length = (USHORT)wcslen(BaseKeyString) * sizeof(WCHAR);
     BaseKeyName.MaximumLength = BaseKeyName.Length
         + GuidString.Length;

@@ -11,13 +11,12 @@
 #include "../vidfb.h"
 
 #include <debug.h>
-DBG_DEFAULT_CHANNEL(WARNING);
+DBG_DEFAULT_CHANNEL(HWDETECT);
 
 /* GLOBALS *******************************************************************/
 
 extern EFI_SYSTEM_TABLE * GlobalSystemTable;
 extern EFI_HANDLE GlobalImageHandle;
-extern UCHAR PcBiosDiskCount;
 
 /* From uefivid.c */
 extern ULONG_PTR VramAddress;
@@ -89,6 +88,56 @@ FindAcpiBios(VOID)
     }
 
     return rsdp;
+}
+
+PDESCRIPTION_HEADER
+UefiFindAcpiTable(
+    _In_ ULONG Signature)
+{
+    UINTN Index, Count;
+    PRSDP_DESCRIPTOR Rsdp;
+
+    Rsdp = FindAcpiBios();
+    if (Rsdp == NULL)
+        return NULL;
+
+    if ((Rsdp->revision > 0) && (Rsdp->xsdt_physical_address != 0))
+    {
+        PXSDT Xsdt = (PXSDT)(ULONG_PTR)Rsdp->xsdt_physical_address;
+
+        if ((Xsdt != NULL) && (Xsdt->Header.Length >= sizeof(Xsdt->Header)))
+        {
+            Count = (Xsdt->Header.Length - sizeof(Xsdt->Header)) / sizeof(Xsdt->Tables[0]);
+            for (Index = 0; Index < Count; ++Index)
+            {
+                PDESCRIPTION_HEADER Header =
+                    (PDESCRIPTION_HEADER)(ULONG_PTR)Xsdt->Tables[Index].QuadPart;
+
+                if ((Header != NULL) && (Header->Signature == Signature))
+                    return Header;
+            }
+        }
+    }
+
+    if (Rsdp->rsdt_physical_address != 0)
+    {
+        PRSDT Rsdt = (PRSDT)(ULONG_PTR)Rsdp->rsdt_physical_address;
+
+        if ((Rsdt != NULL) && (Rsdt->Header.Length >= sizeof(Rsdt->Header)))
+        {
+            Count = (Rsdt->Header.Length - sizeof(Rsdt->Header)) / sizeof(Rsdt->Tables[0]);
+            for (Index = 0; Index < Count; ++Index)
+            {
+                PDESCRIPTION_HEADER Header =
+                    (PDESCRIPTION_HEADER)(ULONG_PTR)Rsdt->Tables[Index];
+
+                if ((Header != NULL) && (Header->Signature == Signature))
+                    return Header;
+            }
+        }
+    }
+
+    return NULL;
 }
 
 VOID

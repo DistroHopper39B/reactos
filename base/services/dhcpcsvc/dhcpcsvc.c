@@ -293,7 +293,39 @@ DhcpEnumClasses(
 }
 
 /*!
- * Enumerates the DHCP user classes for the given adapter
+ * Notify the DHCP client to refresh its fallback configuration
+ *
+ * \param[in] AdapterName
+ *        Name (GUID) of the Adapter
+ *
+ * \return ERROR_SUCCESS on success
+ *
+ * \remarks Undocumented by Microsoft
+ */
+DWORD
+APIENTRY
+DhcpFallbackRefreshParams(
+    _In_ PWSTR AdapterName)
+{
+    DWORD ret;
+
+    DPRINT("DhcpFallbackRefreshParams(%S)\n", AdapterName);
+
+    RpcTryExcept
+    {
+        ret = Client_FallbackRefreshParams(NULL, AdapterName);
+    }
+    RpcExcept(EXCEPTION_EXECUTE_HANDLER)
+    {
+        ret = I_RpcMapWin32Status(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return ret;
+}
+
+/*!
+ * Notify the DHCP client of PNP events
  *
  * \param[in] Unknown1
  *        Unknown

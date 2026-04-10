@@ -163,7 +163,7 @@ LoadSettings(
      * If a section is already loaded, skip further checks. */
     if (!BootMgrInfo.FrLdrSection)
     {
-        for (ULONG i = 0; i < sizeof(LoaderSections) / sizeof(LoaderSections[0]); i++)
+        for (ULONG i = 0; i < RTL_NUMBER_OF(LoaderSections); ++i)
         {
             PCSTR Section = LoaderSections[i];
 
@@ -173,10 +173,9 @@ LoadSettings(
                 break;
             }
         }
-
         if (!FoundLoaderSection)
         {
-            UiMessageBoxCritical("Bootloader Section not found in freeldr.ini");
+            UiMessageBoxCritical("Bootloader section not found in freeldr.ini");
             return;
         }
     }

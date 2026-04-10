@@ -86,7 +86,7 @@ Server_AcquireParameters(
     struct protocol* proto;
     DWORD ret = ERROR_SUCCESS;
 
-    DPRINT("Server_AcquireParameters()\n");
+    DPRINT("Server_AcquireParameters(%S)\n", AdapterName);
 
     ApiLock();
 
@@ -131,7 +131,7 @@ Server_ReleaseParameters(
     struct protocol* proto;
     DWORD ret = ERROR_SUCCESS;
 
-    DPRINT("Server_ReleaseParameters()\n");
+    DPRINT("Server_ReleaseParameters(%S)\n", AdapterName);
 
     ApiLock();
 
@@ -160,6 +160,49 @@ done:
 }
 
 /* Function 2 */
+DWORD
+__stdcall
+Server_FallbackRefreshParams(
+    _In_ PDHCP_SERVER_NAME ServerName,
+    _In_ LPWSTR AdapterName)
+{
+    PDHCP_ADAPTER Adapter;
+    HKEY hAdapterKey;
+    DWORD ret = ERROR_SUCCESS;
+
+    DPRINT("Server_FallbackRefreshParams(%S)\n", AdapterName);
+
+    ApiLock();
+
+    Adapter = AdapterFindName(AdapterName);
+    if (Adapter == NULL)
+    {
+        ret = ERROR_FILE_NOT_FOUND;
+        goto done;
+    }
+
+    DPRINT("Adapter: %p\n", Adapter);
+
+    if (Adapter->AlternateConfiguration)
+    {
+        free(Adapter->AlternateConfiguration);
+        Adapter->AlternateConfiguration = NULL;
+    }
+
+    hAdapterKey = FindAdapterKey(Adapter);
+    if (hAdapterKey)
+    {
+        ret = LoadAlternateConfiguration(Adapter, hAdapterKey);
+        RegCloseKey(hAdapterKey);
+    }
+
+done:
+    ApiUnlock();
+
+    return ret;
+}
+
+/* Function 3 */
 DWORD
 __stdcall
 Server_QueryHWInfo(
@@ -195,7 +238,7 @@ done:
     return ret;
 }
 
-/* Function 3 */
+/* Function 4 */
 DWORD
 __stdcall
 Server_StaticRefreshParams(
@@ -252,7 +295,7 @@ done:
     return ret;
 }
 
-/* Function 4 */
+/* Function 5 */
 DWORD
 __stdcall
 Server_RemoveDNSRegistrations(

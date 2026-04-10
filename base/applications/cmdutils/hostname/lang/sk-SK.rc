@@ -9,7 +9,7 @@ LANGUAGE LANG_SLOVAK, SUBLANG_DEFAULT
 
 STRINGTABLE
 BEGIN
-    IDS_USAGE "Vypíše súčasný názov hostiteľa.\n\nhostname"
-    IDS_NOSET "hostname -s nie je podporovaný."
-    IDS_ERROR "Chyba Win32"
+    IDS_USAGE "\nVypíše súčasný názov hostiteľa.\n\nhostname\n"
+    IDS_NOSET "sethostname: Pre zmenu názvu počítača otvorte kartu ""Názov počítača""\nv nastaveniach ""Systém"" v Ovládacom paneli.\nhostname -s nie je podporovaný.\n"
+    IDS_ERROR "Chyba: "
 END

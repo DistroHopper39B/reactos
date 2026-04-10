@@ -235,7 +235,7 @@ WinLdrSetupEms(
     PCSTR Option;
 
     /* Start fresh */
-    RtlZeroMemory(&LoaderRedirectionInformation, sizeof(HEADLESS_LOADER_BLOCK));
+    RtlZeroMemory(&LoaderRedirectionInformation, sizeof(LoaderRedirectionInformation));
     LoaderRedirectionInformation.PciDeviceId = PCI_INVALID_VENDORID;
 
     /* Use a direction port if one was given, or use ACPI to detect one instead */

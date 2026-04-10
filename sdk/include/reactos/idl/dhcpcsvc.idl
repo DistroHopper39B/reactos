@@ -37,6 +37,13 @@ interface dhcpcsvc
     /* Function 2 */
     DWORD
     __stdcall
+    FallbackRefreshParams(
+        [in, string, unique] PDHCP_SERVER_NAME ServerName,
+        [in, string] LPWSTR AdapterName);
+
+    /* Function 3 */
+    DWORD
+    __stdcall
     QueryHWInfo(
         [in, string, unique] PDHCP_SERVER_NAME ServerName,
         [in] DWORD AdapterIndex,
@@ -44,7 +51,7 @@ interface dhcpcsvc
         [out] PDWORD Mtu,
         [out] PDWORD Speed);
 
-    /* Function 3 */
+    /* Function 4 */
     DWORD
     __stdcall
     StaticRefreshParams(
@@ -53,7 +60,7 @@ interface dhcpcsvc
         [in] DWORD Address,
         [in] DWORD Netmask);
 
-    /* Function 4 */
+    /* Function 5 */
     DWORD
     __stdcall
     RemoveDNSRegistrations(

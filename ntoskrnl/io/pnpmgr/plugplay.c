@@ -545,7 +545,7 @@ IopGetDeviceProperty(PPLUGPLAY_CONTROL_PROPERTY_DATA PropertyData)
     }
 
 
-    DeviceNode = ((PEXTENDED_DEVOBJ_EXTENSION)DeviceObject->DeviceObjectExtension)->DeviceNode;
+    DeviceNode = IoGetDevObjExtension(DeviceObject)->DeviceNode;
 
     if (Property == PNP_PROPERTY_POWER_DATA)
     {
@@ -787,7 +787,7 @@ IopGetRelatedDevice(PPLUGPLAY_CONTROL_RELATED_DEVICE_DATA RelatedDeviceData)
         if (DeviceObject == NULL)
             return STATUS_NO_SUCH_DEVICE;
 
-        DeviceNode = ((PEXTENDED_DEVOBJ_EXTENSION)DeviceObject->DeviceObjectExtension)->DeviceNode;
+        DeviceNode = IoGetDevObjExtension(DeviceObject)->DeviceNode;
     }
 
     switch (Relation)
