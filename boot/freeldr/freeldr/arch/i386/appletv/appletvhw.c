@@ -306,7 +306,7 @@ FindAcpiBios(VOID)
 }
 
 VOID
-DetectAcpiBios(USHORT OperatingSystemVersion, PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
+DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 {
     PCONFIGURATION_COMPONENT_DATA   BiosKey;
     PCM_PARTIAL_RESOURCE_LIST       PartialResourceList;
@@ -347,7 +347,7 @@ DetectAcpiBios(USHORT OperatingSystemVersion, PCONFIGURATION_COMPONENT_DATA Syst
         /* Fill the table */
         AcpiBiosData = (PACPI_BIOS_DATA)&PartialResourceList->PartialDescriptors[1];
 
-        if (Rsdp->revision > 0 && OperatingSystemVersion >= _WIN32_WINNT_WINXP)
+        if (Rsdp->revision > 0)
         {
             TRACE("ACPI >1.0, using XSDT address\n");
             AcpiBiosData->RSDTAddress.QuadPart = Rsdp->xsdt_physical_address;
@@ -517,7 +517,6 @@ DetectSmBios(VOID)
 
 PCONFIGURATION_COMPONENT_DATA
 AppleTVHwDetect(
-    _In_ USHORT OperatingSystemVersion,
     _In_opt_ PCSTR Options)
 {
     PCONFIGURATION_COMPONENT_DATA SystemKey;
@@ -529,7 +528,7 @@ AppleTVHwDetect(
     FldrCreateSystemKey(&SystemKey, "Apple TV (1st generation)");
 
     DetectPciBios(SystemKey, &BusNumber);
-    DetectAcpiBios(OperatingSystemVersion, SystemKey, &BusNumber);
+    DetectAcpiBios(SystemKey, &BusNumber);
     DetectInternal(SystemKey, &BusNumber);
     DetectSmBios();
 

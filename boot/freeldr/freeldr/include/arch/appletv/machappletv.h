@@ -47,7 +47,6 @@ BOOLEAN PcInitializeBootDevices(VOID);
 TIMEINFO* AppleTVGetTime(VOID);
 
 PCONFIGURATION_COMPONENT_DATA AppleTVHwDetect(
-    _In_ USHORT OperatingSystemVersion,
     _In_opt_ PCSTR Options);
 VOID AppleTVHwIdle(VOID);
 
