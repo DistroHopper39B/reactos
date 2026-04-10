@@ -432,9 +432,9 @@ PcInitializeBootDevices(VOID)
     UCHAR DiskCount;
     BOOLEAN BootDriveReported = FALSE;
     CONFIGURATION_TYPE DriveType;
-    
-    #ifdef SARCH_APPLETV
-    // Set up disk read buffer.
+
+    #ifdef SARCH_APPLETV /* FIXME: This is a violation! */
+    /* Set up disk read buffer. */
     DiskReadBufferSize = PAGE_SIZE;
     DiskReadBuffer = MmAllocateMemoryWithType(DiskReadBufferSize, LoaderFirmwareTemporary);
     if (!DiskReadBuffer)

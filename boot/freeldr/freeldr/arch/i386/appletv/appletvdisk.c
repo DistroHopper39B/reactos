@@ -72,7 +72,7 @@ AppleTVDiskInit(VOID)
             if (DeviceUnit->Flags & ATA_DEVICE_ATAPI)
             {
                 if (!CdDrive)
-                    CdDrive = DeviceUnit; // should not happen on real apple tv
+                    CdDrive = DeviceUnit; /* should not happen on real apple tv */
             }
             else
             {

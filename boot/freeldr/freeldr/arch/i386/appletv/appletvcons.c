@@ -62,8 +62,6 @@ AppleTVConsPutChar(int c)
     }
 }
 
-/* STUB FUNCTIONS *******************************************************/
-
 BOOLEAN
 AppleTVConsKbHit(VOID)
 {

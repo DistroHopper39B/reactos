@@ -17,7 +17,7 @@ spec2def(freeldr.sys freeldr.spec)
 list(APPEND APPLETVLDR_BOOTMGR_SOURCE
     ${FREELDR_BOOTMGR_SOURCE}
     )
-    
+
 # Apple TV stuff
 list(APPEND APPLETVLDR_BASE_ASM_SOURCE)
 
@@ -80,7 +80,7 @@ add_library(freeldr_common
     ${FREELDR_NTLDR_SOURCE})
 
 target_compile_definitions(freeldr_common PRIVATE _FRLDRLIB_)
-    
+
 if(MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
     # We need to reduce the binary size
     target_compile_options(freeldr_common PRIVATE "/Os")
@@ -159,4 +159,3 @@ add_custom_target(freeldr
                 COMMAND native-pe2macho ${CMAKE_CURRENT_BINARY_DIR}/$<TARGET_FILE_NAME:freeldr_pe> ${CMAKE_CURRENT_BINARY_DIR}/freeldr.sys
                 DEPENDS native-pe2macho freeldr_pe
                 VERBATIM)
-                

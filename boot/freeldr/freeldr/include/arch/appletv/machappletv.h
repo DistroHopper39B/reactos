@@ -14,7 +14,6 @@
 /* UEFI support */
 #include <Uefi.h>
 #include <Acpi.h>
-#include <GraphicsOutput.h>
 
 #include "boot_args.h"
 
@@ -55,7 +54,6 @@ VOID
 AppleTVVideoPutChar(int Ch, UCHAR Attr,
                     unsigned X, unsigned Y);
 
-                    
 VOID
 AppleTVVideoCopyOffScreenBufferToVRAM(PVOID Buffer);
 
@@ -73,7 +71,6 @@ AppleTVVideoGetPaletteColor(UCHAR Color, UCHAR* Red,
 VOID
 AppleTVVideoSync(VOID);
 
-
 VOID
 AppleTVBeep(VOID);
 
@@ -82,7 +79,6 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize);
 
 VOID AppleTVGetExtendedBIOSData(PULONG ExtendedBIOSDataArea,
                                 PULONG ExtendedBIOSDataSize);
-
 
 VOID
 AppleTVMemInit(VOID);

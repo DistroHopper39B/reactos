@@ -24,13 +24,6 @@ extern UCHAR BitmapFont8x16[256 * 16];
 
 UCHAR MachDefaultTextColor = COLOR_GRAY;
 
-static PIXEL_BITMASK EfiPixelMasks[] =
-{ /* Red,        Green,      Blue,       Reserved */
-    {0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000},   // PixelRedGreenBlueReserved8BitPerColor
-    {0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000},   // PixelBlueGreenRedReserved8BitPerColor
-    {0,          0,          0,          0}             // PixelBitMask, PixelBltOnly, ...
-};
-
 /* FUNCTIONS ******************************************************************/
 
 VOID
@@ -67,21 +60,24 @@ VOID
 AppleTVInitializeVideo(VOID)
 {
     PMACH_VIDEO Video = &BootArgs->Video;
-    
+
     VramAddress = Video->BaseAddress;
     VramSize = (Video->Pitch * Video->Height);
-    PIXEL_BITMASK AppleTVBitMask = EfiPixelMasks[PixelBlueGreenRedReserved8BitPerColor];
-    
-    
-    
+
+    /* PixelBlueGreenRedReserved8BitPerColor */
+    PIXEL_BITMASK AppleTVBitMask = {0x00FF0000,
+                                    0x0000FF00,
+                                    0x000000FF,
+                                    0xFF000000};
+
     VidFbInitializeVideo(&FrameBufferData,
-                        VramAddress,
-                        VramSize,
-                        Video->Width,
-                        Video->Height,
-                        (Video->Pitch / 4),
-                        Video->Depth,
-                        &AppleTVBitMask);
+                         VramAddress,
+                         VramSize,
+                         Video->Width,
+                         Video->Height,
+                         (Video->Pitch / 4),
+                         Video->Depth,
+                         &AppleTVBitMask);
 }
 
 VIDEODISPLAYMODE
@@ -95,4 +91,41 @@ BOOLEAN
 AppleTVVideoIsPaletteFixed(VOID)
 {
     return FALSE;
+}
+
+
+VOID
+AppleTVVideoGetFontsFromFirmware(PULONG RomFontPointers)
+{
+    /* Not supported */
+}
+
+VOID
+AppleTVVideoSetTextCursorPosition(UCHAR X, UCHAR Y)
+{
+    /* We don't have a cursor */
+}
+
+VOID
+AppleTVVideoHideShowTextCursor(BOOLEAN Show)
+{
+    /* We don't have a cursor */
+}
+
+VOID
+AppleTVVideoSetPaletteColor(UCHAR Color, UCHAR Red, UCHAR Green, UCHAR Blue)
+{
+    /* Not supported */
+}
+
+VOID
+AppleTVVideoGetPaletteColor(UCHAR Color, UCHAR* Red, UCHAR* Green, UCHAR* Blue)
+{
+    /* Not supported */
+}
+
+VOID
+AppleTVVideoSync(VOID)
+{
+    /* Not supported */
 }

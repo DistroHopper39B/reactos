@@ -88,11 +88,11 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     SIZE_T                  EfiNumberOfEntries;
     SIZE_T                  FreeldrMemMapSize;
     ULONG                   i;
-        
+
     EfiMemoryMap            = (EFI_MEMORY_DESCRIPTOR *) BootArgs->EfiMemoryMap;
     EfiMemoryMapSize        = BootArgs->EfiMemoryMapSize;
     EfiMemoryDescriptorSize = BootArgs->EfiMemoryDescriptorSize;
-    
+
     /*
      * The number of FreeLoader entries tends to be higher than the number of EFI entries.
      * This can result in not enough space being allocated for the memory map, which causes
@@ -101,7 +101,7 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
      */
     EfiNumberOfEntries = (EfiMemoryMapSize / EfiMemoryDescriptorSize);
     FreeldrMemMapSize = (EfiNumberOfEntries * sizeof(FREELDR_MEMORY_DESCRIPTOR)) * 2;
-    
+
     // Find a free space above the FreeLoader image for the memory map
     CurrentDescriptor = EfiMemoryMap;
     for (i = 0; i < EfiNumberOfEntries; i++)
@@ -115,19 +115,19 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
             FreeldrMemMap = (PFREELDR_MEMORY_DESCRIPTOR)((ULONG_PTR) CurrentDescriptor->PhysicalStart);
             break;
         }
-        
+
         CurrentDescriptor = NEXT_MEMORY_DESCRIPTOR(CurrentDescriptor, EfiMemoryDescriptorSize);
     }
-    
+
     ASSERT(FreeldrMemMap != NULL);
-    
+
     RtlZeroMemory(FreeldrMemMap, FreeldrMemMapSize);
-    
+
     UefiSetMemory(FreeldrMemMap,
                 (ULONG_PTR) FreeldrMemMap,
                 EFI_SIZE_TO_PAGES(FreeldrMemMapSize),
                 LoaderSpecialMemory);
-    
+
     CurrentDescriptor = EfiMemoryMap;
     for (i = 0; i < EfiNumberOfEntries; i++)
     {
@@ -139,30 +139,30 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
                     CurrentDescriptor->NumberOfPages,
                     MemoryType);
         }
-        
+
         CurrentDescriptor = NEXT_MEMORY_DESCRIPTOR(CurrentDescriptor, EfiMemoryDescriptorSize);
     }
-    
+
     // Reserve a few static ranges here
     // First page
     UefiSetMemory(FreeldrMemMap,
                 0x0,
                 1,
                 LoaderFirmwarePermanent);
-        
+
     // FreeLoader stack
     UefiSetMemory(FreeldrMemMap,
                 STACKLOW,
                 EFI_SIZE_TO_PAGES(STACKADDR - STACKLOW),
                 LoaderOsloaderStack);
-                
+
     // FreeLoader program
     UefiSetMemory(FreeldrMemMap,
                 FREELDR_BASE,
                 EFI_SIZE_TO_PAGES(FrLdrImageSize),
                 LoaderLoadedProgram);
-                
+
     *MemoryMapSize = FreeldrDescCount;
-        
+
     return FreeldrMemMap;
 }

@@ -160,7 +160,7 @@ main(INT argc, PCHAR argv[])
     if (argc != 3)
     {
         fprintf(stderr, "Usage: pe2macho [input file] [output file]\n");
-        return 1;
+        return EINVAL;
     }
 
     // Open file
@@ -169,7 +169,7 @@ main(INT argc, PCHAR argv[])
     {
         fprintf(stderr, "Cannot find input file '%s': %s\n",
                 argv[1], strerror(errno));
-        return 2;
+        return errno;
     }
 
     // Find end of file
@@ -182,7 +182,7 @@ main(INT argc, PCHAR argv[])
     {
         fprintf(stderr, "Could not allocate %d bytes for input file\n", InputFileLength + 1);
         fclose(InputFile);
-        return 3;
+        return ENOMEM;
     }
 
     // Read contents of file into buffer and then close file
@@ -194,7 +194,7 @@ main(INT argc, PCHAR argv[])
     {
         fprintf(stderr, "Input file not a valid MZ image. (expected 0x%X, got 0x%X)\n",
                 IMAGE_DOS_MAGIC, ((PIMAGE_DOS_HEADER)InputFileBuffer)->e_magic);
-        return 4;
+        return EINVAL;
     }
 
     // Find PE/COFF file header
@@ -202,21 +202,21 @@ main(INT argc, PCHAR argv[])
     if (!PeFileHeader)
     {
         fprintf(stderr, "Input file not a valid PE/COFF image!\n");
-        return 5;
+        return EINVAL;
     }
 
     // Check arch
     if (PeFileHeader->Machine != IMAGE_FILE_MACHINE_I386)
     {
         fprintf(stderr, "Only i386 executables are supported at this time.\n");
-        return 6;
+        return EINVAL;
     }
 
     // Make sure there's an optional header
     if (!PeFileHeader->SizeOfOptionalHeader)
     {
         fprintf(stderr, "No optional header found!\n");
-        return 7;
+        return EINVAL;
     }
 
     // Find optional header
@@ -224,7 +224,7 @@ main(INT argc, PCHAR argv[])
     if (!PeOptionalHeader)
     {
         fprintf(stderr, "Invalid optional header!\n");
-        return 8;
+        return EINVAL;
     }
 
     // Convert PE executable header to Mach-O
@@ -234,7 +234,7 @@ main(INT argc, PCHAR argv[])
     if (!MachoHeader)
     {
         fprintf(stderr, "Failed to create Mach-O header!\n");
-        return 9;
+        return ENOMEM;
     }
 
     // Allocate new buffer for output file
@@ -244,7 +244,7 @@ main(INT argc, PCHAR argv[])
     {
         fprintf(stderr, "Failed to allocate %d bytes for output file\n",
                 OutputFileLength);
-        return 10;
+        return ENOMEM;
     }
 
     // Copy Mach-O header to top of buffer
@@ -264,7 +264,7 @@ main(INT argc, PCHAR argv[])
     {
         fprintf(stderr, "Cannot open output file %s: %s\n",
                 argv[2], strerror(errno));
-        return 11;
+        return ENOENT;
     }
 
     ObjectsWritten = fwrite(OutputFileBuffer, OutputFileLength, 1, OutputFile);
@@ -273,7 +273,7 @@ main(INT argc, PCHAR argv[])
         fprintf(stderr, "Cannot write to output file %s: %s\n",
                 argv[2], strerror(errno));
         fclose(OutputFile);
-        return 12;
+        return errno;
     }
 
     fclose(OutputFile);

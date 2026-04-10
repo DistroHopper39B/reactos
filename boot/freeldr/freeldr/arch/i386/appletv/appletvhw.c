@@ -21,7 +21,6 @@ BOOLEAN AcpiPresent = FALSE;
 static unsigned int delay_count = 1;
 
 PCHAR GetHarddiskIdentifier(UCHAR DriveNumber); /* hwdisk.c */
-USHORT WinLdrDetectVersion(VOID); /* winldr.c */
 
 #define MILLISEC     (10)
 #define PRECISION    (8)
@@ -52,7 +51,8 @@ __StallExecutionProcessor(ULONG Loops)
     for (i = 0; i < Loops; i++);
 }
 
-VOID StallExecutionProcessor(ULONG Microseconds)
+VOID
+StallExecutionProcessor(ULONG Microseconds)
 {
     ULONGLONG LoopCount = ((ULONGLONG)delay_count * (ULONGLONG)Microseconds) / 1000ULL;
     __StallExecutionProcessor((ULONG)LoopCount);
@@ -272,8 +272,10 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     }
     else
     {
-        // NT will not boot without ACPI unless a PIRQ table is present.
-        // EFI platforms like the Apple TV should never reach this.
+        /*
+         * NT will not boot without ACPI unless a PIRQ table is present.
+         * EFI platforms like the Apple TV should never reach this.
+         */
         UiMessageBoxCritical("Cannot find ACPI tables!");
     }
 }
@@ -405,15 +407,16 @@ DetectSmBios(VOID)
 
     if (!SmBiosTable)
     {
-        // This should never happen, but should not result in a critical system error if it does.
         ERR("No SMBIOS table found!\n");
         return;
     }
 
-    // Copy SMBIOS table to low memory.
-    // Note: On most hardware, low memory is read-only and must be unlocked using either the
-    // EFI Legacy Region Protocol or PAM/MTRR; see UefiSeven/CSMWrap.
-    // The Apple TV is a notable exception.
+    /*
+     * Copy SMBIOS table to low memory.
+     * Note: On most hardware, low memory is read-only and must be unlocked using either the
+     * EFI Legacy Region Protocol or PAM/MTRR; see UefiSeven/CSMWrap.
+     * The Apple TV is a notable exception.
+     */
     RtlCopyMemory((PVOID) SMBIOS_TABLE_LOW, SmBiosTable, sizeof(SMBIOS_TABLE_HEADER));
 }
 

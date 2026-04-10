@@ -16,13 +16,13 @@
 VOID
 AppleTVGetExtendedBIOSData(PULONG ExtendedBIOSDataArea, PULONG ExtendedBIOSDataSize)
 {
-    /* No EBDA on EFI-based Apple TV */
+    /* Does not exist */
 }
 
 VOID
 AppleTVHwIdle(VOID)
 {
-    /* No traditional HwIdle on Apple TV */
+    /* Does not exist */
 }
 
 VOID
@@ -34,32 +34,32 @@ AppleTVBeep(VOID)
 VOID
 ChainLoadBiosBootSectorCode(UCHAR BootDrive, ULONG BootPartition)
 {
-    // Not supported
+    /* Not supported */
 }
 
 VOID
 DiskStopFloppyMotor(VOID)
 {
-    // Not supported
+    /* Not supported */
 }
 
 VOID
 DriveMapMapDrivesInSection(ULONG_PTR SectionId)
 {
-    // Not supported
+    /* Not supported */
 }
 
 USHORT __cdecl
 PxeCallApi(USHORT Segment, USHORT Offset, USHORT Service, void *Parameter)
 {
-    // Not supported
+    /* Not supported */
     return 0;
 }
 
 VOID
 Relocator16Boot(REGS *In, USHORT StackSegment, USHORT StackPointer, USHORT CodeSegment, USHORT CodePointer)
 {
-    // Not supported
+    /* Not supported */
     while (1);
 }
 
@@ -67,43 +67,6 @@ int
 __cdecl
 Int386(int ivec, REGS* in, REGS* out)
 {
+    /* Not supported */
     return 0;
-}
-
-/* VIDEO FUNCTIONS ***********************************************************/
-
-VOID
-AppleTVVideoGetFontsFromFirmware(PULONG RomFontPointers)
-{
-    // Might technically be possible, but we're using a custom bitmap font.
-}
-
-VOID
-AppleTVVideoSetTextCursorPosition(UCHAR X, UCHAR Y)
-{
-    // We don't have a cursor
-}
-
-VOID
-AppleTVVideoHideShowTextCursor(BOOLEAN Show)
-{
-    // We don't have a cursor
-}
-
-VOID
-AppleTVVideoSetPaletteColor(UCHAR Color, UCHAR Red, UCHAR Green, UCHAR Blue)
-{
-    // Not supported
-}
-
-VOID
-AppleTVVideoGetPaletteColor(UCHAR Color, UCHAR* Red, UCHAR* Green, UCHAR* Blue)
-{
-    // Not supported
-}
-
-VOID
-AppleTVVideoSync(VOID)
-{
-    // Not supported
 }

@@ -35,14 +35,14 @@ PUBLIC _AppleTVEntry
 _AppleTVEntry:
     /* Set up stack */
     mov esp, dword ptr ds:[stack32]
-    
+
     /* Test if the bootArgs pointer is valid */
     test eax, eax
     jz InfiniteLoop
-    
+
     /* Store the bootArgs pointer */
     mov dword ptr ds:[_BootArgs], eax
-    
+
     /* Load GDT */
 #ifdef _USE_ML
     lgdt fword ptr gdtptr
@@ -66,18 +66,18 @@ _AppleTVEntry:
 
     /* Initialize the idt */
     call _InitIdt
-    
+
     /* Set up CmdLine */
     mov eax, dword ptr ds:[(_BootArgs)]
     add eax, APPLETV_COMMAND_LINE_OFFSET
-    
+
     /* GO!! */
     push eax
     call _BootMain
-    
+
     /* If this fails, halt the system */
     jmp InfiniteLoop
-    
+
 InfiniteLoop:
     cld
     hlt
@@ -123,7 +123,7 @@ gdt:
 gdtptr:
     .word HEX(27)       /* Limit */
     .long gdt           /* Base Address */
-    
+
 PUBLIC i386idtptr
 i386idtptr:
     .word 255           /* Limit */

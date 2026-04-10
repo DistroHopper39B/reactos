@@ -27,20 +27,20 @@ AppleTVPrepareForReactOS(VOID)
 VOID
 MachInit(const char *CmdLine)
 {
-    
+
     if (BootArgs->Version != 1
         && BootArgs->Revision != 4)
     {
         ERR("BootArgs struct missing or damaged; this probably isn't an Apple TV!\n");
-        
+
         _disable();
         __halt();
         for (;;);
     }
-        
+
     /* Setup vtbl */
     RtlZeroMemory(&MachVtbl, sizeof(MachVtbl));
-    
+
     MachVtbl.ConsPutChar = AppleTVConsPutChar;
     MachVtbl.ConsKbHit = AppleTVConsKbHit;
     MachVtbl.ConsGetCh = AppleTVConsGetCh;
@@ -69,9 +69,9 @@ MachInit(const char *CmdLine)
     MachVtbl.InitializeBootDevices = PcInitializeBootDevices; // in hwdisk.c
     MachVtbl.HwDetect = AppleTVHwDetect;
     MachVtbl.HwIdle = AppleTVHwIdle;
-    
+
     AppleTVInitializeVideo();
-    
+
     /*
      * If we are booting in text mode, enable screen debugging
      * Text mode can be enabled by holding Windows/Command-V or Command-S at startup
@@ -82,9 +82,9 @@ MachInit(const char *CmdLine)
         AppleTVVideoClearScreen(COLOR_BLACK);
         DebugEnableScreenPort();
     }
-    
+
     GlobalSystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
-    
+
     HalpCalibrateStallExecution();
 }
 
