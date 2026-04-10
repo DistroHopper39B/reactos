@@ -41,6 +41,7 @@ list(APPEND APPLETVLDR_ARC_SOURCE
     arch/vgafont.c
     arch/drivers/hwide.c
     arch/i386/hwdisk.c
+    arch/i386/hwpci.c
     arch/i386/i386idt.c)
 
 # We don't use rosload, we just bundle everything
@@ -54,6 +55,7 @@ list(APPEND FREELDR_NTLDR_SOURCE
     lib/rtl/libsupp.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/config/cmboot.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/config.c
+    ntldr/advopts.c
     ntldr/conversion.c
     ntldr/inffile.c
     ntldr/registry.c

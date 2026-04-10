@@ -63,6 +63,13 @@ Relocator16Boot(REGS *In, USHORT StackSegment, USHORT StackPointer, USHORT CodeS
     while (1);
 }
 
+int
+__cdecl
+Int386(int ivec, REGS* in, REGS* out)
+{
+    return 0;
+}
+
 /* VIDEO FUNCTIONS ***********************************************************/
 
 VOID
