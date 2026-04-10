@@ -83,7 +83,7 @@ MachInit(const char *CmdLine)
         DebugEnableScreenPort();
     }
 
-    GlobalSystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
+    GlobalSystemTable = (EFI_SYSTEM_TABLE *)BootArgs->EfiSystemTable;
 
     HalpCalibrateStallExecution();
 }

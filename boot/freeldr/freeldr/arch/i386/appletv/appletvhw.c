@@ -417,7 +417,7 @@ DetectSmBios(VOID)
      * EFI Legacy Region Protocol or PAM/MTRR; see UefiSeven/CSMWrap.
      * The Apple TV is a notable exception.
      */
-    RtlCopyMemory((PVOID) SMBIOS_TABLE_LOW, SmBiosTable, sizeof(SMBIOS_TABLE_HEADER));
+    RtlCopyMemory((PVOID)SMBIOS_TABLE_LOW, SmBiosTable, sizeof(SMBIOS_TABLE_HEADER));
 }
 
 

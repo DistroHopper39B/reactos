@@ -161,7 +161,7 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
         {
             /* We found where to put the memory map. */
             TRACE("Putting memory map @ 0x%X\n", CurrentDescriptor->PhysicalStart);
-            FreeldrMemMap = (PFREELDR_MEMORY_DESCRIPTOR)((ULONG_PTR) CurrentDescriptor->PhysicalStart);
+            FreeldrMemMap = (PFREELDR_MEMORY_DESCRIPTOR)((ULONG_PTR)CurrentDescriptor->PhysicalStart);
             break;
         }
 
@@ -173,7 +173,7 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     RtlZeroMemory(FreeldrMemMap, FreeldrMemMapSize);
 
     UefiSetMemory(FreeldrMemMap,
-                (ULONG_PTR) FreeldrMemMap,
+                (ULONG_PTR)FreeldrMemMap,
                 EFI_SIZE_TO_PAGES(FreeldrMemMapSize),
                 LoaderSpecialMemory);
 
@@ -192,25 +192,26 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
         CurrentDescriptor = NEXT_MEMORY_DESCRIPTOR(CurrentDescriptor, EfiMemoryDescriptorSize);
     }
 
-    // Reserve a few static ranges here
-    // First page
+    /* Reserve some static locations */
+    /* First page */
     UefiSetMemory(FreeldrMemMap,
                   0x0,
                   1,
                   LoaderFirmwarePermanent);
 
-    // FreeLoader stack
+    /* FreeLoader stack */
     UefiSetMemory(FreeldrMemMap,
                   STACKLOW,
                   EFI_SIZE_TO_PAGES(STACKADDR - STACKLOW),
                   LoaderOsloaderStack);
 
-    // FreeLoader program
+    /* FreeLoader program */
     UefiSetMemory(FreeldrMemMap,
                   FREELDR_BASE,
                   EFI_SIZE_TO_PAGES(FrLdrImageSize),
                   LoaderLoadedProgram);
 
+    /* Allocate disk read buffer */
     AppleTVMemFinalizeMemoryMap(FreeldrMemMap);
 
     *MemoryMapSize = FreeldrDescCount;
