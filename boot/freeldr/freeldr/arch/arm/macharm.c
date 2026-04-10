@@ -95,7 +95,6 @@ ArmPrepareForReactOS(VOID)
 
 PCONFIGURATION_COMPONENT_DATA
 ArmHwDetect(
-    _In_ USHORT OperatingSystemVersion,
     _In_opt_ PCSTR Options)
 {
     ARM_CACHE_REGISTER CacheReg;
@@ -139,7 +138,7 @@ BOOLEAN
 ArmInitializeBootDevices(VOID)
 {
     /* Emulate old behavior */
-    if (ArmHwDetect(_WIN32_WINNT_WS03, NULL) == NULL)
+    if (ArmHwDetect(NULL) == NULL)
         return FALSE;
 
     /* On ARM platforms, the loader is always in RAM */

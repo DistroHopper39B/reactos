@@ -92,7 +92,7 @@ FindAcpiBios(VOID)
 }
 
 VOID
-DetectAcpiBios(USHORT OperatingSystemVersion, PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
+DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 {
     PCONFIGURATION_COMPONENT_DATA BiosKey;
     PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
@@ -133,7 +133,7 @@ DetectAcpiBios(USHORT OperatingSystemVersion, PCONFIGURATION_COMPONENT_DATA Syst
         /* Fill the table */
         AcpiBiosData = (PACPI_BIOS_DATA)(PartialDescriptor + 1);
 
-        if (Rsdp->revision > 0 && OperatingSystemVersion >= _WIN32_WINNT_WINXP)
+        if (Rsdp->revision > 0)
         {
             TRACE("ACPI >1.0, using XSDT address\n");
             AcpiBiosData->RSDTAddress.QuadPart = Rsdp->xsdt_physical_address;
@@ -275,7 +275,6 @@ DetectInternal(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
 PCONFIGURATION_COMPONENT_DATA
 UefiHwDetect(
-    _In_ USHORT OperatingSystemVersion,
     _In_opt_ PCSTR Options)
 {
     PCONFIGURATION_COMPONENT_DATA SystemKey;
@@ -297,7 +296,7 @@ UefiHwDetect(
     /* Detect buses */
     DetectInternal(SystemKey, &BusNumber);
     // TODO: DetectPciBios
-    DetectAcpiBios(OperatingSystemVersion, SystemKey, &BusNumber);
+    DetectAcpiBios(SystemKey, &BusNumber);
 
     TRACE("DetectHardware() Done\n");
     return SystemKey;

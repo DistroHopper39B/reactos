@@ -83,7 +83,6 @@ BOOLEAN Pc98InitializeBootDevices(VOID);
 
 PCONFIGURATION_COMPONENT_DATA
 Pc98HwDetect(
-    _In_ USHORT OperatingSystemVersion,
     _In_opt_ PCSTR Options);
 
 VOID Pc98HwIdle(VOID);

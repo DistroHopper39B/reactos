@@ -1163,7 +1163,6 @@ DetectPnpBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
 
 PCONFIGURATION_COMPONENT_DATA
 Pc98HwDetect(
-    _In_ USHORT OperatingSystemVersion,
     _In_opt_ PCSTR Options)
 {
     PCONFIGURATION_COMPONENT_DATA SystemKey;
@@ -1183,7 +1182,7 @@ Pc98HwDetect(
     DetectPnpBios(SystemKey, &BusNumber);
     DetectNesaBios(SystemKey, &BusNumber);
     DetectCBusBios(SystemKey, &BusNumber);
-    DetectAcpiBios(OperatingSystemVersion, SystemKey, &BusNumber);
+    DetectAcpiBios(SystemKey, &BusNumber);
     // TODO: Detect more buses
 
     // TODO: Collect the ROM blocks and append their

@@ -1682,7 +1682,6 @@ PcGetFloppyCount(VOID)
 
 PCONFIGURATION_COMPONENT_DATA
 PcHwDetect(
-    _In_ USHORT OperatingSystemVersion,
     _In_opt_ PCSTR Options)
 {
     PCONFIGURATION_COMPONENT_DATA SystemKey;
@@ -1702,7 +1701,7 @@ PcHwDetect(
     DetectApmBios(SystemKey, &BusNumber);
     DetectPnpBios(SystemKey, &BusNumber);
     DetectIsaBios(Options, SystemKey, &BusNumber); // TODO: Detect first EISA or MCA, before ISA
-    DetectAcpiBios(OperatingSystemVersion, SystemKey, &BusNumber);
+    DetectAcpiBios(SystemKey, &BusNumber);
 
     // TODO: Collect the ROM blocks from 0xC0000 to 0xF0000 and append their
     // CM_ROM_BLOCK data into the 'System' key's configuration data.
