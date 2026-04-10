@@ -2,7 +2,7 @@
  * PROJECT:     FreeLoader
  * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
  * PURPOSE:     Hardware-specific creating a memory map routine for the original Apple TV
- * COPYRIGHT:   Authors of uefimem.c
+ * COPYRIGHT:   Authors of uefimem.c and pcmem.c
  *              Copyright 2023-2026 Sylas Hollander (distrohopper39b.business@gmail.com)
  */
 
@@ -60,36 +60,85 @@ UefiConvertToFreeldrDesc(EFI_MEMORY_TYPE EfiMemoryType)
 {
     switch (EfiMemoryType)
     {
-        case EfiBootServicesCode:
-        case EfiBootServicesData:
+        case EfiReservedMemoryType:
+            return LoaderReserve;
         case EfiLoaderCode:
+            return LoaderLoadedProgram;
         case EfiLoaderData:
+            return LoaderLoadedProgram;
+        case EfiBootServicesCode:
             return LoaderFirmwareTemporary;
+        case EfiBootServicesData:
+            return LoaderFirmwareTemporary;
+        case EfiRuntimeServicesCode:
+            return LoaderFirmwarePermanent;
+        case EfiRuntimeServicesData:
+            return LoaderFirmwarePermanent;
         case EfiConventionalMemory:
             return LoaderFree;
-        case EfiReservedMemoryType:
-        case EfiMemoryMappedIO:
-        case EfiMemoryMappedIOPortSpace:
-            return LoaderReserve;
         case EfiUnusableMemory:
             return LoaderBad;
-        default:
+        case EfiACPIReclaimMemory:
             return LoaderSpecialMemory;
+        case EfiACPIMemoryNVS:
+            return LoaderSpecialMemory;
+        case EfiMemoryMappedIO:
+            return LoaderReserve;
+        case EfiMemoryMappedIOPortSpace:
+            return LoaderReserve;
+        default:
+            break;
     }
+    return LoaderReserve;
+}
+
+static
+VOID
+AppleTVMemFinalizeMemoryMap(
+    PFREELDR_MEMORY_DESCRIPTOR MemoryMap
+)
+{
+    ULONG i;
+
+    /* Default to 1 page above freeldr for the disk read buffer */
+    DiskReadBuffer = (PUCHAR)ALIGN_UP_BY(FREELDR_BASE + FrLdrImageSize, PAGE_SIZE);
+    DiskReadBufferSize = PAGE_SIZE;
+
+    /* Scan for free range above freeldr image */
+    for (i = 0; i < FreeldrDescCount; i++)
+    {
+        if ((MemoryMap[i].BasePage > (FREELDR_BASE / PAGE_SIZE)) &&
+            (MemoryMap[i].MemoryType == LoaderFree))
+        {
+            /* Use this range for the disk read buffer */
+            DiskReadBuffer = (PVOID)(MemoryMap[i].BasePage * PAGE_SIZE);
+            DiskReadBufferSize = min(MemoryMap[i].PageCount * PAGE_SIZE,
+                                     MAX_DISKREADBUFFER_SIZE);
+            break;
+        }
+    }
+
+    TRACE("DiskReadBuffer=0x%p, DiskReadBufferSize=0x%lx\n",
+          DiskReadBuffer, DiskReadBufferSize);
+
+    ASSERT(DiskReadBufferSize > 0);
+
+    /* Set the memory range for the disk read buffer */
+    UefiSetMemory(MemoryMap,
+                  (ULONG_PTR)DiskReadBuffer,
+                  EFI_SIZE_TO_PAGES(DiskReadBufferSize),
+                  LoaderFirmwareTemporary);
 }
 
 PFREELDR_MEMORY_DESCRIPTOR
 AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
 {
-    EFI_MEMORY_DESCRIPTOR   *EfiMemoryMap;
-    EFI_MEMORY_DESCRIPTOR   *CurrentDescriptor;
-    SIZE_T                  EfiMemoryMapSize;
-    SIZE_T                  EfiMemoryDescriptorSize;
-    SIZE_T                  EfiNumberOfEntries;
-    SIZE_T                  FreeldrMemMapSize;
+    EFI_MEMORY_DESCRIPTOR   *EfiMemoryMap, *CurrentDescriptor;
+    SIZE_T                  EfiMemoryMapSize, EfiMemoryDescriptorSize,
+                            EfiNumberOfEntries, FreeldrMemMapSize;
     ULONG                   i;
 
-    EfiMemoryMap            = (EFI_MEMORY_DESCRIPTOR *) BootArgs->EfiMemoryMap;
+    EfiMemoryMap            = (EFI_MEMORY_DESCRIPTOR *)BootArgs->EfiMemoryMap;
     EfiMemoryMapSize        = BootArgs->EfiMemoryMapSize;
     EfiMemoryDescriptorSize = BootArgs->EfiMemoryDescriptorSize;
 
@@ -102,7 +151,7 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     EfiNumberOfEntries = (EfiMemoryMapSize / EfiMemoryDescriptorSize);
     FreeldrMemMapSize = (EfiNumberOfEntries * sizeof(FREELDR_MEMORY_DESCRIPTOR)) * 2;
 
-    // Find a free space above the FreeLoader image for the memory map
+    /* Find a free space above the FreeLoader image for the memory map */
     CurrentDescriptor = EfiMemoryMap;
     for (i = 0; i < EfiNumberOfEntries; i++)
     {
@@ -110,7 +159,7 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
             CurrentDescriptor->NumberOfPages > FreeldrMemMapSize &&
             CurrentDescriptor->Type == EfiConventionalMemory)
         {
-            // We found where to put the memory map.
+            /* We found where to put the memory map. */
             TRACE("Putting memory map @ 0x%X\n", CurrentDescriptor->PhysicalStart);
             FreeldrMemMap = (PFREELDR_MEMORY_DESCRIPTOR)((ULONG_PTR) CurrentDescriptor->PhysicalStart);
             break;
@@ -135,9 +184,9 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
         if (MemoryType != LoaderReserve)
         {
             UefiSetMemory(FreeldrMemMap,
-                    CurrentDescriptor->PhysicalStart,
-                    CurrentDescriptor->NumberOfPages,
-                    MemoryType);
+                          CurrentDescriptor->PhysicalStart,
+                          CurrentDescriptor->NumberOfPages,
+                          MemoryType);
         }
 
         CurrentDescriptor = NEXT_MEMORY_DESCRIPTOR(CurrentDescriptor, EfiMemoryDescriptorSize);
@@ -146,21 +195,23 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     // Reserve a few static ranges here
     // First page
     UefiSetMemory(FreeldrMemMap,
-                0x0,
-                1,
-                LoaderFirmwarePermanent);
+                  0x0,
+                  1,
+                  LoaderFirmwarePermanent);
 
     // FreeLoader stack
     UefiSetMemory(FreeldrMemMap,
-                STACKLOW,
-                EFI_SIZE_TO_PAGES(STACKADDR - STACKLOW),
-                LoaderOsloaderStack);
+                  STACKLOW,
+                  EFI_SIZE_TO_PAGES(STACKADDR - STACKLOW),
+                  LoaderOsloaderStack);
 
     // FreeLoader program
     UefiSetMemory(FreeldrMemMap,
-                FREELDR_BASE,
-                EFI_SIZE_TO_PAGES(FrLdrImageSize),
-                LoaderLoadedProgram);
+                  FREELDR_BASE,
+                  EFI_SIZE_TO_PAGES(FrLdrImageSize),
+                  LoaderLoadedProgram);
+
+    AppleTVMemFinalizeMemoryMap(FreeldrMemMap);
 
     *MemoryMapSize = FreeldrDescCount;
 

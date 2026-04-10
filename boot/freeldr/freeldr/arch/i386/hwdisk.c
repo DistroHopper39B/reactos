@@ -433,18 +433,6 @@ PcInitializeBootDevices(VOID)
     BOOLEAN BootDriveReported = FALSE;
     CONFIGURATION_TYPE DriveType;
 
-    #ifdef SARCH_APPLETV /* FIXME: This is a violation! */
-    /* Set up disk read buffer. */
-    DiskReadBufferSize = PAGE_SIZE;
-    DiskReadBuffer = MmAllocateMemoryWithType(DiskReadBufferSize, LoaderFirmwareTemporary);
-    if (!DiskReadBuffer)
-    {
-        ERR("Cannot allocate disk read buffer!\n");
-        ASSERT(FALSE);
-        return FALSE;
-    }
-    #endif
-
     DiskCount = EnumerateHarddisks(&BootDriveReported);
 
     /* Initialize FrLdrBootPath, the path FreeLoader starts from */
