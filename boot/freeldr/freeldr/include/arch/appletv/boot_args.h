@@ -18,47 +18,46 @@
 #define ALIGNED(a) __attribute__((aligned(a)))
 #endif
 
-/* Video parameters passed to kernel. */
-typedef struct ALIGNED(4) {
-    UINT32 BaseAddress; /* Base video address */
-    UINT32 DisplayMode; /* Display mode specifier */
-    UINT32 Pitch; /* Bytes per row */
-    UINT32 Width; /* Display width in pixels */
-    UINT32 Height; /* Display height in pixels */
-    UINT32 Depth; /* Display depth in bits */
+typedef struct ALIGNED(4)
+{
+    UINT32      BaseAddress;
+    UINT32      DisplayMode;
+    UINT32      Pitch;
+    UINT32      Width;
+    UINT32      Height;
+    UINT32      Depth;
 } MACH_VIDEO, *PMACH_VIDEO;
 
-/* Boot arguments struct passed into loader. A pointer to this struct is located in the EAX register upon kernel load.
+/*
+ * Boot arguments struct passed into loader. A pointer to this struct is located in the EAX register upon kernel load.
  * See xnu-1228 pexpert/pexpert/i386/boot.h.
  */
 
-typedef struct ALIGNED(4) {
-    UINT16 Revision; /* Revision of this structure */
-    UINT16 Version; /* Version of this structure */
+typedef struct ALIGNED(4)
+{
+    UINT16      Revision;
+    UINT16      Version;
 
-    char CmdLine[MACH_CMDLINE]; /* Command line data */
+    CHAR        CmdLine[MACH_CMDLINE];
 
-    UINT32 EfiMemoryMap; /* Location of EFI memory map */
-    UINT32 EfiMemoryMapSize; /* Size of EFI memory map */
-    UINT32 EfiMemoryDescriptorSize; /* Size of EFI descriptor */
-    UINT32 EfiMemoryDescriptorVersion; /* Version of EFI memory descriptors */
+    UINT32      EfiMemoryMap;
+    UINT32      EfiMemoryMapSize;
+    UINT32      EfiMemoryDescriptorSize;
+    UINT32      EfiMemoryDescriptorVersion;
 
-    MACH_VIDEO Video; /* Video parameters */
+    MACH_VIDEO  Video;
 
-    UINT32 DeviceTree; /* Pointer to base of Apple IODeviceTree */
-    UINT32 DeviceTreeLength; /* Length of device tree */
+    UINT32      DeviceTree;
+    UINT32      DeviceTreeLength;
 
-    UINT32 KernelBaseAddress; /* Beginning of kernel as specified by `-segaddr __TEXT` */
-    UINT32 KernelSize; /* Size of kernel and firmware */
+    UINT32      KernelBaseAddress;
+    UINT32      KernelSize;
 
-    UINT32 EfiRuntimeServicesPageStart; /* Address of defragmented runtime pages */
-    UINT32 EfiRuntimeServicesPageCount; /* Number of EFI pages */
-    UINT32 EfiSystemTable; /* EFI System Table */
+    UINT32      EfiRuntimeServicesPageStart;
+    UINT32      EfiRuntimeServicesPageCount;
+    UINT32      EfiSystemTable;
 
-    UINT8 EfiMode; /* EFI mode: 32 = 32 bit EFI, 64 = 64 bit EFI */
-
-    UINT8 __reserved1[3];
-    UINT8 __reserved2[7];
+    UINT8       EfiMode;
+    UINT8       __reserved1[3];
+    UINT32      __reserved2[7];
 } MACH_BOOTARGS, *PMACH_BOOTARGS;
-
-extern PMACH_BOOTARGS BootArgs; // from eax register; see appletventry.S

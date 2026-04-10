@@ -8,10 +8,13 @@
 /* INCLUDES ******************************************************************/
 
 #include <freeldr.h>
-#include <Uefi.h>
 
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(HWDETECT);
+
+/* GLOBALS *******************************************************************/
+
+EFI_SYSTEM_TABLE *GlobalSystemTable = NULL;
 
 /* FUNCTIONS *****************************************************************/
 
@@ -80,6 +83,8 @@ MachInit(const char *CmdLine)
         DebugEnableScreenPort();
     }
     
+    GlobalSystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
+    
     HalpCalibrateStallExecution();
 }
 
@@ -87,15 +92,11 @@ VOID
 __cdecl
 Reboot(VOID)
 {
-    if (BootArgs)
+    if (GlobalSystemTable)
     {
-        // Do UEFI reboot
-        ((EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable)->
-                            RuntimeServices->ResetSystem(
-                            EfiResetCold,
-                            EFI_SUCCESS,
-                            0,
-                            NULL);
+        GlobalSystemTable->RuntimeServices->ResetSystem(EfiResetCold,
+                                                        EFI_SUCCESS,
+                                                        0, NULL);
         // if it fails, hang
         _disable();
         __halt();

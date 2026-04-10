@@ -10,10 +10,6 @@
 #include <freeldr.h>
 #include "../../vidfb.h"
 
-/* UEFI support */
-#include <Uefi.h>
-#include <GraphicsOutput.h>
-
 /* GLOBALS ********************************************************************/
 
 #define CHAR_WIDTH  8

@@ -11,10 +11,6 @@
 #include <freeldr.h>
 #include "../../vidfb.h"
 
-/* UEFI support */
-#include <Uefi.h>
-#include <Acpi.h>
-
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(WARNING);
 
@@ -47,11 +43,6 @@ extern ULONG VramSize;
 extern PCM_FRAMEBUF_DEVICE_DATA FrameBufferData;
 
 /* FUNCTIONS *****************************************************************/
-
-BOOLEAN IsAcpiPresent(VOID)
-{
-    return AcpiPresent;
-}
 
 static
 VOID
@@ -103,24 +94,6 @@ WaitFor8254Wraparound(VOID)
          */
     }
     while (Delta < 300);
-}
-
-static
-PVOID
-FindUefiVendorTable(EFI_SYSTEM_TABLE *SystemTable, EFI_GUID Guid)
-{
-    ULONG i;
-    
-    for (i = 0; i < SystemTable->NumberOfTableEntries; i++)
-    {
-        if (!memcmp(&SystemTable->ConfigurationTable[i].VendorGuid,
-            &Guid, sizeof(EFI_GUID)))
-        {
-            return SystemTable->ConfigurationTable[i].VendorTable;
-        }
-    }
-    
-    return NULL;
 }
 
 VOID
@@ -189,12 +162,18 @@ HalpCalibrateStallExecution(VOID)
     delay_count /= (MILLISEC / 2);
 }
 
+BOOLEAN
+IsAcpiPresent(VOID)
+{
+    return AcpiPresent;
+}
+
 static
 BOOLEAN
 AppleTVFindPciBios(PPCI_REGISTRY_INFO BusData)
 {
     /* We hardcode PCI BIOS here */
-    
+
     BusData->MajorRevision = 0x02;
     BusData->MinorRevision = 0x10;
     BusData->NoBuses = 7;
@@ -205,9 +184,20 @@ AppleTVFindPciBios(PPCI_REGISTRY_INFO BusData)
 static PRSDP_DESCRIPTOR
 FindAcpiBios(VOID)
 {
-    EFI_SYSTEM_TABLE *SystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
-    
-    return FindUefiVendorTable(SystemTable, (EFI_GUID) EFI_ACPI_20_TABLE_GUID);
+    PRSDP_DESCRIPTOR    Rsdp;
+    EFI_GUID            AcpiGuid = EFI_ACPI_20_TABLE_GUID;
+    ULONG               i;
+
+    for (i = 0; i < GlobalSystemTable->NumberOfTableEntries; i++)
+    {
+        if (!memcmp(&GlobalSystemTable->ConfigurationTable[i].VendorGuid,
+            &AcpiGuid, sizeof(EFI_GUID)))
+        {
+            Rsdp = GlobalSystemTable->ConfigurationTable[i].VendorTable;
+        }
+    }
+
+    return Rsdp;
 }
 
 VOID
@@ -219,9 +209,9 @@ DetectAcpiBios(PCONFIGURATION_COMPONENT_DATA SystemKey, ULONG *BusNumber)
     PRSDP_DESCRIPTOR                Rsdp;
     PACPI_BIOS_DATA                 AcpiBiosData;
     ULONG                           TableSize;
-    
+
     Rsdp = FindAcpiBios();
-    
+
     if (Rsdp)
     {
         /* Set up the flag in the loader block */
@@ -401,17 +391,25 @@ VOID
 DetectSmBios(VOID)
 {
     PSMBIOS_TABLE_HEADER    SmBiosTable;
-    EFI_SYSTEM_TABLE        *SystemTable;
-    
-    SystemTable = (EFI_SYSTEM_TABLE *) BootArgs->EfiSystemTable;
-    SmBiosTable = FindUefiVendorTable(SystemTable, (EFI_GUID) SMBIOS_TABLE_GUID);
+    EFI_GUID                SmBiosGuid = SMBIOS_TABLE_GUID;
+    ULONG                   i;
+
+    for (i = 0; i < GlobalSystemTable->NumberOfTableEntries; i++)
+    {
+        if (!memcmp(&GlobalSystemTable->ConfigurationTable[i].VendorGuid,
+            &SmBiosGuid, sizeof(EFI_GUID)))
+        {
+            SmBiosTable = GlobalSystemTable->ConfigurationTable[i].VendorTable;
+        }
+    }
+
     if (!SmBiosTable)
     {
         // This should never happen, but should not result in a critical system error if it does.
         ERR("No SMBIOS table found!\n");
         return;
     }
-    
+
     // Copy SMBIOS table to low memory.
     // Note: On most hardware, low memory is read-only and must be unlocked using either the
     // EFI Legacy Region Protocol or PAM/MTRR; see UefiSeven/CSMWrap.
@@ -428,7 +426,7 @@ AppleTVHwDetect(
     ULONG BusNumber = 0;
 
     TRACE("MachHwDetect()\n");
-    
+
     /* Create the 'System' key */
     FldrCreateSystemKey(&SystemKey, "Apple TV (1st generation)");
 

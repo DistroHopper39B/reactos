@@ -11,58 +11,126 @@
 #include "mm.h"
 #endif
 
+/* UEFI support */
+#include <Uefi.h>
+#include <Acpi.h>
+#include <GraphicsOutput.h>
+
 #include "boot_args.h"
 
-VOID AppleTVConsPutChar(int Ch);
+VOID
+AppleTVConsPutChar(int Ch);
 
-BOOLEAN AppleTVConsKbHit(VOID);
-int AppleTVConsGetCh(VOID);
+BOOLEAN
+AppleTVConsKbHit(VOID);
 
-VOID AppleTVInitializeVideo(VOID);
-VOID AppleTVVideoClearScreen(UCHAR Attr);
-VIDEODISPLAYMODE AppleTVVideoSetDisplayMode(PCSTR DisplayMode, BOOLEAN Init);
-VOID AppleTVVideoGetDisplaySize(PULONG Width, PULONG Height, PULONG Depth);
-ULONG AppleTVVideoGetBufferSize(VOID);
-VOID AppleTVVideoGetFontsFromFirmware(PULONG RomFontPointers);
-VOID AppleTVVideoSetTextCursorPosition(UCHAR X, UCHAR Y);
-VOID AppleTVVideoHideShowTextCursor(BOOLEAN Show);
-VOID AppleTVVideoPutChar(int Ch, UCHAR Attr, unsigned X, unsigned Y);
-VOID AppleTVVideoCopyOffScreenBufferToVRAM(PVOID Buffer);
-BOOLEAN AppleTVVideoIsPaletteFixed(VOID);
-VOID AppleTVVideoSetPaletteColor(UCHAR Color, UCHAR Red, UCHAR Green, UCHAR Blue);
-VOID AppleTVVideoGetPaletteColor(UCHAR Color, UCHAR* Red, UCHAR* Green, UCHAR* Blue);
-VOID AppleTVVideoSync(VOID);
-VOID AppleTVPrepareForReactOS(VOID);
+int
+AppleTVConsGetCh(VOID);
 
-VOID AppleTVMemInit(VOID);
-PFREELDR_MEMORY_DESCRIPTOR AppleTVMemGetMemoryMap(ULONG *MemoryMapSize);
+VOID
+AppleTVInitializeVideo(VOID);
 
-BOOLEAN AppleTVInitializeBootDevices(VOID);
-VOID AppleTVDiskInit();
-BOOLEAN AppleTVDiskReadLogicalSectors(UCHAR DriveNumber, ULONGLONG SectorNumber, ULONG SectorCount, PVOID Buffer);
-BOOLEAN AppleTVDiskGetDriveGeometry(UCHAR DriveNumber, PGEOMETRY DriveGeometry);
-ULONG AppleTVDiskGetCacheableBlockCount(UCHAR DriveNumber);
-BOOLEAN PcInitializeBootDevices(VOID);
+VOID
+AppleTVVideoClearScreen(UCHAR Attr);
 
-TIMEINFO* AppleTVGetTime(VOID);
+VIDEODISPLAYMODE
+AppleTVVideoSetDisplayMode(PCSTR DisplayMode, BOOLEAN Init);
 
-PCONFIGURATION_COMPONENT_DATA AppleTVHwDetect(
+VOID
+AppleTVVideoGetDisplaySize(PULONG Width, PULONG Height, PULONG Depth);
+
+ULONG
+AppleTVVideoGetBufferSize(VOID);
+
+VOID
+AppleTVVideoGetFontsFromFirmware(PULONG RomFontPointers);
+
+VOID
+AppleTVVideoSetTextCursorPosition(UCHAR X, UCHAR Y);
+
+VOID
+AppleTVVideoHideShowTextCursor(BOOLEAN Show);
+
+VOID
+AppleTVVideoPutChar(int Ch, UCHAR Attr,
+                    unsigned X, unsigned Y);
+
+                    
+VOID
+AppleTVVideoCopyOffScreenBufferToVRAM(PVOID Buffer);
+
+BOOLEAN
+AppleTVVideoIsPaletteFixed(VOID);
+
+VOID
+AppleTVVideoSetPaletteColor(UCHAR Color, UCHAR Red,
+                            UCHAR Green, UCHAR Blue);
+
+VOID
+AppleTVVideoGetPaletteColor(UCHAR Color, UCHAR* Red,
+                            UCHAR* Green, UCHAR* Blue);
+
+VOID
+AppleTVVideoSync(VOID);
+
+
+VOID
+AppleTVBeep(VOID);
+
+PFREELDR_MEMORY_DESCRIPTOR
+AppleTVMemGetMemoryMap(ULONG *MemoryMapSize);
+
+VOID AppleTVGetExtendedBIOSData(PULONG ExtendedBIOSDataArea,
+                                PULONG ExtendedBIOSDataSize);
+
+
+VOID
+AppleTVMemInit(VOID);
+
+UCHAR
+AppleTVGetFloppyCount(VOID);
+
+BOOLEAN
+AppleTVDiskReadLogicalSectors(IN UCHAR DriveNumber,
+                              IN ULONGLONG SectorNumber,
+                              IN ULONG SectorCount,
+                              OUT PVOID Buffer);
+
+BOOLEAN AppleTVDiskGetDriveGeometry(UCHAR DriveNumber,
+                                    PGEOMETRY DriveGeometry);
+
+ULONG
+AppleTVDiskGetCacheableBlockCount(UCHAR DriveNumber);
+
+TIMEINFO*
+AppleTVGetTime(VOID);
+
+BOOLEAN
+PcInitializeBootDevices(VOID);
+
+PCONFIGURATION_COMPONENT_DATA
+AppleTVHwDetect(
     _In_opt_ PCSTR Options);
-VOID AppleTVHwIdle(VOID);
 
-VOID AppleTVBeep(VOID);
+VOID
+AppleTVHwIdle(VOID);
 
-/* appletvstubs.c */
-UCHAR AppleTVGetFloppyCount(VOID);
-VOID AppleTVGetExtendedBIOSData(PULONG ExtendedBIOSDataArea, PULONG ExtendedBIOSDataSize);
-VOID AppleTVHwIdle(VOID);
-VOID AppleTVBeep(VOID);
+VOID
+AppleTVPrepareForReactOS(VOID);
 
-/* Platform-specific boot drive and partition numbers */
-extern UCHAR FrldrBootDrive;
-extern ULONG FrldrBootPartition;
-LONG DiskReportError(BOOLEAN bShowError);
+VOID
+AppleTVDiskInit();
 
 CONFIGURATION_TYPE
 DiskGetConfigType(
     _In_ UCHAR DriveNumber);
+
+/* Platform-specific boot drive and partition numbers */
+extern UCHAR FrldrBootDrive;
+extern ULONG FrldrBootPartition;
+
+/* Mach-O boot args pointer */
+extern PMACH_BOOTARGS BootArgs;
+
+/* EFI system table */
+extern EFI_SYSTEM_TABLE *GlobalSystemTable;
