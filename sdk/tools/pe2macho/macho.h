@@ -38,7 +38,7 @@ typedef struct
     UINT32 Command; /* LC_SEGMENT */
     UINT32 CommandSize; /* Size of segment command */
 
-    char SegmentName[16]; /* Name of segment */
+    CHAR SegmentName[16]; /* Name of segment */
 
     UINT32 VMAddress; /* Virtual memory address of this segment */
     UINT32 VMSize; /* Virtual memory size of this segment */
@@ -88,8 +88,8 @@ typedef struct
 
 typedef struct
 {
-    char SectionName[16]; /* Name of this section */
-    char SegmentName[16]; /* Segment this section goes in */
+    CHAR SectionName[16]; /* Name of this section */
+    CHAR SegmentName[16]; /* Segment this section goes in */
 
     UINT32 Address; /* Memory address of this section */
     UINT32 Size; /* Size of this section in bytes */

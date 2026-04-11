@@ -20,8 +20,8 @@ static PDEVICE_UNIT HardDrive = NULL;
 static PDEVICE_UNIT CdDrive = NULL;
 static BOOLEAN AtaInitialized = FALSE;
 
-UCHAR FrldrBootDrive = 0x80; // Drive 1
-ULONG FrldrBootPartition = 1; // Partition 1
+UCHAR FrldrBootDrive = 0x80;
+ULONG FrldrBootPartition = 1;
 
 /* DISK IO ERROR SUPPORT *****************************************************/
 

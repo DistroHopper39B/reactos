@@ -184,7 +184,7 @@ AppleTVFindPciBios(PPCI_REGISTRY_INFO BusData)
 static PRSDP_DESCRIPTOR
 FindAcpiBios(VOID)
 {
-    PRSDP_DESCRIPTOR    Rsdp;
+    PRSDP_DESCRIPTOR    Rsdp = NULL;
     EFI_GUID            AcpiGuid = EFI_ACPI_20_TABLE_GUID;
     ULONG               i;
 
@@ -392,7 +392,7 @@ static
 VOID
 DetectSmBios(VOID)
 {
-    PSMBIOS_TABLE_HEADER    SmBiosTable;
+    PSMBIOS_TABLE_HEADER    SmBiosTable = NULL;
     EFI_GUID                SmBiosGuid = SMBIOS_TABLE_GUID;
     ULONG                   i;
 

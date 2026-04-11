@@ -11,16 +11,12 @@
 #include <string.h>
 #include <errno.h>
 
-// host_includes
+/* host_includes */
 #include <typedefs.h>
 #include <pecoff.h>
 
-// Mach-O header
+/* Mach-O header */
 #include "macho.h"
-
-#ifdef _MSC_VER
-#define __builtin_ctz(x) _tzcnt_u32(x)
-#endif
 
 #define EFI_PAGE_SIZE 0x1000
 #define HEADER_ADDITIONAL_BYTES EFI_PAGE_SIZE
@@ -84,20 +80,20 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader,
         return NULL;
     }
 
-    // Fill out Mach-O header.
+    /* Fill out Mach-O header */
     MachoHeader->MagicNumber    = MACHO_MAGIC;
 
-    MachoHeader->CpuType        = 7; // x86
-    MachoHeader->CpuSubtype     = 3; // all x86
+    MachoHeader->CpuType        = 7; /* x86 */
+    MachoHeader->CpuSubtype     = 3; /* all x86 */
 
-    MachoHeader->FileType       = 2; // kernel (static linked)
+    MachoHeader->FileType       = 2; /* kernel (static linked) */
 
     MachoHeader->NumberOfCmds   = 2;
     MachoHeader->SizeOfCmds     = *MachoHeaderSize - sizeof(MACHO_HEADER);
 
     MachoHeader->Flags          = 1;
 
-    // Fill out first load command.
+    /* Fill out first load command. */
     MachoSegmentCommand = (PMACHO_SEGMENT_COMMAND) (((PUCHAR) MachoHeader)
                                                     + sizeof(MACHO_HEADER));
 
@@ -120,8 +116,8 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader,
     MachoSegmentCommand->FileOffset         = HEADER_ADDITIONAL_BYTES;
     MachoSegmentCommand->FileSize           = PeSize;
 
-    MachoSegmentCommand->MaximumProtection  = 7; // ???
-    MachoSegmentCommand->InitialProtection  = 5; // ???
+    MachoSegmentCommand->MaximumProtection  = 7; /* ??? */
+    MachoSegmentCommand->InitialProtection  = 5; /* ??? */
 
     MachoSegmentCommand->NumberOfSections   = 0;
     MachoSegmentCommand->Flags              = 0;
@@ -134,7 +130,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader,
     MachoUnixThread->Flavor                 = i386_THREAD_STATE;
     MachoUnixThread->Count                  = i386_THREAD_STATE_COUNT;
 
-    // all registers are blank except for EIP, which is the entry point!
+    /* all registers are blank except for EIP, which is the entry point. */
     MachoUnixThread->State.Eip              = OptionalHeader->ImageBase +
                                               OptionalHeader->AddressOfEntryPoint;
 
@@ -155,15 +151,13 @@ main(INT argc, PCHAR argv[])
     PMACHO_HEADER               MachoHeader;
     UINT32                      MachoHeaderSize;
 
-
-    // Check arguments
     if (argc != 3)
     {
         fprintf(stderr, "Usage: pe2macho [input file] [output file]\n");
         return EINVAL;
     }
 
-    // Open file
+    /* Open PE file */
     InputFile = fopen(argv[1], "rb");
     if (!InputFile)
     {
@@ -172,7 +166,7 @@ main(INT argc, PCHAR argv[])
         return errno;
     }
 
-    // Find end of file
+    /* Parse PE file */
     fseek(InputFile, 0, SEEK_END);
     InputFileLength = ftell(InputFile);
     fseek(InputFile, 0, SEEK_SET);
@@ -185,11 +179,9 @@ main(INT argc, PCHAR argv[])
         return ENOMEM;
     }
 
-    // Read contents of file into buffer and then close file
     fread(InputFileBuffer, InputFileLength, 1, InputFile);
     fclose(InputFile);
 
-    // Find DOS header
     if (((PIMAGE_DOS_HEADER) InputFileBuffer)->e_magic != IMAGE_DOS_MAGIC)
     {
         fprintf(stderr, "Input file not a valid MZ image. (expected 0x%X, got 0x%X)\n",
@@ -197,7 +189,6 @@ main(INT argc, PCHAR argv[])
         return EINVAL;
     }
 
-    // Find PE/COFF file header
     PeFileHeader = FindFileHeaderFromDosHeader((PIMAGE_DOS_HEADER) InputFileBuffer);
     if (!PeFileHeader)
     {
@@ -205,21 +196,18 @@ main(INT argc, PCHAR argv[])
         return EINVAL;
     }
 
-    // Check arch
     if (PeFileHeader->Machine != IMAGE_FILE_MACHINE_I386)
     {
         fprintf(stderr, "Only i386 executables are supported at this time.\n");
         return EINVAL;
     }
 
-    // Make sure there's an optional header
     if (!PeFileHeader->SizeOfOptionalHeader)
     {
         fprintf(stderr, "No optional header found!\n");
         return EINVAL;
     }
 
-    // Find optional header
     PeOptionalHeader = FindOptionalHeaderFromFileHeader(PeFileHeader);
     if (!PeOptionalHeader)
     {
@@ -227,7 +215,7 @@ main(INT argc, PCHAR argv[])
         return EINVAL;
     }
 
-    // Convert PE executable header to Mach-O
+    /* Convert PE executable header to Mach-O */
     MachoHeader = CreateMachOHeaderFromPeHeader(PeOptionalHeader,
                                                 InputFileLength,
                                                 &MachoHeaderSize);
@@ -237,7 +225,7 @@ main(INT argc, PCHAR argv[])
         return ENOMEM;
     }
 
-    // Allocate new buffer for output file
+    /* Create output file */
     OutputFileLength = InputFileLength + HEADER_ADDITIONAL_BYTES;
     OutputFileBuffer = calloc(1, OutputFileLength);
     if (!OutputFileBuffer)
@@ -247,18 +235,20 @@ main(INT argc, PCHAR argv[])
         return ENOMEM;
     }
 
-    // Copy Mach-O header to top of buffer
+    /* Copy Mach-O header to top of buffer */
     memcpy(OutputFileBuffer,
            MachoHeader,
            MachoHeaderSize);
 
-    // Copy output file 4096 bytes in
-    // It will be loaded at its original load addr
+    /*
+     * Copy output file 4096 bytes in
+     * It will be loaded at its original load addr
+     */
     memcpy(OutputFileBuffer + HEADER_ADDITIONAL_BYTES,
            InputFileBuffer,
            InputFileLength);
 
-    // Open output file
+    /* Write Mach-O output file */
     OutputFile = fopen(argv[2], "wb");
     if (!OutputFile)
     {

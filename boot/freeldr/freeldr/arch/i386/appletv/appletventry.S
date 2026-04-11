@@ -31,16 +31,17 @@ PUBLIC _BootArgs
 _BootArgs:
     .long 0
 
+/* EAX - Pointer to MACH_BOOTARGS structure */
 PUBLIC _AppleTVEntry
 _AppleTVEntry:
     /* Set up stack */
     mov esp, dword ptr ds:[stack32]
 
-    /* Test if the bootArgs pointer is valid */
+    /* Test if the BootArgs pointer is valid */
     test eax, eax
     jz err
 
-    /* Store the bootArgs pointer */
+    /* Store the BootArgs pointer */
     mov ebx, eax
     mov dword ptr ds:[_BootArgs], ebx
 
@@ -70,11 +71,10 @@ _AppleTVEntry:
     rep stosd
 
     /* Set up CmdLine */
-    mov eax, ebx
-    add eax, APPLETV_COMMAND_LINE_OFFSET
+    add ebx, APPLETV_COMMAND_LINE_OFFSET
 
     /* GO!! */
-    push eax
+    push ebx
     call _BootMain
 
     /* If this fails, halt the system */

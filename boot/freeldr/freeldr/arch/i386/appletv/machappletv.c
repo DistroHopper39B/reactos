@@ -86,6 +86,8 @@ MachInit(const char *CmdLine)
     GlobalSystemTable = (EFI_SYSTEM_TABLE *)BootArgs->EfiSystemTable;
 
     HalpCalibrateStallExecution();
+    
+    printf("Loading FreeLoader...\n");
 }
 
 VOID
@@ -97,16 +99,9 @@ Reboot(VOID)
         GlobalSystemTable->RuntimeServices->ResetSystem(EfiResetCold,
                                                         EFI_SUCCESS,
                                                         0, NULL);
-        // if it fails, hang
-        _disable();
-        __halt();
-        for (;;);
     }
-    else
-    {
-        // No UEFI reboot; hang
-        _disable();
-        __halt();
-        for (;;);
-    }
+
+    _disable();
+    __halt();
+    for (;;);
 }

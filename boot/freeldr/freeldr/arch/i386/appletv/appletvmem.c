@@ -28,7 +28,7 @@ AddMemoryDescriptor(
     IN PFN_NUMBER PageCount,
     IN TYPE_OF_MEMORY MemoryType);
 
-INT FreeldrDescCount = 0;
+ULONG FreeldrDescCount = 0;
 PFREELDR_MEMORY_DESCRIPTOR FreeldrMemMap = NULL;
 
 /* FUNCTIONS *****************************************************************/
@@ -143,13 +143,11 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     EfiMemoryDescriptorSize = BootArgs->EfiMemoryDescriptorSize;
 
     /*
-     * The number of FreeLoader entries tends to be higher than the number of EFI entries.
-     * This can result in not enough space being allocated for the memory map, which causes
-     * an instant bugcheck.
-     * We multiply the size by 2 to compensate for this. This is a hack and should be replaced.
+     * We add 4 extra entries here to compensate for the static locations
+     * If we don't do this, the memory map may become corrupted resulting in a bugcheck.
      */
-    EfiNumberOfEntries = (EfiMemoryMapSize / EfiMemoryDescriptorSize);
-    FreeldrMemMapSize = (EfiNumberOfEntries * sizeof(FREELDR_MEMORY_DESCRIPTOR)) * 2;
+    EfiNumberOfEntries = (EfiMemoryMapSize / EfiMemoryDescriptorSize) + 4;
+    FreeldrMemMapSize = EfiNumberOfEntries * sizeof(FREELDR_MEMORY_DESCRIPTOR);
 
     /* Find a free space above the FreeLoader image for the memory map */
     CurrentDescriptor = EfiMemoryMap;
