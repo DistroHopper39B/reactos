@@ -210,6 +210,24 @@ typedef struct INPUTCONTEXTDX
     HIMCC hCtfImeContext;
 } INPUTCONTEXTDX, *PINPUTCONTEXTDX, NEAR *NPINPUTCONTEXTDX, FAR *LPINPUTCONTEXTDX;
 
+/* INPUTCONTEXTDX.dwUIFlags flags */
+#define _IME_UI_HIDDEN 0x2
+#define _IME_UI_VERTICAL 0x4
+#define _IME_UI_NO_COMPFORM 0x8
+
+/* ImmGetAppCompatFlags flags */
+#define _IME_APP_COMPAT_DIRECT_IME_SYSTEM 0x1
+#define _IME_APP_COMPAT_DIRECT_IME_FONT 0x80
+#define _IME_APP_COMPAT_PROCESS_BY_IME 0x10000
+#define _IME_APP_COMPAT_SPECIAL_IME 0x80000000
+
+/* Extra conversion mode */
+#define _IME_CMODE_EXTENDED 0x80000000
+
+/* Extra IME mode */
+#define _IME_MODE_KOR_SBCSCHAR 0x0002 /* For Korean */
+#define _IME_MODE_JPN_SBCSCHAR 0x0008 /* For Japanese */
+
 typedef struct IME_SUBSTATE
 {
     struct IME_SUBSTATE *pNext;

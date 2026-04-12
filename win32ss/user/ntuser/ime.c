@@ -8,7 +8,7 @@
  */
 
 #include <win32k.h>
-#include <wine/ime.h>
+#include <ime.h>
 #include <cjkcode.h>
 
 DBG_DEFAULT_CHANNEL(UserMisc);
@@ -1117,6 +1117,20 @@ Quit:
     return ret;
 }
 
+/*
+ * https://learn.microsoft.com/en-us/windows/win32/api/ime/ns-ime-imestruct IME_SETLEVEL
+ *
+ * "Application IME Level" is a Korean-IME-specific concept, defined as below:
+ *
+ * Level | Meaning
+ * ------+---------------------------------------------------------------------------------
+ *    1  | No IME support. All IME-specific messages are ignored.
+ *    2  | Partial IME support. Supports a subset of IME behavior including the position of
+ *       | the composition or candidate windows and the input mode or status.
+ *    3  | Full IME support.
+ *    4  | (Unknown)
+ *    5  | (Unknown)
+ */
 BOOL
 NTAPI
 NtUserSetAppImeLevel(
