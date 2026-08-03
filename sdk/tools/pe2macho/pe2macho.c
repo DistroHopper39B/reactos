@@ -122,7 +122,7 @@ CreateMachOHeaderFromPeHeader(PIMAGE_OPTIONAL_HEADER32 OptionalHeader,
     MachoSegmentCommand->NumberOfSections   = 0;
     MachoSegmentCommand->Flags              = 0;
 
-    MachoUnixThread = (PMACHO_THREAD_COMMAND_I386) (((PUCHAR) MachoSegmentCommand)
+    MachoUnixThread = (PMACHO_THREAD_COMMAND_I386) ((PUCHAR) MachoSegmentCommand
                                                    + sizeof(MACHO_SEGMENT_COMMAND));
 
     MachoUnixThread->Command                = MACHO_LC_UNIXTHREAD;

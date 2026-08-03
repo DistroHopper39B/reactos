@@ -142,12 +142,13 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     EfiMemoryMapSize        = BootArgs->EfiMemoryMapSize;
     EfiMemoryDescriptorSize = BootArgs->EfiMemoryDescriptorSize;
 
+    EfiNumberOfEntries = EfiMemoryMapSize / EfiMemoryDescriptorSize;
+
     /*
      * We add 4 extra entries here to compensate for the static locations
      * If we don't do this, the memory map may become corrupted resulting in a bugcheck.
      */
-    EfiNumberOfEntries = (EfiMemoryMapSize / EfiMemoryDescriptorSize) + 4;
-    FreeldrMemMapSize = EfiNumberOfEntries * sizeof(FREELDR_MEMORY_DESCRIPTOR);
+    FreeldrMemMapSize = (EfiNumberOfEntries + 4) * sizeof(FREELDR_MEMORY_DESCRIPTOR);
 
     /* Find a free space above the FreeLoader image for the memory map */
     CurrentDescriptor = EfiMemoryMap;
@@ -167,7 +168,6 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     }
 
     ASSERT(FreeldrMemMap != NULL);
-
     RtlZeroMemory(FreeldrMemMap, FreeldrMemMapSize);
 
     UefiSetMemory(FreeldrMemMap,
@@ -213,6 +213,5 @@ AppleTVMemGetMemoryMap(ULONG *MemoryMapSize)
     AppleTVMemFinalizeMemoryMap(FreeldrMemMap);
 
     *MemoryMapSize = FreeldrDescCount;
-
     return FreeldrMemMap;
 }

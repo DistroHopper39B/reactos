@@ -145,10 +145,8 @@ VOID __cdecl BootMain(IN PCCH CmdLine)
     {
         UiMessageBoxCritical("Unable to load second stage loader.");
     }
-#endif
-
-#ifdef SARCH_APPLETV
-    // We don't use rosload!
+#else
+    /* We don't use rosload on Apple TV */
     RunLoader();
 #endif
 
