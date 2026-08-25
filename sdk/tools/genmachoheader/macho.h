@@ -1,7 +1,7 @@
 /*
  * COPYRIGHT:       See COPYING in the top level directory
- * PROJECT:         ReactOS pe2macho
- * FILE:            tools/pe2macho/macho.h
+ * PROJECT:         ReactOS genmachoheader
+ * FILE:            tools/genmachoheader/macho.h
  * PURPOSE:         Mach-O executable format
  * PROGRAMMER:      Sylas Hollander
  */
@@ -16,6 +16,7 @@
 #define MACHO_LC_UNIXTHREAD 0x5 /* UNIX thread load command */
 
 #define i386_THREAD_STATE 1
+#define i386_THREAD_STATE_COUNT	16
 
 /* Mach-O header */
 typedef struct
@@ -83,8 +84,6 @@ typedef struct
 
     MACHO_THREAD_STATE_I386 State; /* State */
 } MACHO_THREAD_COMMAND_I386, *PMACHO_THREAD_COMMAND_I386;
-
-#define i386_THREAD_STATE_COUNT	16
 
 typedef struct
 {

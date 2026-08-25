@@ -134,7 +134,7 @@ else()
                     COMMAND ${CMAKE_STRIP} --strip-all $<TARGET_FILE:freeldr_pe>)
 endif()
 
-set_image_base(freeldr_pe 0x110000)
+set_image_base(freeldr_pe 0x200000)
 set_subsystem(freeldr_pe native)
 set_entrypoint(freeldr_pe AppleTVEntry)
 
@@ -155,7 +155,12 @@ endif()
 add_dependencies(freeldr_pe asm)
 
 # Apple TV loader stuff
-add_custom_target(freeldr
-                COMMAND native-pe2macho ${CMAKE_CURRENT_BINARY_DIR}/$<TARGET_FILE_NAME:freeldr_pe> ${CMAKE_CURRENT_BINARY_DIR}/freeldr.sys
-                DEPENDS native-pe2macho freeldr_pe
-                VERBATIM)
+add_custom_command(OUTPUT freeldr_header.macho
+                    COMMAND native-genmachoheader ${CMAKE_CURRENT_BINARY_DIR}/$<TARGET_FILE_NAME:freeldr_pe> ${CMAKE_CURRENT_BINARY_DIR}/freeldr_header.macho
+                    DEPENDS native-genmachoheader freeldr_pe)
+
+
+concatenate_files(${CMAKE_CURRENT_BINARY_DIR}/freeldr.sys
+                  ${CMAKE_CURRENT_BINARY_DIR}/freeldr_header.macho
+                  ${CMAKE_CURRENT_BINARY_DIR}/$<TARGET_FILE_NAME:freeldr_pe>)
+add_custom_target(freeldr ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/freeldr.sys)
