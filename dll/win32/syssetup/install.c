@@ -4,6 +4,7 @@
  * PURPOSE:           System setup
  * FILE:              dll/win32/syssetup/install.c
  * PROGRAMER:         Eric Kohl
+ *                    Whindmar Saksit <whindsaks@proton.me>
  */
 
 /* INCLUDES *****************************************************************/
@@ -985,6 +986,26 @@ cleanup:
     return bConsoleBoot;
 }
 
+static VOID
+ProcessDetachedProgram(
+    _In_ PCWSTR pszInf)
+{
+    WCHAR szInfApp[MAX_PATH], szInfArg[MAX_PATH * 3];
+    WCHAR szCmd[_countof(szInfApp) + _countof(szInfArg)];
+    UINT cch;
+
+    if (!GetPrivateProfileStringW(L"GuiUnattended", L"DetachedProgram", L"", szInfApp, _countof(szInfApp), pszInf) || !*szInfApp)
+        return;
+    cch = ExpandEnvironmentStrings(szInfApp, szCmd, _countof(szCmd) - 1);
+    if (GetPrivateProfileStringW(L"GuiUnattended", L"Arguments", L"", szInfArg, _countof(szInfArg), pszInf) && cch)
+    {
+        szCmd[cch - 1] = L' ';
+        szCmd[cch] = UNICODE_NULL;
+        ExpandEnvironmentStrings(szInfArg, szCmd + cch, _countof(szCmd) - cch);
+    }
+    RunCommandAndWait(szCmd);
+}
+
 extern VOID
 EnableVisualTheme(
     _In_opt_ HWND hwndParent,
@@ -1010,8 +1031,7 @@ PreprocessUnattend(
     {
         /* See also wizard.c!ProcessSetupInf()
          * Retrieve the path of the setup INF */
-        GetSystemDirectoryW(szPath, _countof(szPath));
-        wcscat(szPath, L"\\$winnt$.inf");
+        GetSetupInfPath(szPath, _countof(szPath));
     }
     else
     {
@@ -1038,6 +1058,9 @@ PreprocessUnattend(
 
     /* Enable the chosen theme, or use the classic theme */
     EnableVisualTheme(NULL, bDefaultThemesOff ? NULL : szValue);
+
+    if (IsInstall)
+        ProcessDetachedProgram(szPath);
 }
 
 static BOOL
@@ -1177,11 +1200,15 @@ InstallLiveCD(VOID)
     return 0;
 
 error:
-    MessageBoxW(
-        NULL,
-        L"Failed to load LiveCD! You can shutdown your computer, or press ENTER to reboot.",
-        L"ReactOS LiveCD",
-        MB_OK);
+    MessageBoxW(NULL,
+                L"Failed to load LiveCD! You can shutdown your computer, or press ENTER to reboot.",
+                L"ReactOS LiveCD",
+                MB_OK);
+    // HACK: This shouldn't be done here, but by the caller of InstallWindowsNt()
+    /* Enable the shutdown privilege and reboot the machine */
+    if (!pSetupEnablePrivilege(SE_SHUTDOWN_NAME, TRUE))
+        DPRINT1("pSetupEnablePrivilege(SE_SHUTDOWN_NAME) failed (Error %lu)\n", GetLastError());
+    ExitWindowsEx(EWX_REBOOT, 0);
     return 0;
 }
 
@@ -1514,7 +1541,8 @@ SaveDefaultUserHive(VOID)
         return dwError;
     }
 
-    pSetupEnablePrivilege(L"SeBackupPrivilege", TRUE);
+    if (!pSetupEnablePrivilege(SE_BACKUP_NAME, TRUE))
+        DPRINT1("pSetupEnablePrivilege(SE_BACKUP_NAME) failed (Error %lu)\n", GetLastError());
 
     /* Save the Default hive */
     dwError = RegSaveKeyExW(hUserKey,
@@ -1552,7 +1580,7 @@ SaveDefaultUserHive(VOID)
         DPRINT1("RegSaveKeyExW() failed (Error %lu)\n", dwError);
     }
 
-    pSetupEnablePrivilege(L"SeBackupPrivilege", FALSE);
+    pSetupEnablePrivilege(SE_BACKUP_NAME, FALSE);
 
     RegCloseKey(hUserKey);
 
@@ -1565,10 +1593,9 @@ DWORD
 InstallReactOS(VOID)
 {
     WCHAR szBuffer[MAX_PATH];
-    HANDLE token;
-    TOKEN_PRIVILEGES privs;
     HKEY hKey;
     HANDLE hHotkeyThread;
+    BOOL ret;
 
     InitializeSetupActionLog(FALSE);
     LogItem(NULL, L"Installing ReactOS");
@@ -1579,13 +1606,13 @@ InstallReactOS(VOID)
     if (!InitializeProgramFilesDir())
     {
         FatalError("InitializeProgramFilesDir() failed");
-        return 0;
+        goto Quit;
     }
 
     if (!InitializeProfiles())
     {
         FatalError("InitializeProfiles() failed");
-        return 0;
+        goto Quit;
     }
 
     InitializeDefaultUserLocale();
@@ -1623,20 +1650,34 @@ InstallReactOS(VOID)
     if (SaveDefaultUserHive() != ERROR_SUCCESS)
     {
         FatalError("SaveDefaultUserHive() failed");
-        return 0;
+        goto Quit;
     }
 
     if (!CopySystemProfile(0))
     {
         FatalError("CopySystemProfile() failed");
-        return 0;
+        goto Quit;
     }
 
     hHotkeyThread = CreateThread(NULL, 0, HotkeyThread, NULL, 0, NULL);
 
     PreprocessUnattend(TRUE);
     if (!CommonInstall())
-        return 0;
+        goto Quit;
+
+    /* Install the TCP/IP protocol driver */
+    ret = InstallNetworkComponent(L"MS_TCPIP");
+    if (!ret && GetLastError() != ERROR_FILE_NOT_FOUND)
+    {
+        DPRINT("InstallNetworkComponent() failed with error 0x%lx\n", GetLastError());
+    }
+    else
+    {
+        /* Start the TCP/IP protocol driver */
+        SetupStartService(L"Tcpip", FALSE);
+        SetupStartService(L"Dhcp", FALSE);
+        SetupStartService(L"Dnscache", FALSE);
+    }
 
     InstallWizard();
 
@@ -1663,32 +1704,11 @@ InstallReactOS(VOID)
     if (AdminInfo.Password != NULL)
         RtlFreeHeap(RtlGetProcessHeap(), 0, AdminInfo.Password);
 
-    /* Get shutdown privilege */
-    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &token))
-    {
-        FatalError("OpenProcessToken() failed!");
-        return 0;
-    }
-    if (!LookupPrivilegeValue(NULL,
-                              SE_SHUTDOWN_NAME,
-                              &privs.Privileges[0].Luid))
-    {
-        FatalError("LookupPrivilegeValue() failed!");
-        return 0;
-    }
-    privs.PrivilegeCount = 1;
-    privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-    if (AdjustTokenPrivileges(token,
-                              FALSE,
-                              &privs,
-                              0,
-                              (PTOKEN_PRIVILEGES)NULL,
-                              NULL) == 0)
-    {
-        FatalError("AdjustTokenPrivileges() failed!");
-        return 0;
-    }
-
+Quit:
+    // HACK: This shouldn't be done here, but by the caller of InstallWindowsNt()
+    /* Enable the shutdown privilege and reboot the machine */
+    if (!pSetupEnablePrivilege(SE_SHUTDOWN_NAME, TRUE))
+        DPRINT1("pSetupEnablePrivilege(SE_SHUTDOWN_NAME) failed (Error %lu)\n", GetLastError());
     ExitWindowsEx(EWX_REBOOT, 0);
     return 0;
 }

@@ -534,7 +534,7 @@ static HRESULT CALLBACK FileOpCallback(FILEOPCALLBACKEVENT Event, LPCWSTR Src, L
     {
         CComHeapPtr<ITEMIDLIST> pidlBB(SHCloneSpecialIDList(NULL, CSIDL_BITBUCKET, FALSE));
         CComPtr<IShellFolder> pSF;
-        if (pidlBB && SUCCEEDED(SHBindToObject(NULL, pidlBB, IID_PPV_ARG(IShellFolder, &pSF))))
+        if (pidlBB && SUCCEEDED(SHBindToObject(NULL, pidlBB, NULL, IID_PPV_ARG(IShellFolder, &pSF))))
         {
             if (IsRecycleBinEmpty(pSF))
                 SHUpdateRecycleBinIcon();
@@ -1182,7 +1182,7 @@ TRASH_CanTrashFile(LPCWSTR wszPath)
         return FALSE;
     }
 
-    swprintf(szBuffer, L"%04X-%04X", LOWORD(VolSerialNumber), HIWORD(VolSerialNumber));
+    _swprintf(szBuffer, L"%04X-%04X", LOWORD(VolSerialNumber), HIWORD(VolSerialNumber));
     wcscat(szKey, szBuffer);
 
     if (RegCreateKeyExW(HKEY_CURRENT_USER, szKey, 0, NULL, 0, KEY_READ | KEY_WRITE, NULL, &hKey, &dwDisposition) != ERROR_SUCCESS)

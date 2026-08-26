@@ -3,7 +3,7 @@
  * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
  * PURPOSE:    Keep track of palette data, notify listeners
  * COPYRIGHT:  Copyright 2015 Benedikt Freisen <b.freisen@gmx.net>
- *             Copyright 2021 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>
+ *             Copyright 2021-2026 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>
  */
 
 #include "precomp.h"
@@ -14,8 +14,8 @@ PaletteModel paletteModel;
 
 PaletteModel::PaletteModel()
 {
-    m_fgColor = 0x00000000;
-    m_bgColor = 0x00ffffff;
+    m_fgColor = RGB(0, 0, 0);
+    m_bgColor = RGB(255, 255, 255);
     SelectPalette(PAL_MODERN);
 }
 
@@ -40,6 +40,13 @@ void PaletteModel::SelectPalette(PAL_TYPE nPalette)
         0xffffff, 0xc0c0c0, 0x0000ff, 0x00ffff, 0x00ff00, 0xffff00, 0xff0000,
         0xff00ff, 0x80ffff, 0x80ff00, 0xffff80, 0xff8080, 0x8000ff, 0x4080ff
     };
+    static const COLORREF grayscale[NUM_COLORS] =
+    {
+        0x000000, 0x090909, 0x121212, 0x1C1C1C, 0x252525, 0x2F2F2F, 0x383838,
+        0x424242, 0x4B4B4B, 0x555555, 0x5E5E5E, 0x676767, 0x717171, 0x7B7B7B,
+        0xFFFFFF, 0xF6F6F6, 0xEDEDED, 0xE3E3E3, 0xD9D9D9, 0xD0D0D0, 0xC7C7C7,
+        0xBDBDBD, 0xB4B4B4, 0xAAAAAA, 0xA1A1A1, 0x979797, 0x8E8E8E, 0x848484
+    };
     switch (nPalette)
     {
         case PAL_MODERN:
@@ -48,8 +55,14 @@ void PaletteModel::SelectPalette(PAL_TYPE nPalette)
         case PAL_OLDTYPE:
             CopyMemory(m_colors, oldColors, sizeof(m_colors));
             break;
+        case PAL_GRAYSCALE:
+        case PAL_MONOCHROME:
+            CopyMemory(m_colors, grayscale, sizeof(m_colors));
+            break;
     }
     m_nSelectedPalette = nPalette;
+    m_fgColor = RGB(0, 0, 0);
+    m_bgColor = RGB(255, 255, 255);
     NotifyPaletteChanged();
 }
 

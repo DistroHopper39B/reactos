@@ -54,13 +54,6 @@
 @ cdecl MmGetSystemMemoryMapTypeString()
 @ cdecl MmGetTotalPagesInLookupTable()
 
-# NtLdr options
-@ cdecl NtLdrGetNextOption()
-@ cdecl NtLdrGetOption()
-@ cdecl NtLdrGetOptionEx()
-@ cdecl NtLdrGetOptionExN()
-@ cdecl NtLdrAddOptions()
-
 # PeLdr
 @ cdecl PeLdrAllocateDataTableEntry()
 @ cdecl PeLdrCheckForLoadedDll()

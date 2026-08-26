@@ -237,7 +237,7 @@
 @ stdcall FsRtlIsDbcsInExpression(ptr ptr)
 @ stdcall FsRtlIsFatDbcsLegal(long ptr long long long)
 @ stdcall FsRtlIsHpfsDbcsLegal(long ptr long long long)
-@ stdcall FsRtlIsNameInExpression(ptr ptr long wstr)
+@ stdcall FsRtlIsNameInExpression(ptr ptr long wstr) RtlIsNameInExpression
 @ stdcall FsRtlIsNtstatusExpected(long)
 @ stdcall FsRtlIsPagingFile(ptr)
 @ stdcall FsRtlIsTotalDeviceFailure(ptr)
@@ -1170,6 +1170,7 @@
 @ stdcall RtlGetElementGenericTableAvl(ptr long)
 @ stdcall RtlGetFirstRange(ptr ptr ptr)
 @ stdcall RtlGetGroupSecurityDescriptor(ptr ptr ptr)
+@ stdcall RtlGetLastRange(ptr ptr ptr)
 @ stdcall RtlGetNextRange(ptr ptr long)
 @ stdcall RtlGetNtGlobalFlags()
 @ stdcall RtlGetOwnerSecurityDescriptor(ptr ptr ptr)
@@ -1201,6 +1202,7 @@
 @ stdcall RtlIntegerToUnicode(long long long ptr)
 @ stdcall RtlIntegerToUnicodeString(long long ptr)
 @ stdcall RtlInvertRangeList(ptr ptr)
+@ stdcall RtlInvertRangeListEx(ptr ptr long ptr ptr)
 @ stdcall RtlIpv4AddressToStringA(ptr ptr)
 @ stdcall RtlIpv4AddressToStringExA(ptr long ptr ptr)
 @ stdcall RtlIpv4AddressToStringExW(ptr long ptr ptr)
@@ -1305,6 +1307,7 @@
 @ stdcall RtlTraceDatabaseLock(ptr)
 @ stdcall RtlTraceDatabaseUnlock(ptr)
 @ stdcall RtlTraceDatabaseValidate(ptr)
+@ stdcall -version=0x601+ RtlUTF8ToUnicodeN(ptr long ptr str long)
 @ fastcall -arch=i386,arm RtlUlongByteSwap(long)
 @ fastcall -arch=i386,arm RtlUlonglongByteSwap(long long)
 @ stdcall RtlUnicodeStringToAnsiSize(ptr) RtlxUnicodeStringToAnsiSize
@@ -1317,6 +1320,7 @@
 @ stdcall RtlUnicodeToMultiByteN(ptr long ptr wstr long)
 @ stdcall RtlUnicodeToMultiByteSize(ptr wstr long)
 @ stdcall RtlUnicodeToOemN(ptr long ptr wstr long)
+@ stdcall -version=0x601+ RtlUnicodeToUTF8N(ptr long ptr wstr long)
 @ stdcall RtlUnlockBootStatusData(ptr)
 @ stdcall RtlUnwind(ptr ptr ptr ptr)
 @ stdcall -arch=x86_64,arm RtlUnwindEx(ptr ptr ptr ptr ptr ptr)
@@ -1582,6 +1586,7 @@
 @ cdecl _strset()
 @ cdecl _strupr()
 @ cdecl -version=0x400-0x502 -impsym _swprintf() swprintf # Compatibility with pre NT6
+@ cdecl -version=0x600+ _swprintf()
 @ cdecl _vsnprintf()
 @ cdecl _vsnwprintf()
 @ cdecl _wcsicmp()
@@ -1621,7 +1626,7 @@
 @ cdecl strrchr()
 @ cdecl strspn()
 @ cdecl strstr()
-@ cdecl swprintf()
+@ cdecl swprintf() _swprintf # Non-conforming swprintf
 @ cdecl tolower()
 @ cdecl toupper() toupper_nt_mb
 @ cdecl towlower()

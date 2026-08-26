@@ -41,7 +41,12 @@ endif()
 
 add_pch(uniata stdafx.h SOURCE)
 set_module_type(uniata kernelmodedriver)
+target_compile_definitions(uniata PRIVATE _CRT_NON_CONFORMING_SWPRINTFS)
 add_importlibs(uniata scsiport ntoskrnl hal)
 add_cd_file(TARGET uniata DESTINATION reactos/system32/drivers NO_CAB FOR all)
-add_registry_inf(uniata_reg.inf)
+# add_registry_inf(uniata_reg.inf)
 add_driver_inf(uniata uniata_comm.inf)
+
+if(ENABLE_UNIATA)
+    set_target_properties(uniata PROPERTIES OUTPUT_NAME "pciide" PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+endif()

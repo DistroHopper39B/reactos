@@ -101,6 +101,8 @@ wmain(
 
     DPRINT("wmain(%S)\n", GetCommandLineW());
 
+    GetWmiVersionInfo();
+
     g_hModule = GetModuleHandle(NULL);
 
     /* Initialize the Console Standard Streams */
@@ -180,15 +182,15 @@ wmain(
             if ((index + 1) < argc)
             {
                 index++;
-                pszMachine = HeapAlloc(GetProcessHeap(), 0, (wcslen(argv[index]) + 1) * sizeof(WCHAR));
-                if (pszMachine == NULL)
+                g_pszMachine = HeapAlloc(GetProcessHeap(), 0, (wcslen(argv[index]) + 1) * sizeof(WCHAR));
+                if (g_pszMachine == NULL)
                 {
                     dwError = ERROR_NOT_ENOUGH_MEMORY;
                     PrintError(g_hModule, dwError);
                     goto done;
                 }
 
-                wcscpy(pszMachine, argv[index]);
+                wcscpy(g_pszMachine, argv[index]);
             }
             else
             {
@@ -252,8 +254,8 @@ wmain(
 
 done:
     /* FIXME: Cleanup code goes here */
-    if (pszMachine != NULL)
-        HeapFree(GetProcessHeap(), 0, pszMachine);
+    if (g_pszMachine != NULL)
+        HeapFree(GetProcessHeap(), 0, g_pszMachine);
 
     if (pszCommand != NULL)
         HeapFree(GetProcessHeap(), 0, pszCommand);
@@ -296,7 +298,7 @@ MakeQuotedString(
     if (pszQuotedString == NULL)
         return NULL;
 
-    swprintf(pszQuotedString, L"\"%s\"", pszString);
+    _swprintf(pszQuotedString, L"\"%s\"", pszString);
 
     return pszQuotedString;
 }
@@ -359,6 +361,7 @@ MatchEnumTag(
 
     for (i = 0; i < dwNumArg; i++)
     {
+        DPRINT("%S -- %S\n", pwcArg, pEnumTable[i].pwszToken);
         if (MatchToken(pwcArg, pEnumTable[i].pwszToken))
         {
             *pdwValue = pEnumTable[i].dwValue;
@@ -367,6 +370,79 @@ MatchEnumTag(
     }
 
     return ERROR_NOT_FOUND;
+}
+
+DWORD
+WINAPI
+MatchTagsInCmdLine(
+    _In_ HANDLE hModule,
+    _Inout_ LPWSTR *ppwcArguments,
+    _In_ DWORD dwCurrentIndex,
+    _In_ DWORD dwArgCount,
+    _Inout_ TAG_TYPE *pttTags,
+    _In_ DWORD dwTagCount,
+    _Out_ DWORD *pdwTagType)
+{
+    PWSTR pszEqual;
+    DWORD i, j, dwTagLength;
+
+    DPRINT1("MatchTagsInCmdLine(%p %p %lu %lu %p %lu %p)\n",
+            hModule, ppwcArguments, dwCurrentIndex, dwArgCount,
+            pttTags, dwTagCount, pdwTagType);
+
+    /* Identify tagged arguments (tag=value) */
+    for (i = dwCurrentIndex; i < dwArgCount; i++)
+    {
+        DPRINT("Argument %lu: %S\n", i, ppwcArguments[i]);
+        pdwTagType[i - dwCurrentIndex] = (DWORD)-1;
+
+        /* Skip arguments that do not have a tag */
+        pszEqual = wcschr(ppwcArguments[i], L'=');
+        if (pszEqual == NULL)
+            continue;
+
+        dwTagLength = pszEqual - ppwcArguments[i];
+        DPRINT("Tag length %lu\n", dwTagLength);
+        DPRINT("Value length %lu\n", wcslen(pszEqual + 1));
+
+        pdwTagType[i - dwCurrentIndex] = (DWORD)-1;
+        for (j = 0; j < dwTagCount; j++)
+        {
+            DPRINT("Test tag %S -- %S\n", pttTags[j].pwszTag, ppwcArguments[i]);
+            if ((wcslen(pttTags[j].pwszTag) == dwTagLength) &&
+                (_wcsnicmp(ppwcArguments[i], pttTags[j].pwszTag, dwTagLength) == 0))
+            {
+                DPRINT("Found tag %S\n", pttTags[j].pwszTag);
+                pttTags[j].bPresent = TRUE;
+                pdwTagType[i - dwCurrentIndex] = j;
+
+                /* Remove the tag name from the argument */
+                wcscpy(ppwcArguments[i], pszEqual + 1);
+                break;
+            }
+        }
+    }
+
+    /* Identify un-tagged arguments (value) */
+    for (i = dwCurrentIndex; i < dwArgCount; i++)
+    {
+        if (pdwTagType[i - dwCurrentIndex] != (DWORD)-1)
+            continue;
+
+        for (j = 0; j < dwTagCount; j++)
+        {
+            DPRINT("Test tag %S\n", pttTags[j].pwszTag);
+            if (pttTags[j].bPresent == FALSE)
+            {
+                DPRINT("Found tag %S\n", pttTags[j].pwszTag);
+                pttTags[j].bPresent = TRUE;
+                pdwTagType[i - dwCurrentIndex] = j;
+                break;
+            }
+        }
+    }
+
+    return ERROR_SUCCESS;
 }
 
 BOOL
@@ -422,18 +498,100 @@ NsGetFriendlyNameFromIfName(
 
 DWORD
 WINAPI
+NsGetIfNameFromFriendlyName(
+    _In_ DWORD dwUnknown1,
+    _In_ PWSTR pszFriendlyName, 
+    _Inout_ PWSTR pszIfName,
+    _Inout_ PDWORD pdwIfName)
+{
+    UNICODE_STRING UnicodeIfName;
+    GUID InterfaceGuid;
+    NTSTATUS Status;
+    DWORD ret;
+
+    DPRINT("NsGetIfNameFromFriendlyName(%lx %S %p %p)\n",
+           dwUnknown1, pszFriendlyName, pszIfName, pdwIfName);
+
+    ret = NhGetGuidFromInterfaceName(pszFriendlyName,
+                                     &InterfaceGuid,
+                                     0, 0);
+    if (ret != ERROR_SUCCESS)
+    {
+        DPRINT1("NhGetGuidFromInterfaceName failed %lu\n", ret);
+        return ret;
+    }
+
+    RtlInitUnicodeString(&UnicodeIfName, NULL);
+    Status = RtlStringFromGUID(&InterfaceGuid,
+                               &UnicodeIfName);
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("RtlStringFromGUID failed 0x%08lx\n", Status);
+        ret = RtlNtStatusToDosError(Status);
+    }
+
+    if (*pdwIfName >= UnicodeIfName.MaximumLength)
+    {
+        CopyMemory(pszIfName, UnicodeIfName.Buffer, UnicodeIfName.MaximumLength);
+        *pdwIfName = UnicodeIfName.MaximumLength;
+    }
+
+    RtlFreeUnicodeString(&UnicodeIfName);
+
+    return ret;
+}
+
+DWORD
+WINAPI
 PreprocessCommand(
     _In_ HANDLE hModule,
     _Inout_ LPWSTR *ppwcArguments,
     _In_ DWORD dwCurrentIndex,
     _In_ DWORD dwArgCount,
-    _In_ TAG_TYPE *pttTags,
+    _Inout_ TAG_TYPE *pttTags,
     _In_ DWORD dwTagCount,
     _In_ DWORD dwMinArgs,
     _In_ DWORD dwMaxArgs,
     _Out_ DWORD *pdwTagType)
 {
-    DPRINT1("PreprocessCommand()\n");
+    DWORD i;
+    DWORD dwError = ERROR_SUCCESS;
+
+    DPRINT("PreprocessCommand()\n");
+
+    if ((ppwcArguments == NULL) || (pttTags == NULL) || (pdwTagType == NULL))
+        return ERROR_INVALID_PARAMETER;
+
+    if (((dwArgCount - dwCurrentIndex) < dwMinArgs) || ((dwArgCount - dwCurrentIndex) > dwMaxArgs))
+        return ERROR_INVALID_SYNTAX;
+
+    for (i = 0; i < dwTagCount; i++)
+    {
+        pttTags[i].bPresent = FALSE;
+    }
+
+    if ((dwArgCount - dwCurrentIndex) > 0)
+    {
+        dwError = MatchTagsInCmdLine(hModule,
+                                     ppwcArguments,
+                                     dwCurrentIndex,
+                                     dwArgCount,
+                                     pttTags,
+                                     dwTagCount,
+                                     pdwTagType);
+        if (dwError != ERROR_SUCCESS)
+        {
+            return dwError;
+        }
+    }
+
+    /* Fail, if a required tag is missing */
+    for (i = 0; i < dwTagCount; i++)
+    {
+        if ((pttTags[i].dwRequired & NS_REQ_PRESENT) && (pttTags[i].bPresent == FALSE))
+            return ERROR_INVALID_SYNTAX;
+    }
+
     return 0;
 }
 
@@ -485,8 +643,8 @@ PrintMessageFromModule(
     va_list ap;
 
     va_start(ap, dwMsgId);
-    Length = ConResPrintfExV(StdOut, hModule, dwMsgId,
-                             LANG_USER_DEFAULT, ap);
+    Length = ConResMsgPrintfExV(StdOut, hModule, 0, dwMsgId,
+                                LANG_USER_DEFAULT, &ap);
     va_end(ap);
 
     return (DWORD)Length;

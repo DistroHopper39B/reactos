@@ -56,7 +56,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <ntdddisk.h>
-#include <internal/hal.h>
 #include <drivers/pci/pci.h>
 #include <winerror.h>
 #include <ntstrsafe.h>
@@ -76,12 +75,12 @@
 #include <inifile.h>
 #include <keycodes.h>
 #include <linux.h>
+#include <options.h>
 #include <custom.h>
 #include <miscboot.h>
 #include <machine.h>
 #include <mm.h>
 #include <multiboot.h>
-#include <options.h>
 #include <oslist.h>
 #include <ramdisk.h>
 #include <settings.h>

@@ -13,15 +13,20 @@
 #define WIN32_NO_STATUS
 #include <stdarg.h>
 #include <stdio.h>
-#include <windef.h>
-#include <winbase.h>
-#define _INC_WINDOWS
+#include <windows.h>
+#include <ntstatus.h>
+#include <strsafe.h>
 #include <winsock2.h>
 #include <iphlpapi.h>
 #include <ip2string.h>
-
+#include <iphlpapi_undoc.h>
+#include <netcfgx.h>
+#include <netcfgn.h>
+#include <netcfgx_undoc.h>
+#include <netcfgn_undoc.h>
 
 #include <netsh.h>
+#include <netsh_undoc.h>
 
 extern HINSTANCE hDllInstance;
 

@@ -43,17 +43,18 @@ IntFreeDesktopHeap(IN PDESKTOP pdesk);
 #ifdef _WIN64
 DWORD gdwDesktopSectionSize = 20 * 1024; // 20 MB (Windows 7 style)
 #else
-DWORD gdwDesktopSectionSize = 3 * 1024; // 3 MB (Windows 2003 style)
+DWORD gdwDesktopSectionSize = 3 * 1024;  // 3 MB (Windows 2003 style)
 #endif
 DWORD gdwNOIOSectionSize    = 128;
 DWORD gdwWinlogonSectionSize = 128;
 
-/* Currently active desktop */
-PDESKTOP gpdeskInputDesktop = NULL;
+PDESKTOP gpdeskInputDesktop = NULL;     ///< Currently active desktop.
 HDC ScreenDeviceContext = NULL;
 PTHREADINFO gptiDesktopThread = NULL;
 HCURSOR gDesktopCursor = NULL;
 PKEVENT gpDesktopThreadStartedEvent = NULL;
+PKEVENT gpDesktopSwitchEvent = NULL;    ///< WinSta0_DesktopSwitch legacy (NT 3.5+) event.
+HANDLE ghDesktopSwitchEvent = NULL;     ///< WinSta0_DesktopSwitch handle in the CSRSS process.
 
 /* OBJECT CALLBACKS **********************************************************/
 
@@ -143,7 +144,13 @@ IntDesktopObjectParse(IN PVOID ParseObject,
                             0,
                             0,
                             (PVOID*)&Desktop);
-    if (!NT_SUCCESS(Status)) return Status;
+    if (!NT_SUCCESS(Status))
+        return Status;
+    RtlZeroMemory(Desktop, sizeof(DESKTOP));
+
+    /* Assign the session ID to the desktop */
+    Desktop->dwSessionId = PsGetCurrentProcessSessionId(); // gSessionId
+    ASSERT(Desktop->dwSessionId == WinStaObject->dwSessionId);
 
     /* Assign security to the desktop we have created */
     Status = IntAssignDesktopSecurityOnParse(WinStaObject, Desktop, AccessState);
@@ -941,7 +948,7 @@ IntResolveDesktop(
                                 ExWindowStationObjectType,
                                 UserMode,
                                 NULL,
-                                WINSTA_ACCESS_ALL,
+                                MAXIMUM_ALLOWED,
                                 NULL,
                                 (PHANDLE)&hTempWinSta);
     if (!NT_SUCCESS(Status))
@@ -1185,11 +1192,15 @@ IntResolveDesktop(
         if (bInherit)
             ObjectAttributes->Attributes |= OBJ_INHERIT;
 
+        /* 
+         * A sandboxed process can be denied a piece of DESKTOP_ALL_ACCESS 
+         * on its startup desktop and must still be able to connect to it.
+         */
         Status = ObOpenObjectByName(ObjectAttributes,
                                     ExDesktopObjectType,
                                     UserMode,
                                     NULL,
-                                    DESKTOP_ALL_ACCESS,
+                                    MAXIMUM_ALLOWED,
                                     NULL,
                                     (PHANDLE)&hDesktop);
         if (!NT_SUCCESS(Status))
@@ -1246,8 +1257,8 @@ Quit:
  * Validates the desktop handle.
  *
  * Remarks
- *    If the function succeeds, the handle remains referenced. If the
- *    fucntion fails, last error is set.
+ *    If the function succeeds, the handle remains referenced.
+ *    If the function fails, last error is set.
  */
 
 NTSTATUS FASTCALL
@@ -1399,7 +1410,6 @@ HWND FASTCALL IntGetDesktopWindow(VOID)
     return pdo->DesktopWindow;
 }
 
-// Win: _GetDesktopWindow
 PWND FASTCALL UserGetDesktopWindow(VOID)
 {
     PDESKTOP pdo = IntGetActiveDesktop();
@@ -1423,7 +1433,6 @@ HWND FASTCALL IntGetMessageWindow(VOID)
     return UserHMGetHandle(pdo->spwndMessage);
 }
 
-// Win: _GetMessageWindow
 PWND FASTCALL UserGetMessageWindow(VOID)
 {
     PDESKTOP pdo = IntGetActiveDesktop();
@@ -1452,29 +1461,26 @@ HWND FASTCALL IntGetCurrentThreadDesktopWindow(VOID)
 BOOL FASTCALL
 DesktopWindowProc(PWND Wnd, UINT Msg, WPARAM wParam, LPARAM lParam, LRESULT *lResult)
 {
-    PAINTSTRUCT Ps;
-    ULONG Value;
-    //ERR("DesktopWindowProc\n");
-
     *lResult = 0;
 
     switch (Msg)
     {
         case WM_NCCREATE:
             if (!Wnd->fnid)
-            {
                 Wnd->fnid = FNID_DESKTOP;
-            }
             *lResult = (LRESULT)TRUE;
             return TRUE;
 
         case WM_CREATE:
+        {
+            /* Save process and thread IDs */
+            ULONG Value;
             Value = HandleToULong(PsGetCurrentProcessId());
-            // Save Process ID
             co_UserSetWindowLong(UserHMGetHandle(Wnd), DT_GWL_PROCESSID, Value, FALSE);
             Value = HandleToULong(PsGetCurrentThreadId());
-            // Save Thread ID
             co_UserSetWindowLong(UserHMGetHandle(Wnd), DT_GWL_THREADID, Value, FALSE);
+            __fallthrough;
+        }
         case WM_CLOSE:
             return TRUE;
 
@@ -1484,17 +1490,17 @@ DesktopWindowProc(PWND Wnd, UINT Msg, WPARAM wParam, LPARAM lParam, LRESULT *lRe
 
         case WM_ERASEBKGND:
             IntPaintDesktop((HDC)wParam);
-            *lResult = 1;
+            *lResult = (LRESULT)TRUE;
             return TRUE;
 
         case WM_PAINT:
         {
+            PAINTSTRUCT Ps;
             if (IntBeginPaint(Wnd, &Ps))
-            {
                 IntEndPaint(Wnd, &Ps);
-            }
             return TRUE;
         }
+
         case WM_SYSCOLORCHANGE:
             co_UserRedrawWindow(Wnd, NULL, NULL, RDW_INVALIDATE|RDW_ERASE|RDW_ALLCHILDREN);
             return TRUE;
@@ -1504,9 +1510,7 @@ DesktopWindowProc(PWND Wnd, UINT Msg, WPARAM wParam, LPARAM lParam, LRESULT *lRe
             PCURICON_OBJECT pcurOld, pcurNew;
             pcurNew = UserGetCurIconObject(gDesktopCursor);
             if (!pcurNew)
-            {
                 return TRUE;
-            }
 
             pcurNew->CURSORF_flags |= CURSORF_CURRENT;
             pcurOld = UserSetCursor(pcurNew, FALSE);
@@ -1528,10 +1532,12 @@ DesktopWindowProc(PWND Wnd, UINT Msg, WPARAM wParam, LPARAM lParam, LRESULT *lRe
             }
             break;
         }
+
         default:
             TRACE("DWP calling IDWP Msg %d\n",Msg);
-            //*lResult = IntDefWindowProc(Wnd, Msg, wParam, lParam, FALSE);
+            *lResult = IntDefWindowProc(Wnd, Msg, wParam, lParam, FALSE);
     }
+
     return TRUE; /* We are done. Do not do any callbacks to user mode */
 }
 
@@ -2283,8 +2289,6 @@ UserInitializeDesktop(PDESKTOP pdesk, PUNICODE_STRING DesktopName, PWINSTATION_O
 
     TRACE("UserInitializeDesktop desktop 0x%p with name %wZ\n", pdesk, DesktopName);
 
-    RtlZeroMemory(pdesk, sizeof(DESKTOP));
-
     /* Set desktop size, based on whether the WinSta is interactive or not */
     if (pwinsta == InputWindowStation)
     {
@@ -2491,11 +2495,11 @@ IntCreateDesktop(
         Status = STATUS_UNSUCCESSFUL;
         goto Quit;
     }
+    pWnd->fnid = FNID_DESKTOP;
 
-    pdesk->dwSessionId = PsGetCurrentProcessSessionId();
+    /* Assign the desktop window to the desktop */
     pdesk->DesktopWindow = UserHMGetHandle(pWnd);
     pdesk->pDeskInfo->spwnd = pWnd;
-    pWnd->fnid = FNID_DESKTOP;
 
     ClassName.Buffer = MAKEINTATOM(gpsi->atomSysClass[ICLS_HWNDMESSAGE]);
     ClassName.Length = 0;
@@ -2521,9 +2525,10 @@ IntCreateDesktop(
         Status = STATUS_UNSUCCESSFUL;
         goto Quit;
     }
-
-    pdesk->spwndMessage = pWnd;
     pWnd->fnid = FNID_MESSAGEWND;
+
+    /* Assign the message window to the desktop */
+    pdesk->spwndMessage = pWnd;
 
     /* Now...
        if !(WinStaObject->Flags & WSF_NOIO) is (not set) for desktop input output mode (see wiki)
@@ -2982,14 +2987,14 @@ NtUserSwitchDesktop(HDESK hdesk)
     if (!NT_SUCCESS(Status))
     {
         ERR("Validation of desktop handle 0x%p failed\n", hdesk);
-        goto Exit; // Return FALSE
+        goto Exit;
     }
 
-    if (PsGetCurrentProcessSessionId() != pdesk->rpwinstaParent->dwSessionId)
+    if (PsGetCurrentProcessSessionId() != pdesk->dwSessionId)
     {
         ObDereferenceObject(pdesk);
         ERR("NtUserSwitchDesktop called for a desktop of a different session\n");
-        goto Exit; // Return FALSE
+        goto Exit;
     }
 
     if (pdesk == gpdeskInputDesktop)
@@ -3001,22 +3006,22 @@ NtUserSwitchDesktop(HDESK hdesk)
     }
 
     /*
-     * Don't allow applications switch the desktop if it's locked, unless the caller
-     * is the logon application itself
+     * Don't allow applications switch the desktop if it's locked,
+     * unless the caller is the logon application itself.
      */
     if ((pdesk->rpwinstaParent->Flags & WSS_LOCKED) &&
         gpidLogon != PsGetCurrentProcessId())
     {
         ObDereferenceObject(pdesk);
         ERR("Switching desktop 0x%p denied because the window station is locked!\n", hdesk);
-        goto Exit; // Return FALSE
+        goto Exit;
     }
 
     if (pdesk->rpwinstaParent != InputWindowStation)
     {
         ObDereferenceObject(pdesk);
         ERR("Switching desktop 0x%p denied because desktop doesn't belong to the interactive winsta!\n", hdesk);
-        goto Exit; // Return FALSE
+        goto Exit;
     }
 
     /* FIXME: Fail if the process is associated with a secured
@@ -3037,14 +3042,24 @@ NtUserSwitchDesktop(HDESK hdesk)
         IntHideDesktop(gpdeskInputDesktop);
     }
 
-    /* Set the active desktop in the desktop's window station. */
+    /* Set the active desktop in the desktop's window station */
     InputWindowStation->ActiveDesktop = pdesk;
 
-    /* Set the global state. */
+    /* Set the global state */
     gpdeskInputDesktop = pdesk;
 
     /* Show the new desktop window */
     co_IntShowDesktop(pdesk, UserGetSystemMetrics(SM_CXSCREEN), UserGetSystemMetrics(SM_CYSCREEN), bRedrawDesktop);
+
+    // TODO: Request hard-error popups to be respawned to the new desktop.
+
+    /* Notify waiters that a desktop has been switched on the
+     * interactive window station: pulse the legacy (NT 3.5+)
+     * event and send the desktop-switch notification (Vista+) */
+    KePulseEvent(gpDesktopSwitchEvent, EVENT_INCREMENT, FALSE);
+#if (_WIN32_WINNT >= _WIN32_WINNT_VISTA)
+    IntNotifyWinEvent(EVENT_SYSTEM_DESKTOPSWITCH, NULL, OBJID_WINDOW, CHILDID_SELF, 0);
+#endif
 
     TRACE("SwitchDesktop gpdeskInputDesktop 0x%p\n", gpdeskInputDesktop);
     ObDereferenceObject(pdesk);

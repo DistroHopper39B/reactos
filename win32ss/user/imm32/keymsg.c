@@ -403,7 +403,7 @@ Imm32ProcessRequest(HIMC hIMC, PWND pWnd, DWORD dwCommand, LPVOID pData, BOOL bA
         return 0; /* Out of range */
     }
 
-    dwSize = acbData[bAnsiAPI * 7 + dwCommand - 1];
+    dwSize = (DWORD)acbData[bAnsiAPI * 7 + dwCommand - 1];
     if (pData && IsBadWritePtr(pData, dwSize))
     {
         ERR("\n");
@@ -876,7 +876,7 @@ ImmGenerateMessage(_In_ HIMC hIMC)
 {
     PCLIENTIMC pClientImc;
     LPINPUTCONTEXT pIC;
-    LPTRANSMSG pMsgs, pTrans = NULL, pItem;
+    LPTRANSMSG pMsgs = NULL, pTrans = NULL, pItem;
     HWND hWnd;
     DWORD dwIndex, dwCount, cbTrans;
     HIMCC hMsgBuf = NULL;
@@ -941,7 +941,7 @@ ImmGenerateMessage(_In_ HIMC hIMC)
 
 Quit:
     ImmLocalFree(pTrans);
-    if (hMsgBuf)
+    if (hMsgBuf && pMsgs)
         ImmUnlockIMCC(hMsgBuf);
     pIC->dwNumMsgBuf = 0; /* done */
     ImmUnlockIMC(hIMC);
@@ -1102,14 +1102,9 @@ ImmTranslateMessage(
             if (kret > 0)
             {
                 if ((BYTE)vk == VK_PACKET)
-                {
-                    vk &= 0xFF;
                     vk |= (wChar << 8);
-                }
                 else
-                {
                     vk = MAKEWORD(vk, wChar);
-                }
             }
         }
     }

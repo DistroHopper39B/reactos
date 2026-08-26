@@ -81,6 +81,14 @@ extern "C" {
 #define RTL_RANGE_LIST_ADD_IF_CONFLICT                      0x00000001
 #define RTL_RANGE_LIST_ADD_SHARED                           0x00000002
 
+//
+// Flags for RtlIsRangeAvailable
+//
+// Both are viewable through PCI.sys's behaviors on ROM space and Shared IRQs.
+//
+#define RTL_RANGE_LIST_SHARED_OK                           0x00000001
+#define RTL_RANGE_LIST_NULL_CONFLICT_OK                    0x00000002
+
 #define RTL_RANGE_SHARED                                    0x01
 #define RTL_RANGE_CONFLICT                                  0x02
 
@@ -1575,7 +1583,7 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
     UNICODE_STRING ShellInfo;
     UNICODE_STRING RuntimeData;
     RTL_DRIVE_LETTER_CURDIR CurrentDirectories[RTL_MAX_DRIVE_LETTERS];
-#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+#if (NTDDI_VERSION >= NTDDI_LONGHORN) || defined(__REACTOS__)
     SIZE_T EnvironmentSize;
 #endif
 #if (NTDDI_VERSION >= NTDDI_WIN7)
@@ -1788,7 +1796,7 @@ typedef struct _STACK_TRACE_DATABASE
         PVOID Lock;
 
         /* Padding for ERESOURCE */
-#if defined(_M_AMD64)
+#ifdef _WIN64
         UCHAR Padding[0x68];
 #else
         UCHAR Padding[56];
@@ -1814,9 +1822,7 @@ typedef struct _STACK_TRACE_DATABASE
 
 // Validate that our padding is big enough:
 #ifndef NTOS_MODE_USER
-#if defined(_M_AMD64)
-C_ASSERT(sizeof(ERESOURCE) <= 0x68);
-#elif defined(_M_ARM64)
+#ifdef _WIN64
 C_ASSERT(sizeof(ERESOURCE) <= 0x68);
 #else
 C_ASSERT(sizeof(ERESOURCE) <= 56);

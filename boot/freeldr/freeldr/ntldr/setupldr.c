@@ -231,117 +231,6 @@ SetupLdrScanBootDrivers(
 /* SETUP STARTER **************************************************************/
 
 /*
- * Update the options in the buffer pointed by LoadOptions, of maximum size
- * BufferSize, by first removing any specified options, and then adding any
- * other ones.
- *
- * OptionsToAdd is a NULL-terminated array of string buffer pointers that
- *    specify the options to be added into LoadOptions. Whether they are
- *    prepended or appended to LoadOptions is controlled via the Append
- *    parameter. The options are added in the order specified by the array.
- *
- * OptionsToRemove is a NULL-terminated array of string buffer pointers that
- *    specify the options to remove from LoadOptions. Specifying also there
- *    any options to add, has the effect of removing from LoadOptions any
- *    duplicates of the options to be added, before adding them later into
- *    LoadOptions. The options are removed in the order specified by the array.
- *
- * The options string buffers in the OptionsToRemove array have the format:
- *    "/option1 /option2[=] ..."
- *
- * An option in the OptionsToRemove list with a trailing '=' or ':' designates
- * an option in LoadOptions with user-specific data appended after the sign.
- * When such an option is being removed from LoadOptions, all the appended
- * data is also removed until the next option.
- */
-VOID
-NtLdrUpdateLoadOptions(
-    IN OUT PSTR LoadOptions,
-    IN ULONG BufferSize,
-    IN BOOLEAN Append,
-    IN PCSTR OptionsToAdd[] OPTIONAL,
-    IN PCSTR OptionsToRemove[] OPTIONAL)
-{
-    PCSTR NextOptions, NextOpt;
-    PSTR Options, Option;
-    ULONG NextOptLength;
-    ULONG OptionLength;
-
-    if (!LoadOptions || (BufferSize == 0))
-        return;
-    // ASSERT(strlen(LoadOptions) + 1 <= BufferSize);
-
-    /* Loop over the options to remove */
-    for (; OptionsToRemove && *OptionsToRemove; ++OptionsToRemove)
-    {
-        NextOptions = *OptionsToRemove;
-        while ((NextOpt = NtLdrGetNextOption(&NextOptions, &NextOptLength)))
-        {
-            /* Scan the load options */
-            Options = LoadOptions;
-            while ((Option = (PSTR)NtLdrGetNextOption((PCSTR*)&Options, &OptionLength)))
-            {
-                /*
-                 * Check whether the option to find exactly matches the current
-                 * load option, or is a prefix thereof if this is an option with
-                 * appended data.
-                 */
-                if ((OptionLength >= NextOptLength) &&
-                    (_strnicmp(Option, NextOpt, NextOptLength) == 0))
-                {
-                    if ((OptionLength == NextOptLength) ||
-                        (NextOpt[NextOptLength-1] == '=') ||
-                        (NextOpt[NextOptLength-1] == ':'))
-                    {
-                        /* Eat any skipped option or whitespace separators */
-                        while ((Option > LoadOptions) &&
-                               (Option[-1] == '/' ||
-                                Option[-1] == ' ' ||
-                                Option[-1] == '\t'))
-                        {
-                            --Option;
-                        }
-
-                        /* If the option was not preceded by a whitespace
-                         * separator, insert one and advance the pointer. */
-                        if ((Option > LoadOptions) &&
-                            (Option[-1] != ' ') &&
-                            (Option[-1] != '\t') &&
-                            (*Options != '\0') /* &&
-                            ** Not necessary since NtLdrGetNextOption() **
-                            ** stripped any leading separators.         **
-                            (*Options != ' ') &&
-                            (*Options != '\t') */)
-                        {
-                            *Option++ = ' ';
-                        }
-
-                        /* Move the remaining options back, erasing the current one */
-                        ASSERT(Option <= Options);
-                        RtlMoveMemory(Option,
-                                      Options,
-                                      (strlen(Options) + 1) * sizeof(CHAR));
-
-                        /* Reset the iterator */
-                        Options = Option;
-                    }
-                }
-            }
-        }
-    }
-
-    /* Now loop over the options to add */
-    for (; OptionsToAdd && *OptionsToAdd; ++OptionsToAdd)
-    {
-        NtLdrAddOptions(LoadOptions,
-                        BufferSize,
-                        Append,
-                        *OptionsToAdd);
-    }
-}
-
-
-/*
  * List of options and their corresponding higher priority ones,
  * that are either checked before any other ones, or whose name
  * includes another option name as a subset (e.g. NODEBUG vs. DEBUG).
@@ -514,16 +403,21 @@ LoadReactOSSetup(
 
     static PCSTR SourcePaths[] =
     {
-        "", /* Only for floppy boot */
+        "", /* Keep first to optimize TXTSETUP.SIF search on floppy boot */
 #if defined(_M_IX86)
         "I386\\",
+#elif defined(_M_AMD64)
+        "AMD64\\",
+#elif defined(_M_ARM)
+        "ARM\\",
+#elif defined(_M_ARM64)
+        "ARM64\\",
 #elif defined(_M_MPPC)
         "PPC\\",
 #elif defined(_M_MRX000)
         "MIPS\\",
 #endif
         "reactos\\",
-        NULL
     };
 
     /* Retrieve the (mandatory) boot type */
@@ -624,25 +518,37 @@ LoadReactOSSetup(
     }
 
     /* Check if we booted from floppy */
-    BootFromFloppy = strstr(BootPath, "fdisk") != NULL;
+    BootFromFloppy = !!strstr(BootPath, ")fdisk(");
+    // FIXME: Use for implementing disk tag check when booting using multiple floppies.
+    DBG_UNREFERENCED_LOCAL_VARIABLE(BootFromFloppy);
 
-    /* Open 'txtsetup.sif' from any of the source paths */
+    /* Open 'TXTSETUP.SIF' from any of the source paths */
     FileName = BootPath + strlen(BootPath);
-    for (i = BootFromFloppy ? 0 : 1; ; i++)
+    for (i = 0;; ++i)
     {
-        SystemPath = SourcePaths[i];
-        if (!SystemPath)
+        if (i >= RTL_NUMBER_OF(SourcePaths))
         {
             UiMessageBox("Failed to open txtsetup.sif");
             return ENOENT;
         }
+        SystemPath = SourcePaths[i];
+
+        /* Adjust the tentative BootPath */
         FileNameLength = (ULONG)(sizeof(BootPath) - (FileName - BootPath)*sizeof(CHAR));
         RtlStringCbCopyA(FileName, FileNameLength, SystemPath);
+
+        /* Try to open TXTSETUP.SIF from this BootPath */
         RtlStringCbCopyA(FilePath, sizeof(FilePath), BootPath);
         RtlStringCbCatA(FilePath, sizeof(FilePath), "txtsetup.sif");
         if (InfOpenFile(&InfHandle, FilePath, &ErrorLine))
         {
+            /* Found and opened: TXTSETUP.SIF is in the correct BootPath */
             break;
+        }
+        else
+        {
+            if (ErrorLine != -1)
+                UiMessageBox("Error in %s at line %lu", FilePath, ErrorLine);
         }
     }
 
@@ -658,11 +564,11 @@ LoadReactOSSetup(
         RtlStringCbCopyA(UserBootOptions, sizeof(UserBootOptions), BootOptions);
 
         /* Remove the private switch from the options */
-        NtLdrUpdateLoadOptions(UserBootOptions,
-                               sizeof(UserBootOptions),
-                               FALSE,
-                               NULL,
-                               OptionsToRemove);
+        NtLdrUpdateOptions(UserBootOptions,
+                           sizeof(UserBootOptions),
+                           FALSE,
+                           NULL,
+                           OptionsToRemove);
     }
     else // if (!*BootOptions || NtLdrGetOption(BootOptions, "SIFOPTIONSADD"))
     {
@@ -696,7 +602,7 @@ LoadReactOSSetup(
         }
         /* If none was found, default to enabling debugging */
         if (!DbgLoadOptions)
-            DbgLoadOptions = "/DEBUG";
+            DbgLoadOptions = "DEBUG";
 #if !DBG
         }
 #endif
@@ -720,7 +626,7 @@ LoadReactOSSetup(
              * do not contain explicitly the DEBUG option), since we want
              * to have debugging enabled if possible.
              */
-            OptionsToRemove[0] = "/NODEBUG";
+            OptionsToRemove[0] = "NODEBUG";
             NtLdrGetHigherPriorityOptions(DbgLoadOptions,
                                           &ExtraOptions,
                                           &HigherPriorityOptions);
@@ -734,11 +640,11 @@ LoadReactOSSetup(
              */
             OptionsToAdd[0] = (PSTR)DbgLoadOptions;
             OptionsToRemove[2] = (PSTR)DbgLoadOptions;
-            NtLdrUpdateLoadOptions(UserBootOptions,
-                                   sizeof(UserBootOptions),
-                                   FALSE,
-                                   (PCSTR*)OptionsToAdd,
-                                   (PCSTR*)OptionsToRemove);
+            NtLdrUpdateOptions(UserBootOptions,
+                               sizeof(UserBootOptions),
+                               FALSE,
+                               (PCSTR*)OptionsToAdd,
+                               (PCSTR*)OptionsToRemove);
 
             if (ExtraOptions)
                 FrLdrHeapFree(ExtraOptions, TAG_BOOT_OPTIONS);
@@ -764,11 +670,11 @@ LoadReactOSSetup(
          * take precedence over those from TXTSETUP.SIF. */
         OptionsToAdd[0] = (PSTR)BootOptions;
         OptionsToRemove[1] = (PSTR)BootOptions;
-        NtLdrUpdateLoadOptions(UserBootOptions,
-                               sizeof(UserBootOptions),
-                               FALSE,
-                               (PCSTR*)OptionsToAdd,
-                               (PCSTR*)OptionsToRemove);
+        NtLdrUpdateOptions(UserBootOptions,
+                           sizeof(UserBootOptions),
+                           FALSE,
+                           (PCSTR*)OptionsToAdd,
+                           (PCSTR*)OptionsToRemove);
 
         if (ExtraOptions)
             FrLdrHeapFree(ExtraOptions, TAG_BOOT_OPTIONS);

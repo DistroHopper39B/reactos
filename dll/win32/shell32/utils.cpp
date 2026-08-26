@@ -32,6 +32,88 @@ static PCWSTR StrEndNW(_In_ PCWSTR psz, _In_ INT_PTR cch)
     return pch;
 }
 
+static INT _SHMergePopupMenus(HMENU hMenu, HMENU hPopupMenu, UINT uIDAdjust, UINT uIDAdjustMax)
+{
+    INT maxID = uIDAdjust;
+    const INT itemCount = GetMenuItemCount(hPopupMenu);
+    if (itemCount == -1)
+        return maxID;
+
+    MENUITEMINFOW mii = { sizeof(mii), MIIM_ID | MIIM_SUBMENU };
+    for (INT i = itemCount - 1; i >= 0; --i)
+    {
+        if (!GetMenuItemInfoW(hPopupMenu, i, TRUE, &mii))
+            continue;
+
+        HMENU hTargetSubMenu = SHGetMenuFromID(hMenu, mii.wID);
+        if (!hTargetSubMenu)
+            continue;
+
+        INT currentMax = Shell_MergeMenus(hTargetSubMenu, mii.hSubMenu, 0,
+                                          uIDAdjust, uIDAdjustMax,
+                                          MM_ADDSEPARATOR | MM_SUBMENUSHAVEIDS);
+        maxID = max(maxID, currentMax);
+    }
+
+    return maxID;
+}
+
+static HMENU SHLoadPopupMenu(HINSTANCE hInstance, UINT uMenuId)
+{
+    HMENU hMenu = LoadMenuW(hInstance, MAKEINTRESOURCEW(uMenuId));
+    if (!hMenu)
+        return NULL;
+    HMENU hSubMenu = GetSubMenu(hMenu, 0);
+    RemoveMenu(hMenu, 0, MF_BYPOSITION);
+    DestroyMenu(hMenu);
+    return hSubMenu;
+}
+
+/*************************************************************************
+ * CDefFolderMenu_MergeMenu [SHELL32.702]
+ */
+EXTERN_C
+VOID WINAPI
+CDefFolderMenu_MergeMenu(
+    _In_ HINSTANCE hInstance,
+    _In_ UINT uMainMerge,
+    _In_ UINT uPopupMerge,
+    _Inout_ LPQCMINFO lpQcmInfo)
+{
+    UINT idCmdFirst = lpQcmInfo->idCmdFirst;
+    HMENU hPopupMenu;
+
+    if (uMainMerge)
+    {
+        hPopupMenu = SHLoadPopupMenu(hInstance, uMainMerge);
+        if (hPopupMenu)
+        {
+            enum { uFlags = MM_ADDSEPARATOR | MM_SUBMENUSHAVEIDS | MM_DONTREMOVESEPS };
+            idCmdFirst = Shell_MergeMenus(lpQcmInfo->hmenu,
+                                          hPopupMenu,
+                                          lpQcmInfo->indexMenu,
+                                          lpQcmInfo->idCmdFirst,
+                                          lpQcmInfo->idCmdLast,
+                                          uFlags);
+            DestroyMenu(hPopupMenu);
+        }
+    }
+
+    if (uPopupMerge)
+    {
+        hPopupMenu = LoadMenuW(hInstance, MAKEINTRESOURCEW(uPopupMerge));
+        if (hPopupMenu)
+        {
+            UINT id = _SHMergePopupMenus(lpQcmInfo->hmenu, hPopupMenu,
+                                         lpQcmInfo->idCmdFirst, lpQcmInfo->idCmdLast);
+            idCmdFirst = max(idCmdFirst, id);
+            DestroyMenu(hPopupMenu);
+        }
+    }
+
+    lpQcmInfo->idCmdFirst = idCmdFirst;
+}
+
 /*************************************************************************
  *  StrRStrA [SHELL32.389]
  */
@@ -127,20 +209,6 @@ CStubWindow32::CreateStub(UINT Type, LPCWSTR Path, const POINT *pPt)
     }
     ::SetPropW(*this, GetTypePropName(), ULongToHandle(Type));
     return S_OK;
-}
-
-HRESULT
-SHILClone(
-    _In_opt_ LPCITEMIDLIST pidl,
-    _Outptr_ LPITEMIDLIST *ppidl)
-{
-    if (!pidl)
-    {
-        *ppidl = NULL;
-        return S_OK;
-    }
-    *ppidl = ILClone(pidl);
-    return (*ppidl ? S_OK : E_OUTOFMEMORY);
 }
 
 BOOL PathIsDotOrDotDotW(_In_ LPCWSTR pszPath)
@@ -323,10 +391,10 @@ BOOL Shell_FailForceReturn(_In_ HRESULT hr)
     }
 }
 
-HRESULT
-SHBindToObjectEx(
+SHSTDAPI
+SHBindToObject(
     _In_opt_ IShellFolder *pShellFolder,
-    _In_ LPCITEMIDLIST pidl,
+    _In_ PCUIDLIST_RELATIVE pidl,
     _In_opt_ IBindCtx *pBindCtx,
     _In_ REFIID riid,
     _Out_ void **ppvObj)
@@ -354,16 +422,6 @@ SHBindToObjectEx(
         hr = E_FAIL;
 
     return hr;
-}
-
-EXTERN_C
-HRESULT SHBindToObject(
-    _In_opt_ IShellFolder *psf,
-    _In_ LPCITEMIDLIST pidl,
-    _In_ REFIID riid,
-    _Out_ void **ppvObj)
-{
-    return SHBindToObjectEx(psf, pidl, NULL, riid, ppvObj);
 }
 
 EXTERN_C HRESULT
@@ -472,7 +530,7 @@ SHGetAttributes(_In_ IShellFolder *psf, _In_ LPCITEMIDLIST pidl, _In_ DWORD dwAt
 HRESULT SHELL_GetIDListTarget(_In_ LPCITEMIDLIST pidl, _Out_ PIDLIST_ABSOLUTE *ppidl)
 {
     IShellLink *pSL;
-    HRESULT hr = SHBindToObject(NULL, pidl, IID_PPV_ARG(IShellLink, &pSL));
+    HRESULT hr = SHBindToObject(NULL, pidl, NULL, IID_PPV_ARG(IShellLink, &pSL));
     if (SUCCEEDED(hr))
     {
         hr = pSL->GetIDList(ppidl); // Note: Returns S_FALSE if no target pidl
@@ -2180,6 +2238,84 @@ SHELL32_ReparentAsAliasPidl(
     return (*ppidlNew != NULL);
 }
 
+/*************************************************************************
+ *              SHSetLocalizedName (SHELL32.@)
+ *
+ * https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shsetlocalizedname
+ */
+EXTERN_C
+HRESULT WINAPI
+SHSetLocalizedName(
+    _In_ PCWSTR pszPath,
+    _In_ PCWSTR pszResModule,
+    _In_ INT idsRes)
+{
+    HRESULT hr;
+    IShellFolder *pDesktop = NULL, *pParent = NULL;
+    LPITEMIDLIST pidl = NULL;
+    LPCITEMIDLIST pidlLast;
+    HANDLE hProcessHeap;
+    INT cchShortMax, cchShort, cchName;
+    PWSTR pszShortPath = NULL, pszName = NULL;
+
+    hr = SHCoInitializeAnyApartment();
+    if (FAILED_UNEXPECTEDLY(hr))
+        return hr;
+
+    hr = SHGetDesktopFolder(&pDesktop);
+    if (FAILED_UNEXPECTEDLY(hr))
+        goto Cleanup;
+
+    hr = pDesktop->ParseDisplayName(NULL, NULL, (PWSTR)pszPath, NULL, &pidl, NULL);
+    if (FAILED_UNEXPECTEDLY(hr))
+        goto Cleanup;
+
+    hr = SHBindToParent(pidl, IID_PPV_ARG(IShellFolder, &pParent), &pidlLast);
+    if (FAILED_UNEXPECTEDLY(hr))
+        goto Cleanup;
+
+    hProcessHeap = GetProcessHeap();
+    cchShortMax = lstrlenW(pszResModule) + 1;
+    pszShortPath = (PWSTR)HeapAlloc(hProcessHeap, 0, cchShortMax * sizeof(WCHAR));
+    if (!pszShortPath)
+    {
+        hr = E_OUTOFMEMORY;
+        goto Cleanup;
+    }
+
+    cchShort = GetShortPathNameW(pszResModule, pszShortPath, cchShortMax);
+    if (cchShort)
+        pszResModule = pszShortPath;
+    else
+        cchShort = cchShortMax;
+
+    /* 14 == '@' + ',' + '-' + (digits of max width 10) + NUL */
+    cchName = cchShort + 14;
+    pszName = (PWSTR)HeapAlloc(hProcessHeap, 0, cchName * sizeof(WCHAR));
+    if (!pszName)
+    {
+        hr = E_OUTOFMEMORY;
+        goto Cleanup;
+    }
+
+    wnsprintfW(pszName, cchName, L"@%s,%d", pszResModule, -idsRes);
+    hr = pParent->SetNameOf(NULL, pidlLast, pszName, 0, NULL);
+
+Cleanup:
+    if (pszName)
+        HeapFree(hProcessHeap, 0, pszName);
+    if (pszShortPath)
+        HeapFree(hProcessHeap, 0, pszShortPath);
+    if (pParent)
+        pParent->Release();
+    if (pidl)
+        SHFree(pidl);
+    if (pDesktop)
+        pDesktop->Release();
+    CoUninitialize();
+    return hr;
+}
+
 //! Translate a PIDL to an "alias" PIDL.
 EXTERN_C HRESULT
 SHELL32_AliasTranslatePidl(
@@ -2188,4 +2324,32 @@ SHELL32_AliasTranslatePidl(
     _In_ DWORD dwFlags)
 {
     return SHELL32_ReparentAsAliasPidl(NULL, NULL, pidl, ppidlNew, dwFlags) ? S_OK : E_FAIL;
+}
+
+/*************************************************************************
+ *              LinkWindow_RegisterClass (SHELL32.258)
+ *
+ * https://learn.microsoft.com/en-us/windows/win32/shell/linkwindow-registerclass
+ */
+EXTERN_C BOOL WINAPI LinkWindow_RegisterClass(VOID)
+{
+    INITCOMMONCONTROLSEX iccx = { sizeof(iccx), ICC_LINK_CLASS };
+    InitCommonControlsEx(&iccx);
+
+    WNDCLASSEXW wcx = { sizeof(wcx) };
+    if (!GetClassInfoExW(NULL, L"SysLink", &wcx))
+        return FALSE;
+
+    /* Superclassing! */
+    wcx.lpszClassName = L"Link Window";
+    return RegisterClassExW(&wcx) || (GetLastError() == ERROR_CLASS_ALREADY_EXISTS);
+}
+
+/*************************************************************************
+ *              LinkWindow_UnregisterClass (SHELL32.259)
+ */
+EXTERN_C BOOL WINAPI LinkWindow_UnregisterClass(_In_ DWORD dwUnused)
+{
+    /* Do nothing. This is correct. */
+    return TRUE;
 }

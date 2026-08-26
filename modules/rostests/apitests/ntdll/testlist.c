@@ -82,7 +82,7 @@ extern void func_NtSystemInformation(void);
 extern void func_NtUnloadDriver(void);
 extern void func_NtWriteFile(void);
 extern void func_RtlAllocateHeap(void);
-extern void func_RtlBitmap(void);
+extern void func_RtlBitmapApi(void);
 extern void func_RtlCaptureContext(void);
 extern void func_RtlComputePrivatizedDllName_U(void);
 extern void func_RtlCopyMappedMemory(void);
@@ -105,18 +105,23 @@ extern void func_RtlGetLengthWithoutTrailingPathSeperators(void);
 extern void func_RtlGetLongestNtPathLength(void);
 extern void func_RtlGetNtProductType(void);
 extern void func_RtlGetProcessHeaps(void);
+extern void func_RtlGetProductInfo(void);
 extern void func_RtlGetUnloadEventTrace(void);
 extern void func_RtlHandle(void);
 extern void func_RtlImageDirectoryEntryToData(void);
 extern void func_RtlImageRvaToVa(void);
 extern void func_RtlIntSafe(void);
+extern void func_RtlIsNameInExpression(void);
 extern void func_RtlIsNameLegalDOS8Dot3(void);
 extern void func_RtlLocale(void);
+extern void func_RtlMemIoResource(void);
 extern void func_RtlMemoryStream(void);
 extern void func_RtlMultipleAllocateHeap(void);
 extern void func_RtlNtPathNameToDosPathName(void);
 extern void func_RtlpApplyLengthFunction(void);
 extern void func_RtlpEnsureBufferSize(void);
+extern void func_RtlQueryEnvironmentVariable(void);
+extern void func_RtlQueryEnvironmentVariable_U(void);
 extern void func_RtlQueryTimeZoneInformation(void);
 extern void func_RtlReAllocateHeap(void);
 extern void func_RtlRemovePrivileges(void);
@@ -127,6 +132,7 @@ extern void func_RtlUnicodeToOemN(void);
 extern void func_RtlUnwind(void);
 extern void func_RtlUpcaseUnicodeStringToCountedOemString(void);
 extern void func_RtlValidateUnicodeString(void);
+extern void func_RtlVirtualUnwind(void);
 extern void func_RtlxUnicodeStringToAnsiSize(void);
 extern void func_RtlxUnicodeStringToOemSize(void);
 extern void func_StackOverflow(void);
@@ -216,7 +222,7 @@ const struct test winetest_testlist[] =
     { "NtUnloadDriver",                 func_NtUnloadDriver },
     { "NtWriteFile",                    func_NtWriteFile },
     { "RtlAllocateHeap",                func_RtlAllocateHeap },
-    { "RtlBitmapApi",                   func_RtlBitmap },
+    { "RtlBitmapApi",                   func_RtlBitmapApi },
     { "RtlComputePrivatizedDllName_U",  func_RtlComputePrivatizedDllName_U },
     { "RtlCopyMappedMemory",            func_RtlCopyMappedMemory },
     { "RtlCriticalSection",             func_RtlCriticalSection },
@@ -238,18 +244,23 @@ const struct test winetest_testlist[] =
     { "RtlGetLongestNtPathLength",      func_RtlGetLongestNtPathLength },
     { "RtlGetNtProductType",            func_RtlGetNtProductType },
     { "RtlGetProcessHeaps",             func_RtlGetProcessHeaps },
+    { "RtlGetProductInfo",              func_RtlGetProductInfo },
     { "RtlGetUnloadEventTrace",         func_RtlGetUnloadEventTrace },
     { "RtlHandle",                      func_RtlHandle },
     { "RtlImageDirectoryEntryToData",   func_RtlImageDirectoryEntryToData },
     { "RtlImageRvaToVa",                func_RtlImageRvaToVa },
     { "RtlIntSafe",                     func_RtlIntSafe },
+    { "RtlIsNameInExpression",          func_RtlIsNameInExpression},
     { "RtlIsNameLegalDOS8Dot3",         func_RtlIsNameLegalDOS8Dot3 },
     { "RtlLocale",                      func_RtlLocale },
+    { "RtlMemIoResource",               func_RtlMemIoResource },
     { "RtlMemoryStream",                func_RtlMemoryStream },
     { "RtlMultipleAllocateHeap",        func_RtlMultipleAllocateHeap },
     { "RtlNtPathNameToDosPathName",     func_RtlNtPathNameToDosPathName },
     { "RtlpApplyLengthFunction",        func_RtlpApplyLengthFunction },
     { "RtlpEnsureBufferSize",           func_RtlpEnsureBufferSize },
+    { "RtlQueryEnvironmentVariable",    func_RtlQueryEnvironmentVariable },
+    { "RtlQueryEnvironmentVariable_U",  func_RtlQueryEnvironmentVariable_U },
     { "RtlQueryTimeZoneInformation",    func_RtlQueryTimeZoneInformation },
     { "RtlReAllocateHeap",              func_RtlReAllocateHeap },
     { "RtlRemovePrivileges",            func_RtlRemovePrivileges },
@@ -269,6 +280,7 @@ const struct test winetest_testlist[] =
 #endif
 #ifdef _M_AMD64
     { "RtlCaptureContext",              func_RtlCaptureContext },
+    { "RtlVirtualUnwind",               func_RtlVirtualUnwind },
 #endif
 
     { 0, 0 }

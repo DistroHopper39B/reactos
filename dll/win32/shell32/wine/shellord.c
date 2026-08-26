@@ -246,6 +246,8 @@ VOID WINAPI SHGetSetSettings(LPSHELLSTATE lpss, DWORD dwMask, BOOL bSet)
 
 #define SSF_STRUCTONLY (SSF_NOCONFIRMRECYCLE | SSF_DOUBLECLICKINWEBVIEW | SSF_DESKTOPHTML | \
                         SSF_WIN95CLASSIC | SSF_SORTCOLUMNS | SSF_STARTPANELON)
+#define SSF_ALL (0x07FFFFFF & ~0x40)
+#define SSF_IMPLEMENTED ((SSF_ALL) & ~(SSF_SERVERADMINUI)) // SERVERADMINUI is written by Explorer and read by IsOS()
 #define SHGSS_GetSetStruct(getsetmacro) \
     do { \
         getsetmacro(fNoConfirmRecycle, SSF_NOCONFIRMRECYCLE); \
@@ -278,11 +280,12 @@ VOID WINAPI SHGetSetSettings(LPSHELLSTATE lpss, DWORD dwMask, BOOL bSet)
 
     if (bSet)
     {
-        DWORD changed = 0;
-        if (dwMask & ~g_CachedSSF)
+        DWORD changed = 0, notcached = ~g_CachedSSF & SSF_IMPLEMENTED;
+        if (notcached & ~dwMask)
         {
+            // All entries in gpss have to be initialized (except the item we are about to set) because we are about to write the whole struct to the registry
             SHELLSTATE tempstate;
-            SHGetSetSettings(&tempstate, dwMask, FALSE); // Read entries that are not in g_CachedSSF
+            SHGetSetSettings(&tempstate, notcached & ~dwMask, FALSE); // Read entries that are not in gpss/g_CachedSSF
         }
 
 #define SHGSS_WriteAdv(name, value, SSF) \
@@ -379,6 +382,10 @@ VOID WINAPI SHGetSetSettings(LPSHELLSTATE lpss, DWORD dwMask, BOOL bSet)
                 SHELL32_GetDefaultShellState(gpss);
                 read = 0; // The advanced items we read are no longer valid in gpss
                 g_CachedSSF = SSF_STRUCTONLY;
+                /* HACKFIX: This should not be needed. Defaults should be used
+                 * until an override option is selected. See CORE-20585. */
+                rss.ss = *gpss;
+                SHELL32_WriteRegShellState(&rss);
             }
         }
         SHGSS_GetSetStruct(SHGSS_GetField); // Copy requested items from gpss to output
@@ -1659,9 +1666,10 @@ HRESULT WINAPI SHWinHelp(HWND hwnd, LPCWSTR pszHelp, UINT uCommand, ULONG_PTR dw
  *  SHRunControlPanel [SHELL32.161]
  *
  */
-BOOL WINAPI SHRunControlPanel (_In_ LPCWSTR commandLine, _In_opt_ HWND parent)
-{
 #ifdef __REACTOS__
+EXTERN_C BOOL WINAPI
+SHELL32_RunControlPanel(_In_ PCWSTR commandLine, _In_opt_ HWND parent)
+{
     /*
      * TODO: Run in-process when possible, using
      * HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel\InProcCPLs
@@ -1674,10 +1682,22 @@ BOOL WINAPI SHRunControlPanel (_In_ LPCWSTR commandLine, _In_opt_ HWND parent)
      * in order to keep control panel elements launch commands.
      */
     WCHAR parameters[MAX_PATH] = L"shell32.dll,Control_RunDLL ";
-    TRACE("(%s, %p)n", debugstr_w(commandLine), parent);
+    if (!commandLine)
+        return FALSE;
     wcscat(parameters, commandLine);
-
     return ((INT_PTR)ShellExecuteW(parent, L"open", L"rundll32.exe", parameters, NULL, SW_SHOWNORMAL) > 32);
+}
+#endif
+
+BOOL WINAPI SHRunControlPanel(_In_ LPCWSTR commandLine, _In_opt_ HWND parent)
+{
+#ifdef __REACTOS__
+    TRACE("(%s, %p)n", debugstr_w(commandLine), parent);
+    /* MSDN indicates that ROS should have a version check here but Vista+ just forwards to SHUNIMPL
+    if (LOBYTE(GetVersion()) >= 6)
+        return FALSE;
+    */
+    return SHELL32_RunControlPanel(commandLine, parent);
 #else
 	FIXME("(%s, %p): stub\n", debugstr_w(commandLine), parent);
 	return FALSE;
@@ -2495,27 +2515,88 @@ BOOL WINAPI SHFindFiles( PCIDLIST_ABSOLUTE pidlFolder, PCIDLIST_ABSOLUTE pidlSav
  *  uFlags can be one or more of the following flags:
  *  GIL_NOTFILENAME - pszHashItem is not a file name.
  *  GIL_SIMULATEDOC - Create a document icon using the specified icon.
+#ifdef __REACTOS__
+ * https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shupdateimagew
+#endif
  */
 void WINAPI SHUpdateImageW(LPCWSTR pszHashItem, int iIndex, UINT uFlags, int iImageIndex)
 {
+#ifdef __REACTOS__
+    // If iImageIndex == -1 (undetermined), it will fall back to the default value of 1.
+    INT iEffectiveImageIndex = (iImageIndex == -1) ? 1 : iImageIndex;
+
+    SHCNF_UPDATEIMAGE_DATA_1 item1;
+    item1.cbSize      = sizeof(item1);
+    item1.iIndex      = iIndex;
+    item1.iEffective  = iEffectiveImageIndex;
+    item1.uFlags      = uFlags;
+    item1.iEffective2 = iEffectiveImageIndex;
+    item1.terminator  = 0;
+
+    SHCNF_UPDATEIMAGE_DATA_2 item2;
+
+    LPWSTR pEnd = StrCpyNXW(item2.szHashItem, pszHashItem, _countof(item2.szHashItem));
+    *pEnd = UNICODE_NULL;
+
+    item2.cbOffset             = (WORD)((PBYTE)pEnd - (PBYTE)&item2);
+    item2.iIndex               = iIndex;
+    item2.iEffectiveImageIndex = iEffectiveImageIndex;
+    item2.uFlags               = uFlags;
+    item2.dwProcessId          = GetCurrentProcessId();
+    item2.terminator           = 0;
+
+    SHChangeNotify(SHCNE_UPDATEIMAGE, SHCNF_IDLIST, &item1, &item2);
+#else
     FIXME("%s, %d, 0x%x, %d - stub\n", debugstr_w(pszHashItem), iIndex, uFlags, iImageIndex);
+#endif
 }
 
 /*************************************************************************
  *		SHUpdateImageA (SHELL32.191)
  *
  * See SHUpdateImageW.
+#ifdef __REACTOS__
+ * https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shupdateimagea
+#endif
  */
 VOID WINAPI SHUpdateImageA(LPCSTR pszHashItem, INT iIndex, UINT uFlags, INT iImageIndex)
 {
+#ifdef __REACTOS__
+    WCHAR szHashItem[MAX_PATH];
+    SHAnsiToUnicode(pszHashItem, szHashItem, _countof(szHashItem));
+    SHUpdateImageW(szHashItem, iIndex, uFlags, iImageIndex);
+#else
     FIXME("%s, %d, 0x%x, %d - stub\n", debugstr_a(pszHashItem), iIndex, uFlags, iImageIndex);
+#endif
 }
 
+#ifdef __REACTOS__
+/**
+ * Upon receiving the SHCNE_UPDATEIMAGE notification, this function returns the
+ * corresponding icon index in its system image list.
+ * https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shhandleupdateimage
+ */
+#endif
 INT WINAPI SHHandleUpdateImage(PCIDLIST_ABSOLUTE pidlExtra)
 {
+#ifdef __REACTOS__
+    if (!pidlExtra)
+        return -1;
+
+    UNALIGNED const SHCNF_UPDATEIMAGE_DATA_2* pData =
+        (UNALIGNED const SHCNF_UPDATEIMAGE_DATA_2*)pidlExtra;
+    if (pData->dwProcessId == GetCurrentProcessId())
+        return pData->iEffectiveImageIndex;
+
+    WCHAR szHashItem[MAX_PATH];
+    StrCpyNW(szHashItem, pData->szHashItem, _countof(szHashItem));
+
+    return SHLookupIconIndexW(szHashItem, pData->iIndex, pData->uFlags);
+#else
     FIXME("%p - stub\n", pidlExtra);
 
     return -1;
+#endif
 }
 
 BOOL WINAPI SHObjectProperties(HWND hwnd, DWORD dwType, LPCWSTR szObject, LPCWSTR szPage)
@@ -2620,6 +2701,8 @@ HRESULT WINAPI SHStartNetConnectionDialog(HWND hwnd, LPCSTR pszRemoteName, DWORD
     return S_OK;
 #endif
 }
+
+#ifndef __REACTOS__ /* See ../utils.cpp */
 /*************************************************************************
  *              SHSetLocalizedName (SHELL32.@)
  */
@@ -2629,7 +2712,9 @@ HRESULT WINAPI SHSetLocalizedName(LPCWSTR pszPath, LPCWSTR pszResModule, int ids
 
     return S_OK;
 }
+#endif
 
+#ifndef __REACTOS__ // See ../utils.cpp
 /*************************************************************************
  *              LinkWindow_RegisterClass (SHELL32.258)
  */
@@ -2647,6 +2732,7 @@ BOOL WINAPI LinkWindow_UnregisterClass(DWORD dwUnused)
     FIXME("()\n");
     return TRUE;
 }
+#endif
 
 /*************************************************************************
  *              SHFlushSFCache (SHELL32.526)

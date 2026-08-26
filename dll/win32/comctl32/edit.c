@@ -3991,8 +3991,13 @@ static LRESULT  EDIT_WM_StyleChanged ( EDITSTATE *es, WPARAM which, const STYLES
                 /* Only a subset of changes can be applied after the control
                  * has been created.
                  */
+#ifdef __REACTOS__
+                style_change_mask = ES_UPPERCASE | ES_LOWERCASE |
+                                    ES_NUMBER | ES_LEFT | ES_RIGHT | ES_CENTER;
+#else
                 style_change_mask = ES_UPPERCASE | ES_LOWERCASE |
                                     ES_NUMBER;
+#endif
                 if (es->style & ES_MULTILINE)
                         style_change_mask |= ES_WANTRETURN;
 
@@ -5142,7 +5147,22 @@ static LRESULT CALLBACK EDIT_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
         break;
 
     case WM_VSCROLL:
+#ifdef __REACTOS__
+    {
+        SCROLLINFO si;
+
+        si.cbSize = sizeof(si);
+        si.fMask = SIF_TRACKPOS;
+        if (!GetScrollInfo(hwnd, SB_VERT, &si))
+        {
+            result = 1;
+            break;
+        }
+        result = EDIT_WM_VScroll(es, LOWORD(wParam), si.nTrackPos);
+    }
+#else
         result = EDIT_WM_VScroll(es, LOWORD(wParam), (short)HIWORD(wParam));
+#endif
         break;
 
     case WM_MOUSEWHEEL:

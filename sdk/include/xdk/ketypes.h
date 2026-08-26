@@ -91,10 +91,10 @@ typedef enum _LOGICAL_PROCESSOR_RELATIONSHIP {
 } LOGICAL_PROCESSOR_RELATIONSHIP;
 
 typedef struct _PROCESSOR_RELATIONSHIP {
-  UCHAR Flags;
-  UCHAR EfficiencyClass;
-  UCHAR Reserved[20];
-  USHORT GroupCount;
+  $UCHAR Flags;
+  $UCHAR EfficiencyClass;
+  $UCHAR Reserved[20];
+  $USHORT GroupCount;
   _Field_size_(GroupCount) GROUP_AFFINITY GroupMask[ANYSIZE_ARRAY];
 } PROCESSOR_RELATIONSHIP, *PPROCESSOR_RELATIONSHIP;
 
@@ -501,6 +501,22 @@ typedef enum _KWAIT_REASON {
   WrFastMutex,
   WrGuardedMutex,
   WrRundown,
+#if (NTDDI_VERSION >= NTDDI_WIN8)
+  WrAlertByThreadId,
+  WrDeferredPreempt,
+#endif
+#if (NTDDI_VERSION >= NTDDI_WIN10_RS3)
+  WrPhysicalFault,
+#endif
+#if (NTDDI_VERSION >= NTDDI_WIN11)
+  WrIoRing,
+#endif
+#if (NTDDI_VERSION >= NTDDI_WIN11_NI)
+  WrMdlCache,
+#endif
+#if (NTDDI_VERSION >= NTDDI_WIN11_GE)
+  WrRcu,
+#endif
   MaximumWaitReason
 } KWAIT_REASON;
 

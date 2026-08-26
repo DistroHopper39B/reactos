@@ -296,6 +296,10 @@ char * WINAPI StrDupA(const char *str)
 
     TRACE("%s\n", wine_dbgstr_a(str));
 
+#ifdef __REACTOS__
+    if (!str)
+        return NULL;
+#endif
     len = str ? strlen(str) + 1 : 1;
     ret = LocalAlloc(LMEM_FIXED, len);
 
@@ -317,6 +321,10 @@ WCHAR * WINAPI StrDupW(const WCHAR *str)
 
     TRACE("%s\n", wine_dbgstr_w(str));
 
+#ifdef __REACTOS__
+    if (!str)
+        return NULL;
+#endif
     len = (str ? lstrlenW(str) + 1 : 1) * sizeof(WCHAR);
     ret = LocalAlloc(LMEM_FIXED, len);
 
@@ -861,7 +869,14 @@ BOOL WINAPI StrToInt64ExA(const char *str, DWORD flags, LONGLONG *ret)
         str += 2;
 
         if (!isxdigit(*str))
+#ifdef __REACTOS__
+        {
+            *ret = 0;
             return FALSE;
+        }
+#else
+            return FALSE;
+#endif
 
         while (isxdigit(*str))
         {
@@ -881,7 +896,14 @@ BOOL WINAPI StrToInt64ExA(const char *str, DWORD flags, LONGLONG *ret)
 
     /* Read decimal number */
     if (*str < '0' || *str > '9')
+#ifdef __REACTOS__
+    {
+        *ret = 0;
         return FALSE;
+    }
+#else
+        return FALSE;
+#endif
 
     while (*str >= '0' && *str <= '9')
     {
@@ -924,7 +946,14 @@ BOOL WINAPI StrToInt64ExW(const WCHAR *str, DWORD flags, LONGLONG *ret)
         str += 2;
 
         if (!isxdigit(*str))
+#ifdef __REACTOS__
+        {
+            *ret = 0;
             return FALSE;
+        }
+#else
+            return FALSE;
+#endif
 
         while (isxdigit(*str))
         {
@@ -944,7 +973,14 @@ BOOL WINAPI StrToInt64ExW(const WCHAR *str, DWORD flags, LONGLONG *ret)
 
     /* Read decimal number */
     if (*str < '0' || *str > '9')
+#ifdef __REACTOS__
+    {
+        *ret = 0;
         return FALSE;
+    }
+#else
+        return FALSE;
+#endif
 
     while (*str >= '0' && *str <= '9')
     {
@@ -965,7 +1001,11 @@ BOOL WINAPI StrToIntExA(const char *str, DWORD flags, INT *ret)
     TRACE("%s, %#lx, %p\n", wine_dbgstr_a(str), flags, ret);
 
     res = StrToInt64ExA(str, flags, &value);
+#ifdef __REACTOS__
+    if (ret) *ret = res ? (INT)value : 0;
+#else
     if (res) *ret = value;
+#endif
     return res;
 }
 
@@ -977,7 +1017,11 @@ BOOL WINAPI StrToIntExW(const WCHAR *str, DWORD flags, INT *ret)
     TRACE("%s, %#lx, %p\n", wine_dbgstr_w(str), flags, ret);
 
     res = StrToInt64ExW(str, flags, &value);
+#ifdef __REACTOS__
+    if (ret) *ret = res ? (INT)value : 0;
+#else
     if (res) *ret = value;
+#endif
     return res;
 }
 
@@ -1457,6 +1501,9 @@ HRESULT WINAPI SHLoadIndirectString(const WCHAR *src, WCHAR *dst, UINT dst_len, 
     WCHAR *dllname = NULL;
     HMODULE hmod = NULL;
     HRESULT hr = E_FAIL;
+#ifdef __REACTOS__
+    WCHAR szExpanded[512];
+#endif
 
     TRACE("%s, %p, %#x, %p\n", debugstr_w(src), dst, dst_len, reserved);
 
@@ -1465,6 +1512,13 @@ HRESULT WINAPI SHLoadIndirectString(const WCHAR *src, WCHAR *dst, UINT dst_len, 
         WCHAR *index_str;
         int index;
 
+#ifdef __REACTOS__
+        if (wcschr(src, '%') != NULL)
+        {
+            ExpandEnvironmentStringsW(src, szExpanded, ARRAY_SIZE(szExpanded));
+            src = szExpanded;
+        }
+#endif
         dst[0] = 0;
         dllname = StrDupW(src + 1);
         index_str = wcschr(dllname, ',');
@@ -1475,7 +1529,11 @@ HRESULT WINAPI SHLoadIndirectString(const WCHAR *src, WCHAR *dst, UINT dst_len, 
         index_str++;
         index = wcstol(index_str, NULL, 10);
 
+#ifdef __REACTOS__
+        hmod = LoadLibraryExW(dllname, NULL, LOAD_LIBRARY_AS_DATAFILE);
+#else
         hmod = LoadLibraryW(dllname);
+#endif
         if (!hmod) goto end;
 
         if (index < 0)

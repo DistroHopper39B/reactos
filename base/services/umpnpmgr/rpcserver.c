@@ -791,7 +791,7 @@ PNP_ReportLogOn(
            hBinding, Admin, ProcessId);
 
     /* Fail, if the caller is not an interactive user */
-    if ((g_IsLiveMedium == FALSE) && (IsCallerInteractive(hBinding) == FALSE))
+    if ((g_IsMiniNT == FALSE) && (IsCallerInteractive(hBinding) == FALSE))
         goto cleanup;
 
     /* Get the users token */
@@ -3266,8 +3266,8 @@ GenerateDeviceID(
         if (dwInstanceNumber >= 10000)
             return CR_FAILURE;
 
-        swprintf(szGeneratedInstance, L"Root\\%ls\\%04lu",
-                 pszDeviceID, dwInstanceNumber);
+        _swprintf(szGeneratedInstance, L"Root\\%ls\\%04lu",
+                  pszDeviceID, dwInstanceNumber);
 
         /* Try to open the enum key of the device instance */
         dwError = RegOpenKeyEx(hEnumKey, szGeneratedInstance, 0, KEY_QUERY_VALUE, &hKey);
@@ -4142,9 +4142,9 @@ PNP_HwProfFlags(
     }
     else
     {
-        swprintf(szKeyName,
-                 L"System\\CurrentControlSet\\HardwareProfiles\\%04lu\\System\\CurrentControlSet\\Enum",
-                 ulConfig);
+        _swprintf(szKeyName,
+                  L"System\\CurrentControlSet\\HardwareProfiles\\%04lu\\System\\CurrentControlSet\\Enum",
+                  ulConfig);
     }
 
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
@@ -4156,29 +4156,29 @@ PNP_HwProfFlags(
 
     if (ulAction == PNP_GET_HWPROFFLAGS)
     {
-         if (RegOpenKeyExW(hKey,
-                           pDeviceID,
-                           0,
-                           KEY_QUERY_VALUE,
-                           &hDeviceKey) != ERROR_SUCCESS)
-         {
-            *pulValue = 0;
-         }
-         else
-         {
-             dwSize = sizeof(DWORD);
-             if (RegQueryValueExW(hDeviceKey,
-                                  L"CSConfigFlags",
-                                  NULL,
-                                  NULL,
-                                  (LPBYTE)pulValue,
-                                  &dwSize) != ERROR_SUCCESS)
-             {
-                 *pulValue = 0;
-             }
+        if (RegOpenKeyExW(hKey,
+                          pDeviceID,
+                          0,
+                          KEY_QUERY_VALUE,
+                          &hDeviceKey) != ERROR_SUCCESS)
+        {
+           *pulValue = 0;
+        }
+        else
+        {
+            dwSize = sizeof(DWORD);
+            if (RegQueryValueExW(hDeviceKey,
+                                 L"CSConfigFlags",
+                                 NULL,
+                                 NULL,
+                                 (LPBYTE)pulValue,
+                                 &dwSize) != ERROR_SUCCESS)
+            {
+                *pulValue = 0;
+            }
 
-             RegCloseKey(hDeviceKey);
-         }
+            RegCloseKey(hDeviceKey);
+        }
     }
     else if (ulAction == PNP_SET_HWPROFFLAGS)
     {
@@ -4287,7 +4287,7 @@ PNP_GetHwProfInfo(
         goto done;
     }
 
-    swprintf(szProfileName, L"%04lu", pHWProfileInfo->HWPI_ulHWProfile);
+    _swprintf(szProfileName, L"%04lu", pHWProfileInfo->HWPI_ulHWProfile);
 
     lError = RegOpenKeyExW(hKeyProfiles,
                            szProfileName,
@@ -4655,7 +4655,9 @@ PNP_FreeLogConf(
     }
     else if (RegDataType == REG_RESOURCE_REQUIREMENTS_LIST)
     {
-        if (((PIO_RESOURCE_REQUIREMENTS_LIST)pDataBuffer)->AlternativeLists <= 1)
+        PIO_RESOURCE_REQUIREMENTS_LIST pRequirementsList = (PIO_RESOURCE_REQUIREMENTS_LIST)pDataBuffer;
+
+        if (pRequirementsList->AlternativeLists <= 1)
         {
             /* Delete the key if there is only one or no configuration in the key */
             DPRINT("Delete value %S\n", szValueNameBuffer);
@@ -4663,7 +4665,53 @@ PNP_FreeLogConf(
         }
         else
         {
-            /* FIXME */
+            PIO_RESOURCE_LIST pResourceList = NULL, pNextResourceList = NULL;
+            ULONG ulIndex, ulMoveSize;
+            DWORD dwError;
+
+            /* Fail if we try to delete an entry outside of our requirements list */
+            if (ulLogConfTag >= pRequirementsList->AlternativeLists)
+            {
+                ret = CR_INVALID_LOG_CONF;
+                goto done;
+            }
+
+            /* Get a pointer to the resource list to be deleted */
+            pResourceList = (PIO_RESOURCE_LIST)(&pRequirementsList->List[0]);
+            for (ulIndex = 0; ulIndex < ulLogConfTag; ulIndex++)
+                pResourceList = NextResourceRequirement(pResourceList);
+
+            /* Delete the resource list */
+            if (ulLogConfTag == pRequirementsList->AlternativeLists - 1)
+            {
+                /* Delete the last resource descriptor */
+                ulDataSize = (ULONG)((ULONG_PTR)pResourceList - (ULONG_PTR)pRequirementsList);
+            }
+            else
+            {
+                pNextResourceList = NextResourceRequirement(pResourceList);
+
+                ulMoveSize = ulDataSize - (DWORD)((ULONG_PTR)pNextResourceList - (ULONG_PTR)pRequirementsList);
+                MoveMemory(pResourceList, pNextResourceList, ulMoveSize);
+
+                ulDataSize -= (DWORD)((ULONG_PTR)pNextResourceList - (ULONG_PTR)pResourceList);
+            }
+
+            pRequirementsList->AlternativeLists--;
+            pRequirementsList->ListSize = ulDataSize;
+
+            /* Store the new configuration */
+            dwError = RegSetValueEx(hConfigKey,
+                                    szValueNameBuffer,
+                                    0,
+                                    RegDataType,
+                                    pDataBuffer,
+                                    ulDataSize);
+            if (dwError != ERROR_SUCCESS)
+            {
+                ret = CR_REGISTRY_ERROR;
+                goto done;
+            }
         }
     }
     else

@@ -9,7 +9,7 @@ include_directories(${REACTOS_SOURCE_DIR}/win32ss/include ../gditools)
 list(APPEND SOURCE
     ntdd/NtGdiDdCreateDirectDrawObject.c
     ntdd/NtGdiDdDeleteDirectDrawObject.c
-    ntdd/NtGdiDdQueryDirectDrawObject.c
+    #ntdd/NtGdiDdQueryDirectDrawObject.c
 
     ntgdi/NtGdiArcInternal.c
     ntgdi/NtGdiBitBlt.c
@@ -53,6 +53,7 @@ list(APPEND SOURCE
 #    ntuser/NtUserCallHwndParamLock.c
 #    ntuser/NtUserCallNoParam.c
 #    ntuser/NtUserCallOneParam.c
+    ntuser/NtUserConvertMemHandle.c
     ntuser/NtUserCountClipboardFormats.c
     ntuser/NtUserCreateAcceleratorTable.c
     ntuser/NtUserCreateWindowEx.c
@@ -68,6 +69,7 @@ list(APPEND SOURCE
     ntuser/NtUserGetTitleBarInfo.c
     ntuser/NtUserProcessConnect.c
     ntuser/NtUserRedrawWindow.c
+    ntuser/NtUserSBGetParms.c
     ntuser/NtUserScrollDC.c
     ntuser/NtUserSelectPalette.c
     ntuser/NtUserSetTimer.c

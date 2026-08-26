@@ -73,9 +73,101 @@ ShutdownRpc(VOID)
     RpcMgmtStopServerListening(NULL);
 }
 
+static
+PBYTE
+GetVendorOption(
+    _In_ PBYTE Data,
+    _In_ ULONG Length,
+    _In_ ULONG OptionId)
+{
+    DWORD Offset, OptionLength;
+    PBYTE Ptr;
+
+    Ptr = Data;
+    Offset = 0;
+    while (Offset < Length)
+    {
+        if ((DWORD)*Ptr == OptionId)
+            return Ptr;
+
+        OptionLength = (DWORD)*(Ptr + 1);
+        Offset += (OptionLength + 2);
+        Ptr += (OptionLength + 2);
+    }
+
+    return NULL;
+}
+
 /* This represents the service portion of the DHCP client API */
 
 /* Function 0 */
+DWORD
+__stdcall
+Server_EnableDhcp(
+    _In_ PDHCP_SERVER_NAME ServerName,
+    _In_ LPWSTR AdapterName,
+    _In_ BOOL Enable)
+{
+    PDHCP_ADAPTER Adapter;
+    struct protocol* proto;
+    DWORD ret = ERROR_SUCCESS;
+
+    DPRINT1("Server_EnableDhcp(%S %u)\n", AdapterName, Enable);
+
+    ApiLock();
+
+    Adapter = AdapterFindName(AdapterName);
+    if (Adapter == NULL)
+    {
+        ret = ERROR_FILE_NOT_FOUND;
+        goto done;
+    }
+
+    DPRINT1("Adapter: %p\n", Adapter);
+
+    if (Enable)
+    {
+        DPRINT1("Enable DHCP for Adapter: %p\n", Adapter);
+
+        if (Adapter->DhclientState.state != S_STATIC)
+        {
+            DPRINT1("The Adapter is already enabled!\n");
+            goto done;
+        }
+
+        add_protocol(Adapter->DhclientInfo.name,
+                     Adapter->DhclientInfo.rfdesc, got_one,
+                     &Adapter->DhclientInfo);
+
+        Adapter->DhclientInfo.client->state = S_INIT;
+        state_reboot(&Adapter->DhclientInfo);
+    }
+    else
+    {
+        DPRINT1("Disable DHCP for Adapter: %p\n", Adapter);
+
+        if (Adapter->DhclientState.state == S_STATIC)
+        {
+            DPRINT1("The Adapter is already disabled!\n");
+            goto done;
+        }
+
+        Adapter->DhclientState.state = S_STATIC;
+        proto = find_protocol_by_adapter(&Adapter->DhclientInfo);
+        if (proto)
+            remove_protocol(proto);
+    }
+
+    if (hAdapterStateChangedEvent != NULL)
+        SetEvent(hAdapterStateChangedEvent);
+
+done:
+    ApiUnlock();
+
+    return ret;
+}
+
+/* Function 1 */
 DWORD
 __stdcall
 Server_AcquireParameters(
@@ -119,8 +211,18 @@ done:
     return ret;
 }
 
+/* Function 2 */
+DWORD
+__stdcall
+Server_AcquireParametersByBroadcast(
+    _In_ PDHCP_SERVER_NAME ServerName,
+    _In_ LPWSTR AdapterName)
+{
+    DPRINT1("Server_AcquireParametersByBroadcast(%S) is unimplemented!\n", AdapterName);
+    return ERROR_SUCCESS;
+}
 
-/* Function 1 */
+/* Function 3 */
 DWORD
 __stdcall
 Server_ReleaseParameters(
@@ -159,7 +261,7 @@ done:
     return ret;
 }
 
-/* Function 2 */
+/* Function 4 */
 DWORD
 __stdcall
 Server_FallbackRefreshParams(
@@ -202,43 +304,8 @@ done:
     return ret;
 }
 
-/* Function 3 */
-DWORD
-__stdcall
-Server_QueryHWInfo(
-    _In_ PDHCP_SERVER_NAME ServerName,
-    _In_ DWORD AdapterIndex,
-    _Out_ PDWORD MediaType,
-    _Out_ PDWORD Mtu,
-    _Out_ PDWORD Speed)
-{
-    PDHCP_ADAPTER Adapter;
-    DWORD ret = ERROR_SUCCESS;
 
-    DPRINT("Server_QueryHWInfo()\n");
-
-    ApiLock();
-
-    Adapter = AdapterFindIndex(AdapterIndex);
-    if (Adapter == NULL)
-    {
-        ret = ERROR_FILE_NOT_FOUND;
-        goto done;
-    }
-
-    DPRINT("Adapter: %p\n", Adapter);
-
-    *MediaType = Adapter->IfMib.dwType;
-    *Mtu = Adapter->IfMib.dwMtu;
-    *Speed = Adapter->IfMib.dwSpeed;
-
-done:
-    ApiUnlock();
-
-    return ret;
-}
-
-/* Function 4 */
+/* Function 5 */
 DWORD
 __stdcall
 Server_StaticRefreshParams(
@@ -295,7 +362,7 @@ done:
     return ret;
 }
 
-/* Function 5 */
+/* Function 6 */
 DWORD
 __stdcall
 Server_RemoveDNSRegistrations(
@@ -304,4 +371,194 @@ Server_RemoveDNSRegistrations(
     DPRINT1("Server_RemoveDNSRegistrations()\n");
     /* FIXME: Call dnsapi.DnsRemoveRegistrations() */
     return ERROR_SUCCESS;
+}
+
+/* Function 7 */
+DWORD
+__stdcall
+Server_RequestParams(
+    _In_ PDHCP_SERVER_NAME ServerName,
+    _In_ LPWSTR AdapterName,
+    _In_ DHCPCAPI_CLASSID *ClassId,
+    _In_ DHCPCAPI_PARAMS_ARRAY *SendParams,
+    _In_ DHCPCAPI_PARAMS_ARRAY *RecdParams,
+    _Inout_ LPDHCPCAPI_RESULT_ARRAY *RecdResults)
+{
+    PDHCP_ADAPTER Adapter;
+    DHCPCAPI_RESULT_ARRAY *Results = NULL;
+    DWORD i, dwReturnCount, dwReturnLength;
+    DWORD OptionId, DataSize, Offset, Index;
+    PBYTE Data, OptionPtr;
+    struct option_data *Options;
+    DWORD ret = ERROR_SUCCESS;
+
+    DPRINT("Server_RequestParams(%S %p %p %p %p)\n",
+           AdapterName, ClassId, SendParams, RecdParams, RecdResults);
+
+#if 0
+    if (SendParams != NULL)
+    {
+        DPRINT1("SendParams nParams %lu  Params %p\n", SendParams->nParams, SendParams->Params);
+        for (i = 0; i < SendParams->nParams; i++)
+        {
+            DPRINT1("SendParam %lu: Option %lu  Vendor %u\n", i, SendParams->Params[i].OptionId, SendParams->Params[i].IsVendor);
+        }
+    }
+
+    if (RecdParams != NULL)
+    {
+        DPRINT1("RecdParams nParams %lu  Params %p\n", RecdParams->nParams, RecdParams->Params);
+        for (i = 0; i < RecdParams->nParams; i++)
+        {
+            DPRINT1("RecdParam %lu: Option %lu  Vendor %u\n", i, RecdParams->Params[i].OptionId, RecdParams->Params[i].IsVendor);
+        }
+    }
+#endif
+
+    ApiLock();
+
+    Adapter = AdapterFindName(AdapterName);
+    if (Adapter == NULL)
+    {
+        DPRINT1("Adapter not found\n");
+        ret = ERROR_FILE_NOT_FOUND;
+        goto done;
+    }
+
+    DPRINT("Adapter: %p\n", Adapter);
+
+    if (Adapter->DhclientState.state != S_BOUND)
+    {
+        DPRINT1("Adapter is not in S_BOUND state!\n");
+        ret = ERROR_FILE_NOT_FOUND;
+        goto done;
+    }
+
+    dwReturnCount = 0;
+    dwReturnLength = 0;
+
+    DPRINT("ActiveLease: %p \n", Adapter->DhclientState.active);
+    if (Adapter->DhclientState.active)
+    {
+        Options = Adapter->DhclientState.active->options;
+        for (i = 0; i < RecdParams->nParams; i++)
+        {
+            OptionId = RecdParams->Params[i].OptionId;
+            if (RecdParams->Params[i].IsVendor == FALSE)
+            {
+                DPRINT("Option %u: Length %d \n", OptionId, Options[OptionId].len);
+                if (Options[OptionId].len != 0)
+                {
+                    dwReturnLength += Options[OptionId].len;
+                    dwReturnCount++;
+                }
+            }
+            else
+            {
+                if (Options[DHO_VENDOR_ENCAPSULATED_OPTIONS].len != 0)
+                {
+                    DPRINT("Have vendor options!\n");
+                    OptionPtr = GetVendorOption(Options[DHO_VENDOR_ENCAPSULATED_OPTIONS].data,
+                                                Options[DHO_VENDOR_ENCAPSULATED_OPTIONS].len,
+                                                OptionId);
+                    if (OptionPtr)
+                    {
+                        DPRINT("Vendor option %lu: Length %lu\n", OptionId, (DWORD)*(OptionPtr + 1));
+                        dwReturnLength += (DWORD)*(OptionPtr + 1);
+                        dwReturnCount++;
+                    }
+                }
+            }
+        }
+
+        DPRINT("Return count: %lu  Return length: %lu\n", dwReturnCount, dwReturnLength);
+
+        Results = MIDL_user_allocate(sizeof(DHCPCAPI_RESULT_ARRAY));
+        if (Results == NULL)
+        {
+            DPRINT1("Result allocation failed!\n");
+            ret = ERROR_NOT_ENOUGH_MEMORY;
+            goto done;
+        }
+
+        Results->ResultsCount = dwReturnCount;
+        Results->Results = MIDL_user_allocate(dwReturnCount * sizeof(DHCPCAPI_RESULTS));
+        if (Results->Results == NULL)
+        {
+            DPRINT1("Results allocation failed!\n");
+            ret = ERROR_NOT_ENOUGH_MEMORY;
+            goto done;
+        }
+
+        Results->DataSize = dwReturnLength;
+        Results->Data = MIDL_user_allocate(dwReturnLength);
+        if (Results->Data == NULL)
+        {
+            DPRINT1("Data allocation failed!\n");
+            ret = ERROR_NOT_ENOUGH_MEMORY;
+            goto done;
+        }
+
+        Offset = 0;
+        Index = 0;
+        for (i = 0; i < RecdParams->nParams; i++)
+        {
+            OptionId = RecdParams->Params[i].OptionId;
+
+            if (RecdParams->Params[i].IsVendor == FALSE)
+            {
+                DataSize = Options[OptionId].len;
+                Data = Options[OptionId].data;
+
+                DPRINT("Option %u: Length %d \n", OptionId, DataSize);
+
+                if (DataSize != 0)
+                {
+                    Results->Results[Index].OptionId = OptionId;
+                    Results->Results[Index].IsVendor = FALSE;
+                    Results->Results[Index].DataSize = DataSize;
+                    Results->Results[Index].DataOffset = Offset;
+
+                    CopyMemory(&Results->Data[Offset], Data, DataSize);
+
+                    Index++;
+                    Offset += DataSize;
+                }
+            }
+            else
+            {
+                if (Options[DHO_VENDOR_ENCAPSULATED_OPTIONS].len != 0)
+                {
+                    DPRINT1("Have vendor options!\n");
+                    OptionPtr = GetVendorOption(Options[DHO_VENDOR_ENCAPSULATED_OPTIONS].data,
+                                                Options[DHO_VENDOR_ENCAPSULATED_OPTIONS].len,
+                                                OptionId);
+                    if (OptionPtr)
+                    {
+                        DataSize = (DWORD)*(OptionPtr + 1);
+                        Data = (OptionPtr + 2);
+
+                        DPRINT1("Vendor option %u: Length %d\n", OptionId, DataSize);
+
+                        Results->Results[Index].OptionId = OptionId;
+                        Results->Results[Index].IsVendor = TRUE;
+                        Results->Results[Index].DataSize = DataSize;
+                        Results->Results[Index].DataOffset = Offset;
+
+                        CopyMemory(&Results->Data[Offset], Data, DataSize);
+
+                        Index++;
+                        Offset += DataSize;
+                    }
+                }
+            }
+        }
+
+        *RecdResults = Results;
+    }
+
+done:
+    ApiUnlock();
+
+    return ret;
 }

@@ -62,6 +62,7 @@ list(APPEND SOURCE
     NtDuplicateToken.c
     NtFilterToken.c
     NtFreeVirtualMemory.c
+    NtGetCurrentProcessorNumberEx.c
     NtImpersonateAnonymousToken.c
     NtLoadUnloadKey.c
     NtMapViewOfSection.c
@@ -118,17 +119,23 @@ list(APPEND SOURCE
     RtlGetLongestNtPathLength.c
     RtlGetNtProductType.c
     RtlGetProcessHeaps.c
+    RtlGetProductInfo.c
     RtlGetUnloadEventTrace.c
     RtlHandle.c
     RtlImageDirectoryEntryToData.c
     RtlImageRvaToVa.c
+    RtlInitializeContext.c
+    RtlIsNameInExpression.c
     RtlIsNameLegalDOS8Dot3.c
     RtlLocale.c
+    RtlMemIoResource.c
     RtlMemoryStream.c
     RtlMultipleAllocateHeap.c
     RtlNtPathNameToDosPathName.c
     RtlpApplyLengthFunction.c
     RtlpEnsureBufferSize.c
+    RtlQueryEnvironmentVariable.c
+    RtlQueryEnvironmentVariable_U.c
     RtlQueryTimeZoneInfo.c
     RtlReAllocateHeap.c
     RtlRemovePrivileges.c
@@ -150,11 +157,13 @@ if(ARCH STREQUAL "i386")
     add_asm_files(ntdll_apitest_asm
         ../crt/i386/setjmp_helper.s
         i386/NtContinue.S
+        i386/NtCreateThread.S
     )
 elseif(ARCH STREQUAL "amd64")
     add_asm_files(ntdll_apitest_asm
         ../crt/amd64/setjmp_helper.s
         amd64/NtContinue.S
+        amd64/NtCreateThread.S
     )
 endif()
 

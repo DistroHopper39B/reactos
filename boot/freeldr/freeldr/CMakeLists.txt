@@ -94,7 +94,7 @@ endif()
 
 list(APPEND FREELDR_BASE_SOURCE
     freeldr.c
-    ntldr/ntldropts.c # Should be in rosload, but is currently needed by machpc.c, etc.
+    ntldr/ntldropts.c # Is in rosload, but is currently needed by machpc.c and ramdisk.c
     lib/rtl/libsupp.c)
 
 if(ARCH STREQUAL "i386" OR ARCH STREQUAL "amd64")

@@ -60,6 +60,7 @@ list(APPEND FREELDR_NTLDR_SOURCE
     ntldr/conversion.c
     ntldr/headless.c
     ntldr/inffile.c
+    ntldr/ntldropts.c
     ntldr/registry.c
     ntldr/setupldr.c
     ntldr/winldr.c

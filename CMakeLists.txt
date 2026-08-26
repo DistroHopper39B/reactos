@@ -73,8 +73,6 @@ include(sdk/cmake/set_wine_module.cmake)
 
 add_definitions(
     -D__REACTOS__
-    # swprintf without count argument is used in most of the codebase
-    -D_CRT_NON_CONFORMING_SWPRINTFS
 )
 
 # There doesn't seem to be a standard for __FILE__ being relative or absolute, so detect it at runtime.
@@ -382,7 +380,7 @@ Enable this if the module uses typeid or dynamic_cast. You will probably need to
     # Create the registry hives
     create_registry_hives()
 
-    # Create {bootcd, livecd, bootcdregtest}.lst
+    # Create {bootcd, bootcdregtest, livecd}.lst
     create_iso_lists()
 
     file(MAKE_DIRECTORY ${REACTOS_BINARY_DIR}/sdk/include/reactos)

@@ -5,7 +5,7 @@
  * PURPOSE:         Logon
  * PROGRAMMERS:     Thomas Weidenmueller (w3seek@users.sourceforge.net)
  *                  Filip Navara
- *                  Hervé Poussineau (hpoussin@reactos.org)
+ *                  HervÃ© Poussineau (hpoussin@reactos.org)
  */
 
 /* INCLUDES *****************************************************************/
@@ -46,23 +46,13 @@ static
 BOOL
 StartServicesManager(VOID)
 {
-    STARTUPINFOW StartupInfo;
+    STARTUPINFOW StartupInfo = { sizeof(StartupInfo) };
     PROCESS_INFORMATION ProcessInformation;
     LPCWSTR ServiceString = L"services.exe";
     BOOL res;
 
     /* Start the service control manager (services.exe) */
-    ZeroMemory(&StartupInfo, sizeof(STARTUPINFOW));
-    StartupInfo.cb = sizeof(StartupInfo);
-    StartupInfo.lpReserved = NULL;
-    StartupInfo.lpDesktop = NULL;
-    StartupInfo.lpTitle = NULL;
-    StartupInfo.dwFlags = 0;
-    StartupInfo.cbReserved2 = 0;
-    StartupInfo.lpReserved2 = 0;
-
     TRACE("WL: Creating new process - %S\n", ServiceString);
-
     res = CreateProcessW(ServiceString,
                          NULL,
                          NULL,
@@ -94,23 +84,13 @@ static
 BOOL
 StartLsass(VOID)
 {
-    STARTUPINFOW StartupInfo;
+    STARTUPINFOW StartupInfo = { sizeof(StartupInfo) };
     PROCESS_INFORMATION ProcessInformation;
     LPCWSTR ServiceString = L"lsass.exe";
     BOOL res;
 
     /* Start the local security authority subsystem (lsass.exe) */
-    ZeroMemory(&StartupInfo, sizeof(STARTUPINFOW));
-    StartupInfo.cb = sizeof(StartupInfo);
-    StartupInfo.lpReserved = NULL;
-    StartupInfo.lpDesktop = NULL;
-    StartupInfo.lpTitle = NULL;
-    StartupInfo.dwFlags = 0;
-    StartupInfo.cbReserved2 = 0;
-    StartupInfo.lpReserved2 = 0;
-
     TRACE("WL: Creating new process - %S\n", ServiceString);
-
     res = CreateProcessW(ServiceString,
                          NULL,
                          NULL,
@@ -320,7 +300,7 @@ InitKeyboardLayouts(VOID)
         while (TRUE)
         {
             /* Read values with integer names only */
-            swprintf(wszKeyName, L"%d", i++);
+            _swprintf(wszKeyName, L"%d", i++);
             if (RegQueryValueExW(hKey, wszKeyName, NULL, &dwType, (LPBYTE)wszKLID, &dwSize) != ERROR_SUCCESS)
             {
                 /* There is no more entries */

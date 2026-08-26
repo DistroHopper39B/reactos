@@ -42,6 +42,7 @@
 
 #include <ui/rosctrls.h>
 #include <windowsx.h>
+#include <shlwapi.h>
 #include <shlwapi_undoc.h>
 #include <process.h>
 #undef SubclassWindow
@@ -53,6 +54,7 @@
 
 #ifdef USE_CERT_PINNING
 #define CERT_ISSUER_INFO_PREFIX "US\r\nLet's Encrypt\r\nR"
+#define CERT_ISSUER_INFO_PREFIX2 "US\r\nLet's Encrypt\r\nYR"
 #define CERT_ISSUER_INFO_OLD "US\r\nLet's Encrypt\r\nR3"
 #define CERT_ISSUER_INFO_NEW "US\r\nLet's Encrypt\r\nR11"
 #define CERT_SUBJECT_INFO "rapps.reactos.org"
@@ -63,7 +65,7 @@ IsTrustedPinnedCert(LPCSTR Subject, LPCSTR Issuer)
     if (strcmp(Subject, CERT_SUBJECT_INFO))
         return false;
 #ifdef CERT_ISSUER_INFO_PREFIX
-    return Issuer == StrStrA(Issuer, CERT_ISSUER_INFO_PREFIX);
+    return Issuer == StrStrA(Issuer, CERT_ISSUER_INFO_PREFIX) || Issuer == StrStrA(Issuer, CERT_ISSUER_INFO_PREFIX2);
 #else
     return !strcmp(Issuer, CERT_ISSUER_INFO_OLD) || !strcmp(Issuer, CERT_ISSUER_INFO_NEW);
 #endif
@@ -149,7 +151,10 @@ struct DownloadInfo
 
         CConfigParser *cfg = static_cast<const CAvailableApplicationInfo&>(AppInfo).GetConfigParser();
         if (cfg)
+        {
             cfg->GetString(DB_SAVEAS, szFileName);
+            cfg->GetString(DB_DEPENDENCIES, szDependencies);
+        }
     }
 
     bool Equal(const DownloadInfo &other) const
@@ -167,6 +172,7 @@ struct DownloadInfo
     CStringW szPackageName;
     CStringW szFileName;
     CStringW szSilentInstallArgs;
+    CStringW szDependencies;
     ULONG SizeInBytes;
 };
 
@@ -579,6 +585,30 @@ CDownloadManager::Add(const DownloadInfo &Info)
         if (Info.Equal(m_List[i]))
             return; // Already in the list
     }
+
+    if (!Info.szDependencies.IsEmpty())
+    {
+        CStringW deps = Info.szDependencies;
+        for (int pos = 1; pos > 0; deps = deps.Mid(pos + 1))
+        {
+            pos = deps.Find(L'|');
+            CStringW pkg = (pos > 0 ? deps.Left(pos) : deps).Trim();
+
+            // In the future a package might need to specify dependency version or WoW64
+            // information ("vcredist*x64" etc), for now, just remove possible modifiers.
+            int suffix = pkg.FindOneOf(L"*<=>:/\\?");
+            if (suffix > 0)
+                pkg = pkg.Left(suffix);
+
+            CAvailableApplicationInfo *pApp = CAppDB::CreateAvailableAppInstance(pkg);
+            Deleter <CAvailableApplicationInfo*>del(pApp);
+            if (!pApp || pApp->IsInstalled())
+                continue;
+            // Add the dependency before the application in the list
+            Add(DownloadInfo(*pApp, DAF_SILENT));
+        }
+    }
+
     m_List.Add(Info);
     if (m_hDlg)
         m_ListView.LoadList(m_List, start);
@@ -937,6 +967,11 @@ CDownloadManager::PerformDownloadAndInstall(const DownloadInfo &Info)
         {
             if (CopyFileW(LocalFilePath, Path, FALSE))
             {
+                // Remove the readonly flag in case we are copying from a read-only medium
+                DWORD attr = GetFileAttributesW(Path);
+                if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_READONLY))
+                    SetFileAttributesW(Path, attr & ~FILE_ATTRIBUTE_READONLY);
+
                 goto run;
             }
             else

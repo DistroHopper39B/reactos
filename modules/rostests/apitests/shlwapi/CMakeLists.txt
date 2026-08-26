@@ -5,9 +5,15 @@ add_subdirectory(shlwapi_resource_dll)
 include_directories($<TARGET_FILE_DIR:shlwapi_resource_dll>)
 
 list(APPEND SOURCE
+    AssocQueryKey.c
     AssocQueryString.c
+    CharUpperNoDBCS.cpp
     IShellFolderHelpers.cpp
+    IsOS.c
     IsQSForward.cpp
+    IStreamPidl.cpp
+    MapWin32ErrorToSTG.c
+    NextPath.c
     PathFileExistsDefExtAndAttributesW.c
     PathFindOnPath.c
     PathIsUNC.c
@@ -15,8 +21,11 @@ list(APPEND SOURCE
     PathIsUNCServerShare.c
     PathUnExpandEnvStrings.c
     PathUnExpandEnvStringsForUser.c
+    QuerySourceCreateFromKey.cpp
     SHAreIconsEqual.c
+    SHGetFileDescription.c
     SHGetRestriction.c
+    SHInvokeCommandsOnContextMenu.cpp
     SHLoadIndirectString.c
     SHLoadRegUIString.c
     SHPropertyBag.cpp

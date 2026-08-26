@@ -2,6 +2,8 @@
 #define _SETUPAPI_H_
 
 #include <commctrl.h>
+#include <devpropdef.h>
+
 #if defined(_WIN64)
 #include <pshpack8.h>
 #else
@@ -1467,6 +1469,34 @@ SetupDiGetActualSectionToInstallExW(
   _Out_opt_ PWSTR *Extension,
   _Reserved_ PVOID Reserved);
 
+WINSETUPAPI
+BOOL
+WINAPI
+SetupDiGetActualModelsSectionA(
+    _In_ PINFCONTEXT Context,
+    _In_opt_ PSP_ALTPLATFORM_INFO AlternatePlatformInfo,
+    _Out_writes_opt_(InfSectionWithExtSize) PSTR InfSectionWithExt,
+    _In_ DWORD InfSectionWithExtSize,
+    _Out_opt_ PDWORD RequiredSize,
+    _Reserved_ PVOID Reserved);
+
+WINSETUPAPI
+BOOL
+WINAPI
+SetupDiGetActualModelsSectionW(
+    _In_ PINFCONTEXT Context,
+    _In_opt_ PSP_ALTPLATFORM_INFO AlternatePlatformInfo,
+    _Out_writes_opt_(InfSectionWithExtSize) PWSTR InfSectionWithExt,
+    _In_ DWORD InfSectionWithExtSize,
+    _Out_opt_ PDWORD RequiredSize,
+    _Reserved_ PVOID Reserved);
+
+#ifdef UNICODE
+#define SetupDiGetActualModelsSection SetupDiGetActualModelsSectionW
+#else
+#define SetupDiGetActualModelsSection SetupDiGetActualModelsSectionA
+#endif
+
 WINSETUPAPI BOOL WINAPI SetupDiGetClassBitmapIndex(_In_opt_ CONST GUID*, _Out_ PINT);
 
 WINSETUPAPI
@@ -1623,6 +1653,23 @@ SetupDiGetDeviceInterfaceDetailW(
   _In_ DWORD DeviceInterfaceDetailDataSize,
   _Out_opt_ _Out_range_(>=, sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W)) PDWORD RequiredSize,
   _Out_opt_ PSP_DEVINFO_DATA DeviceInfoData);
+
+_Success_(return != FALSE)
+_When_(*PropertyType == DEVPROP_TYPE_STRING, _At_((PWSTR) PropertyBuffer, _Out_writes_bytes_to_opt_(PropertyBufferSize, *RequiredSize)))
+_When_(*PropertyType == DEVPROP_TYPE_STRING_INDIRECT, _At_((PWSTR) PropertyBuffer, _Out_writes_bytes_to_opt_(PropertyBufferSize, *RequiredSize)))
+_When_(*PropertyType == DEVPROP_TYPE_STRING_LIST, _At_((PZZWSTR) PropertyBuffer, _Out_writes_bytes_to_opt_(PropertyBufferSize, *RequiredSize)))
+WINSETUPAPI
+BOOL
+WINAPI
+SetupDiGetDevicePropertyW(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY *PropertyKey,
+    _Out_ DEVPROPTYPE *PropertyType,
+    _Out_writes_bytes_to_opt_(PropertyBufferSize, *RequiredSize) PBYTE PropertyBuffer,
+    _In_ DWORD PropertyBufferSize,
+    _Out_opt_ PDWORD RequiredSize,
+    _In_ DWORD Flags);
 
 _Success_(return != FALSE)
 _When_((*PropertyRegDataType == REG_SZ), _At_((PSTR) PropertyBuffer, _Post_valid_))
@@ -2477,6 +2524,7 @@ WINSETUPAPI PSTR WINAPI UnicodeToMultiByte(PCWSTR lpUnicodeStr, UINT uCodePage);
 #define SetupDiGetDeviceInstanceId	SetupDiGetDeviceInstanceIdW
 #define SetupDiGetDeviceInterfaceDetail	SetupDiGetDeviceInterfaceDetailW
 #define SetupDiGetInterfaceDeviceDetail	SetupDiGetDeviceInterfaceDetailW
+#define SetupDiGetDeviceProperty	SetupDiGetDevicePropertyW
 #define SetupDiGetDeviceRegistryProperty	SetupDiGetDeviceRegistryPropertyW
 #define SetupDiGetDriverInfoDetail	SetupDiGetDriverInfoDetailW
 #define SetupDiGetDriverInstallParams	SetupDiGetDriverInstallParamsW

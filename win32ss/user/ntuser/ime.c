@@ -295,7 +295,7 @@ IntCheckImeHotKey(
 {
     PIMEHOTKEY pHotKey;
     UINT uModifiers;
-    BOOL bKeyUp = (lParam & 0x80000000);
+    BOOL bKeyUp = (HIWORD(lParam) & KF_UP);
     const BYTE *KeyState = MessageQueue->afKeyState;
     static UINT s_uKeyUpVKey = 0;
 
@@ -434,7 +434,7 @@ NtUserGetImeHotKey(
 {
     PIMEHOTKEY pNode = NULL;
 
-    UserEnterExclusive();
+    UserEnterShared();
 
     _SEH2_TRY
     {
@@ -681,7 +681,7 @@ IntImmProcessKey(
         if (!pIMC)
             return 0;
 
-        if ((lParam & (KF_UP << 16)) &&
+        if ((HIWORD(lParam) & KF_UP) &&
             (pKL->piiex->ImeInfo.fdwProperty & IME_PROP_IGNORE_UPKEYS))
         {
             return 0;
@@ -709,7 +709,7 @@ IntImmProcessKey(
 
                 if (!(pKL->piiex->ImeInfo.fdwProperty & IME_PROP_NEED_ALTKEY))
                 {
-                    if (uVirtualKey == VK_MENU || (lParam & 0x20000000))
+                    if (uVirtualKey == VK_MENU || (HIWORD(lParam) & KF_ALTDOWN))
                         return 0;
                 }
                 break;
@@ -1897,7 +1897,7 @@ NtUserQueryInputContext(HIMC hIMC, DWORD dwType)
     PTHREADINFO ptiIMC;
     DWORD_PTR ret = 0;
 
-    UserEnterExclusive();
+    UserEnterShared();
 
     if (!IS_IMM_MODE())
         goto Quit;

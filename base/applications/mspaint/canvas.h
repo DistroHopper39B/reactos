@@ -3,9 +3,42 @@
  * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
  * PURPOSE:    Providing the canvas window class
  * COPYRIGHT:  Copyright 2015 Benedikt Freisen <b.freisen@gmx.net>
+ *             Copyright 2026 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>
  */
 
 #pragma once
+
+enum BrushStyle : int;
+
+class CStyledCursor
+{
+public:
+    ~CStyledCursor()
+    {
+        if (m_hCursor)
+            ::DestroyCursor(m_hCursor);
+    }
+
+    void SetStyle(BrushStyle style, INT zoom, INT radius, COLORREF color, BOOL is_rubber);
+
+    void SetCursor()
+    {
+        if (m_hCursor)
+            ::SetCursor(m_hCursor);
+    }
+
+    operator HCURSOR() const { return m_hCursor; }
+
+protected:
+    HCURSOR m_hCursor = NULL;
+    BrushStyle m_style;
+    INT m_zoom = -1;
+    INT m_radius = -1;
+    COLORREF m_color = CLR_INVALID;
+    BOOL m_is_rubber = FALSE;
+
+    static HCURSOR CreateStyledCursor(BrushStyle style, INT zoom, INT radius, COLORREF color, BOOL is_rubber);
+};
 
 class CCanvasWindow : public CWindowImpl<CCanvasWindow>
 {
@@ -48,14 +81,16 @@ public:
 
     VOID ImageToCanvas(POINT& pt);
     VOID ImageToCanvas(RECT& rc);
-    VOID CanvasToImage(POINT& pt);
-    VOID CanvasToImage(RECT& rc);
+    VOID CanvasToImage(POINT& pt, BOOL bRound = FALSE);
+    VOID CanvasToImage(RECT& rc, BOOL bRound = FALSE);
     VOID GetImageRect(RECT& rc);
     VOID getNewZoomRect(CRect& rcView, INT newZoom, CPoint ptTarget);
     VOID zoomTo(INT newZoom, LONG left = 0, LONG top = 0);
 
 protected:
     HITTEST m_hitCanvasSizeBox;
+    CStyledCursor m_hBrushCursor;
+    CStyledCursor m_hRubberCursor;
     POINT m_ptOrig; // The origin of drag start
     CRect m_rcResizing; // Resizing rectagle
 

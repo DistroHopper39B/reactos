@@ -6,25 +6,25 @@
 # COPYRIGHT:   Copyright 2006 Ge van Geldorp <gvg@reactos.org>
 #
 @ stdcall DhcpAcquireParameters(wstr)
-@ stub DhcpAcquireParametersByBroadcast
+@ stdcall DhcpAcquireParametersByBroadcast(wstr)
 @ stdcall DhcpCApiCleanup()
 @ stdcall DhcpCApiInitialize(ptr)
 @ stub DhcpDelPersistentRequestParams
 @ stub DhcpDeRegisterOptions
-@ stub DhcpDeRegisterParamChange
+@ stdcall DhcpDeRegisterParamChange(long ptr ptr)
 @ stdcall DhcpEnumClasses(long wstr long long)
 @ stdcall DhcpFallbackRefreshParams(wstr)
 @ stdcall DhcpHandlePnPEvent(long long wstr long long)
 @ stub DhcpLeaseIpAddress
 @ stub DhcpLeaseIpAddressEx
 @ stdcall DhcpNotifyConfigChange(ptr ptr long long long long long)
-@ stub DhcpNotifyConfigChangeEx
+@ stdcall DhcpNotifyConfigChangeEx(ptr ptr long long long long long long)
 @ stub DhcpNotifyMediaReconnected
 @ stub DhcpOpenGlobalEvent
 @ stub DhcpPersistentRequestParams
-@ stdcall DhcpQueryHWInfo(long ptr ptr ptr)
+@ stub DhcpQueryHWInfo
 @ stub DhcpRegisterOptions
-@ stub DhcpRegisterParamChange
+@ stdcall DhcpRegisterParamChange(long ptr wstr ptr long ptr ptr)
 @ stub DhcpReleaseIpAddressLease
 @ stub DhcpReleaseIpAddressLeaseEx
 @ stdcall DhcpReleaseParameters(wstr)
@@ -34,7 +34,7 @@
 @ stub DhcpRequestOptions
 @ stdcall DhcpRequestParams(long ptr ptr ptr long ptr long ptr ptr ptr ptr)
 @ stdcall DhcpStaticRefreshParams(long long long)
-@ stub DhcpUndoRequestParams
+@ stdcall DhcpUndoRequestParams(long ptr wstr wstr)
 @ stub McastApiCleanup
 @ stub McastApiStartup
 @ stub McastEnumerateScopes

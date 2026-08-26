@@ -49,9 +49,9 @@ QuickLaunchShortcuts=26, Microsoft\Internet Explorer\Quick Launch
 %SystemRoot%\system32\dxdiag.exe, %DXDIAG_TITLE%, %DXDIAG_DESC%, 0
 
 [AccessibilityShortcuts]
-%SystemRoot%\system32\magnify.exe, %MAGNIFY_TITLE%, %MAGNIFY_DESC%, 0, %HOMEDRIVE%%HOMEPATH%
-%SystemRoot%\system32\osk.exe, %OSK_TITLE%, %OSK_DESC%, 0, %HOMEDRIVE%%HOMEPATH%
-%SystemRoot%\system32\utilman.exe, %UTILMAN_TITLE%, %UTILMAN_DESC%, 0, %HOMEDRIVE%%HOMEPATH%
+%SystemRoot%\system32\magnify.exe, %MAGNIFY_TITLE%, %MAGNIFY_DESC%, 0
+%SystemRoot%\system32\osk.exe, %OSK_TITLE%, %OSK_DESC%, 0
+%SystemRoot%\system32\utilman.exe, %UTILMAN_TITLE%, %UTILMAN_DESC%, 0
 
 [EntertainmentShortcuts]
 %SystemRoot%\system32\mplay32.exe, %MPLAY_TITLE%, %MPLAY_DESC%, 0, %HOMEDRIVE%%HOMEPATH%
@@ -1484,8 +1484,8 @@ ENTERTAINMENT=Eğlence
 COMMUNICATIONS=İletişim
 GAMES=Oyunlar
 
-README_TITLE=Benioku
-README_DESC=ReactOS Benioku
+README_TITLE=Beni Oku
+README_DESC=ReactOS Beni Oku
 
 CMD_TITLE=Komut İstemi
 CMD_DESC=Komut İstemi'ni aç
@@ -1540,7 +1540,7 @@ SPIDER_TITLE=Örümcek Solitaire
 SPIDER_DESC=Örümcek Solitaire
 UTILMAN_TITLE=Erişilebilirlik Araçları Yöneticisi
 UTILMAN_DESC=Erişilebilirlik Araçları Yöneticisi'ni başlat
-IEXPLORE_TITLE=Wine Internet Explorer
+IEXPLORE_TITLE=Wine İnternet Gezgini
 IEXPLORE_DESC=Wine Web Tarayıcısı
 
 [Strings.0422]

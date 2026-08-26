@@ -3403,13 +3403,13 @@ WSPAddressToString(IN LPSOCKADDR lpsaAddress,
                 if (lpErrno) *lpErrno = WSAEINVAL;
                 return SOCKET_ERROR;
             }
-            swprintf(buffer,
-                     L"%u.%u.%u.%u:%u",
-                     (unsigned int)(ntohl(((SOCKADDR_IN *)lpsaAddress)->sin_addr.s_addr) >> 24 & 0xff),
-                     (unsigned int)(ntohl(((SOCKADDR_IN *)lpsaAddress)->sin_addr.s_addr) >> 16 & 0xff),
-                     (unsigned int)(ntohl(((SOCKADDR_IN *)lpsaAddress)->sin_addr.s_addr) >> 8 & 0xff),
-                     (unsigned int)(ntohl(((SOCKADDR_IN *)lpsaAddress)->sin_addr.s_addr) & 0xff),
-                     ntohs(((SOCKADDR_IN *)lpsaAddress)->sin_port));
+            _swprintf(buffer,
+                      L"%u.%u.%u.%u:%u",
+                      (unsigned int)(ntohl(((SOCKADDR_IN *)lpsaAddress)->sin_addr.s_addr) >> 24 & 0xff),
+                      (unsigned int)(ntohl(((SOCKADDR_IN *)lpsaAddress)->sin_addr.s_addr) >> 16 & 0xff),
+                      (unsigned int)(ntohl(((SOCKADDR_IN *)lpsaAddress)->sin_addr.s_addr) >> 8 & 0xff),
+                      (unsigned int)(ntohl(((SOCKADDR_IN *)lpsaAddress)->sin_addr.s_addr) & 0xff),
+                      ntohs(((SOCKADDR_IN *)lpsaAddress)->sin_port));
 
             p = wcschr(buffer, L':');
             if (!((SOCKADDR_IN *)lpsaAddress)->sin_port)
@@ -3920,7 +3920,7 @@ BOOLEAN SockCreateOrReferenceAsyncThread(VOID)
     HANDLE hAsyncThread;
     DWORD AsyncThreadId;
     HANDLE AsyncEvent;
-    OBJECT_HANDLE_ATTRIBUTE_INFORMATION HandleFlags;
+    OBJECT_HANDLE_FLAG_INFORMATION HandleFlags;
     NTSTATUS Status;
 
     /* Check if the Thread Already Exists */
@@ -4016,7 +4016,7 @@ BOOLEAN SockGetAsyncSelectHelperAfdHandle(VOID)
     OBJECT_ATTRIBUTES ObjectAttributes;
     IO_STATUS_BLOCK IoSb;
     FILE_COMPLETION_INFORMATION CompletionInfo;
-    OBJECT_HANDLE_ATTRIBUTE_INFORMATION HandleFlags;
+    OBJECT_HANDLE_FLAG_INFORMATION HandleFlags;
 
     /* First, make sure we're not already initialized */
     if (SockAsyncHelperAfdHandle)

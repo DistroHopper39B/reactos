@@ -27,6 +27,11 @@ DhcpAcquireParameters(
 
 DWORD
 APIENTRY
+DhcpAcquireParametersByBroadcast(
+    _In_ PWSTR AdapterName);
+
+DWORD
+APIENTRY
 DhcpEnumClasses(
     _In_ DWORD Unknown1,
     _In_ PWSTR AdapterName,
@@ -60,20 +65,27 @@ DhcpNotifyConfigChange(
 
 DWORD
 APIENTRY
-DhcpQueryHWInfo(
-    _In_ DWORD AdapterIndex,
-    _Out_ PDWORD MediaType,
-    _Out_ PDWORD Mtu,
-    _Out_ PDWORD Speed);
+DhcpNotifyConfigChangeEx(
+    _In_ LPWSTR ServerName,
+    _In_ LPWSTR AdapterName,
+    _In_ BOOL NewIpAddress,
+    _In_ DWORD IpIndex,
+    _In_ DWORD IpAddress,
+    _In_ DWORD SubnetMask,
+    _In_ INT DhcpAction,
+    _In_ DWORD Unknown8);
 
 DWORD
 APIENTRY
 DhcpReleaseParameters(
     _In_ PWSTR AdapterName);
 
-DWORD APIENTRY DhcpStaticRefreshParams( DWORD AdapterIndex,
-                                             DWORD Address,
-                                             DWORD Netmask );
+DWORD
+APIENTRY
+DhcpStaticRefreshParams(
+    DWORD AdapterIndex,
+    DWORD Address,
+    DWORD Netmask);
 
 #ifdef __cplusplus
 }

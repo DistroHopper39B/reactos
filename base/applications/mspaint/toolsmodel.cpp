@@ -11,6 +11,30 @@ ToolsModel toolsModel;
 
 /* FUNCTIONS ********************************************************/
 
+ToolsModel::VirtualBrush::~VirtualBrush()
+{
+    if (m_hBrush)
+        ::DeleteObject(m_hBrush);
+}
+
+HBRUSH ToolsModel::VirtualBrush::GetBrush(PAL_TYPE palette, COLORREF rgbColor)
+{
+    if (m_hBrush &&
+        m_palette == palette &&
+        m_rgbColor == rgbColor)
+    {
+        return m_hBrush;
+    }
+
+    if (m_hBrush)
+        ::DeleteObject(m_hBrush);
+
+    m_hBrush = ToolsModel::CreateBrush(palette, rgbColor);
+    m_palette = palette;
+    m_rgbColor = rgbColor;
+    return m_hBrush;
+}
+
 ToolsModel::ToolsModel()
 {
     m_lineWidth = m_penWidth = 1;
@@ -21,7 +45,7 @@ ToolsModel::ToolsModel()
     m_airBrushRadius = 5;
     m_rubberRadius = 4;
     m_transpBg = FALSE;
-    m_zoom = 1000;
+    m_zoom = DEFAULT_ZOOM;
     m_pToolObject = GetOrCreateTool(m_activeTool);
 }
 
@@ -72,10 +96,17 @@ INT ToolsModel::GetBrushWidth() const
     return m_brushWidth;
 }
 
+void ToolsModel::SendSetCursor()
+{
+    canvasWindow.SendMessage(WM_SETCURSOR, (WPARAM)(HWND)canvasWindow,
+                             MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
+}
+
 void ToolsModel::SetBrushWidth(INT nBrushWidth)
 {
     m_brushWidth = nBrushWidth;
     NotifyToolSettingsChanged();
+    SendSetCursor();
     imageModel.NotifyImageChanged();
 }
 
@@ -128,6 +159,7 @@ BrushStyle ToolsModel::GetBrushStyle() const
 void ToolsModel::SetBrushStyle(BrushStyle nBrushStyle)
 {
     m_brushStyle = nBrushStyle;
+    SendSetCursor();
     NotifyToolSettingsChanged();
 }
 
@@ -199,6 +231,7 @@ int ToolsModel::GetRubberRadius() const
 void ToolsModel::SetRubberRadius(int nRubberRadius)
 {
     m_rubberRadius = nRubberRadius;
+    SendSetCursor();
     NotifyToolSettingsChanged();
 }
 
@@ -267,6 +300,7 @@ void ToolsModel::SetZoom(int nZoom)
 {
     m_zoom = nZoom;
     NotifyZoomChanged();
+    SendSetCursor();
 }
 
 void ToolsModel::NotifyToolChanged()
@@ -310,4 +344,22 @@ void ToolsModel::selectAll()
     OnButtonDown(TRUE, 0, 0, FALSE);
     OnMouseMove(TRUE, imageModel.GetWidth(), imageModel.GetHeight());
     OnButtonUp(TRUE, imageModel.GetWidth(), imageModel.GetHeight());
+}
+
+HBRUSH ToolsModel::CreateBrush(PAL_TYPE palette, COLORREF color)
+{
+    if (palette == PAL_MONOCHROME)
+        return CreateDitherBrush(color, RGB(0, 0, 0), RGB(255, 255, 255));
+    else
+        return ::CreateSolidBrush(color);
+}
+
+HBRUSH ToolsModel::GetFgBrush()
+{
+    return m_fgBrush.GetBrush(paletteModel.SelectedPalette(), paletteModel.GetFgColor());
+}
+
+HBRUSH ToolsModel::GetBgBrush()
+{
+    return m_bgBrush.GetBrush(paletteModel.SelectedPalette(), paletteModel.GetBgColor());
 }

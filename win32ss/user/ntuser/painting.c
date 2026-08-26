@@ -285,9 +285,11 @@ IntGetNCUpdateRgn(PWND Window, BOOL Validate)
          return HRGN_WINDOW;
       }
 
-      NcType = IntGdiGetRgnBox(hRgnNonClient, &update);
+      NcType = IntGdiGetRgnBox(Window->hrgnUpdate, &update);
 
       RgnType = NtGdiCombineRgn(hRgnNonClient, hRgnNonClient, hRgnWindow, RGN_DIFF);
+      if ((RgnType != ERROR) && (RgnType != NULLREGION))
+         RgnType = NtGdiCombineRgn(hRgnNonClient, hRgnNonClient, Window->hrgnUpdate, RGN_AND);
 
       if (RgnType == ERROR)
       {
@@ -1437,7 +1439,6 @@ IntFlashWindowEx(PWND pWnd, PFLASHWINFO pfwi)
    return Ret;
 }
 
-// Win: xxxBeginPaint
 HDC FASTCALL
 IntBeginPaint(PWND Window, PPAINTSTRUCT Ps)
 {
@@ -1534,7 +1535,6 @@ IntBeginPaint(PWND Window, PPAINTSTRUCT Ps)
    return Ps->hdc;
 }
 
-// Win: xxxEndPaint
 BOOL FASTCALL
 IntEndPaint(PWND Wnd, PPAINTSTRUCT Ps)
 {
@@ -1557,7 +1557,6 @@ IntEndPaint(PWND Wnd, PPAINTSTRUCT Ps)
    return TRUE;
 }
 
-// Win: xxxFillWindow
 BOOL FASTCALL
 IntFillWindow(PWND pWndParent,
               PWND pWnd,

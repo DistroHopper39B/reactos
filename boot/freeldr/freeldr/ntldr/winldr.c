@@ -827,7 +827,7 @@ LoadWindowsCore(IN USHORT OperatingSystemVersion,
 
     /*
      * Select the HAL and KERNEL file names.
-     * Check for any "/HAL=" or "/KERNEL=" override option.
+     * Check for any "HAL=" or "KERNEL=" override option.
      *
      * See the following links to know how the file names are actually chosen:
      * https://www.geoffchappell.com/notes/windows/boot/bcd/osloader/detecthal.htm
@@ -1281,7 +1281,7 @@ LoadAndBootWindows(
     TRACE("BootOptions(1): '%s'\n", BootOptions);
 
     /*
-     * Set the "/HAL=" and "/KERNEL=" options if needed.
+     * Set the "HAL=" and "KERNEL=" options if needed.
      * If already present on the standard "Options=" option line, they take
      * precedence over those passed via the separate "Hal=" and "Kernel="
      * options.

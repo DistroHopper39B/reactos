@@ -195,6 +195,9 @@ INetCfgPnpReconfigCallback_fnSendPnpReconfig(
     PVOID pvData,
     DWORD dwSizeOfData)
 {
+    TRACE("INetCfgPnpReconfigCallback_fnSendPnpReconfig(%lu %S %S %p %lu)\n",
+          Layer, pszwUpper, pszwLower, pvData, dwSizeOfData);
+
     /* FIXME */
     return E_NOTIMPL;
 }
@@ -255,7 +258,7 @@ EnumClientServiceProtocol(HKEY hKey, const GUID * pGuid, NetCfgComponentItem ** 
     DWORD dwType;
     WCHAR szName[100];
     WCHAR szText[100];
-    HKEY hSubKey, hNDIKey;
+    HKEY hSubKey, hNDIKey, hInterfacesKey;
     NetCfgComponentItem * pLast = NULL, *pCurrent;
 
     *pHead = NULL;
@@ -341,6 +344,44 @@ EnumClientServiceProtocol(HKEY hKey, const GUID * pGuid, NetCfgComponentItem ** 
                                 wcscpy(pCurrent->szBindName, szText);
                         }
                     }
+
+                    if (RegOpenKeyExW(hNDIKey, L"Interfaces", 0, KEY_READ, &hInterfacesKey) == ERROR_SUCCESS)
+                    {
+                        /* retrieve LowerRange */
+                        dwSize = sizeof(szText);
+                        if (RegQueryValueExW(hInterfacesKey, L"LowerRange", NULL, &dwType, (LPBYTE)szText, &dwSize) == ERROR_SUCCESS)
+                        {
+                            if (dwType == REG_SZ)
+                            {
+                                szText[(sizeof(szText)/sizeof(WCHAR))-1] = L'\0';
+                                pCurrent->pszLowerRange = CoTaskMemAlloc((wcslen(szText)+1)* sizeof(WCHAR));
+                                if (pCurrent->pszLowerRange)
+                                {
+                                    wcscpy(pCurrent->pszLowerRange, szText);
+                                    TRACE("LowerRange: %S\n", pCurrent->pszLowerRange);
+                                }
+                            }
+                        }
+
+                        /* retrieve UpperRange */
+                        dwSize = sizeof(szText);
+                        if (RegQueryValueExW(hInterfacesKey, L"UpperRange", NULL, &dwType, (LPBYTE)szText, &dwSize) == ERROR_SUCCESS)
+                        {
+                            if (dwType == REG_SZ)
+                            {
+                                szText[(sizeof(szText)/sizeof(WCHAR))-1] = L'\0';
+                                pCurrent->pszUpperRange = CoTaskMemAlloc((wcslen(szText)+1)* sizeof(WCHAR));
+                                if (pCurrent->pszUpperRange)
+                                {
+                                    wcscpy(pCurrent->pszUpperRange, szText);
+                                    TRACE("UpperRange: %S\n", pCurrent->pszUpperRange);
+                                }
+                            }
+                        }
+
+                        RegCloseKey(hInterfacesKey);
+                    }
+
                     RegCloseKey(hNDIKey);
                 }
                 RegCloseKey(hSubKey);
@@ -376,7 +417,7 @@ EnumerateNetworkComponent(
     hr = StringFromCLSID(pGuid, &pszGuid);
     if (SUCCEEDED(hr))
     {
-        swprintf(szName, L"SYSTEM\\CurrentControlSet\\Control\\Network\\%s", pszGuid);
+        _swprintf(szName, L"SYSTEM\\CurrentControlSet\\Control\\Network\\%s", pszGuid);
         if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, szName, 0, KEY_READ, &hKey) == ERROR_SUCCESS)
         {
             hr = EnumClientServiceProtocol(hKey, pGuid, pHead);
@@ -393,7 +434,7 @@ EnumerateNetworkAdapter(NetCfgComponentItem ** pHead)
     DWORD dwSize, dwIndex;
     HDEVINFO hInfo;
     SP_DEVINFO_DATA DevInfo;
-    HKEY hKey;
+    HKEY hKey, hInterfacesKey;
     WCHAR szNetCfg[50];
     WCHAR szAdapterNetCfg[MAX_DEVICE_ID_LEN];
     WCHAR szDetail[200] = L"SYSTEM\\CurrentControlSet\\Control\\Class\\";
@@ -461,6 +502,35 @@ EnumerateNetworkAdapter(NetCfgComponentItem ** pHead)
             pCurrent->szDisplayName = CoTaskMemAlloc((wcslen(szAdapterNetCfg)+1) * sizeof(WCHAR));
             if (pCurrent->szDisplayName)
                 wcscpy(pCurrent->szDisplayName, szAdapterNetCfg);
+        }
+
+        if (RegOpenKeyExW(hKey, L"NDI\\Interfaces", 0, KEY_READ, &hInterfacesKey) == ERROR_SUCCESS)
+        {
+            /* retrieve LowerRange */
+            dwSize = sizeof(szAdapterNetCfg);
+            if (RegQueryValueExW(hInterfacesKey, L"LowerRange", NULL, NULL, (LPBYTE)szAdapterNetCfg, &dwSize) == ERROR_SUCCESS)
+            {
+                pCurrent->pszLowerRange = CoTaskMemAlloc((wcslen(szAdapterNetCfg) + 1) * sizeof(WCHAR));
+                if (pCurrent->pszLowerRange)
+                {
+                    wcscpy(pCurrent->pszLowerRange, szAdapterNetCfg);
+                    TRACE("LowerRange: %S\n", pCurrent->pszLowerRange);
+                }
+            }
+
+            /* retrieve UpperRange */
+            dwSize = sizeof(szAdapterNetCfg);
+            if (RegQueryValueExW(hInterfacesKey, L"UpperRange", NULL, NULL, (LPBYTE)szAdapterNetCfg, &dwSize) == ERROR_SUCCESS)
+            {
+                pCurrent->pszUpperRange = CoTaskMemAlloc((wcslen(szAdapterNetCfg) + 1) * sizeof(WCHAR));
+                if (pCurrent->pszUpperRange)
+                {
+                    wcscpy(pCurrent->pszUpperRange, szAdapterNetCfg);
+                    TRACE("UpperRange: %S\n", pCurrent->pszUpperRange);
+                }
+            }
+
+            RegCloseKey(hInterfacesKey);
         }
 
         RegCloseKey(hKey);
@@ -628,13 +698,14 @@ VOID
 ApplyOrCancelChanges(
     NetCfgComponentItem *pHead,
     const CLSID * lpClassGUID,
-    BOOL bApply)
+    BOOL bApply,
+    INetCfgPnpReconfigCallback *pCallback)
 {
     HKEY hKey;
     WCHAR szName[200];
     LPOLESTR pszGuid;
 
-    while(pHead)
+    while (pHead)
     {
         if (pHead->bChanged)
         {
@@ -644,7 +715,7 @@ ApplyOrCancelChanges(
                 {
                     if (StringFromCLSID(&pHead->InstanceId, &pszGuid) == NOERROR)
                     {
-                        swprintf(szName, L"SYSTEM\\CurrentControlSet\\Control\\Network\\%s", pszGuid);
+                        _swprintf(szName, L"SYSTEM\\CurrentControlSet\\Control\\Network\\%s", pszGuid);
                         CoTaskMemFree(pszGuid);
 
                         if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, szName, 0, KEY_READ, &hKey) == ERROR_SUCCESS)
@@ -655,20 +726,20 @@ ApplyOrCancelChanges(
                     }
                 }
             }
-            else if (pHead->pNCCC)
+            else if (pHead->pControl)
             {
                 if (bApply)
                 {
-                    INetCfgComponentControl_ApplyRegistryChanges(pHead->pNCCC);
-                    //FIXME
-                    // implement INetCfgPnpReconfigCallback and pass it to
-                    INetCfgComponentControl_ApplyPnpChanges(pHead->pNCCC, NULL);
+                    INetCfgComponentControl_ApplyRegistryChanges(pHead->pControl);
+                    INetCfgComponentControl_ApplyPnpChanges(pHead->pControl, pCallback);
                 }
                 else
                 {
-                    INetCfgComponentControl_CancelChanges(pHead->pNCCC);
+                    INetCfgComponentControl_CancelChanges(pHead->pControl);
                 }
             }
+
+            pHead->bChanged = FALSE;
         }
         pHead = pHead->pNext;
     }
@@ -682,6 +753,8 @@ FreeComponentItem(NetCfgComponentItem *pItem)
     CoTaskMemFree(pItem->szId);
     CoTaskMemFree(pItem->szBindName);
     CoTaskMemFree(pItem->szNodeId);
+    CoTaskMemFree(pItem->pszUpperRange);
+    CoTaskMemFree(pItem->pszLowerRange);
     CoTaskMemFree(pItem->pszBinding);
     CoTaskMemFree(pItem);
 }
@@ -745,10 +818,10 @@ INetCfg_fnApply(
     if (!This->bInitialized)
         return NETCFG_E_NOT_INITIALIZED;
 
-    ApplyOrCancelChanges(This->pNet, &GUID_DEVCLASS_NET, TRUE);
-    ApplyOrCancelChanges(This->pClient, &GUID_DEVCLASS_NETCLIENT, TRUE);
-    ApplyOrCancelChanges(This->pService, &GUID_DEVCLASS_NETSERVICE, TRUE);
-    ApplyOrCancelChanges(This->pProtocol, &GUID_DEVCLASS_NETTRANS, TRUE);
+    ApplyOrCancelChanges(This->pNet, &GUID_DEVCLASS_NET, TRUE, (INetCfgPnpReconfigCallback *)&This->lpVtblPnpReconfigCallback);
+    ApplyOrCancelChanges(This->pClient, &GUID_DEVCLASS_NETCLIENT, TRUE, (INetCfgPnpReconfigCallback *)&This->lpVtblPnpReconfigCallback);
+    ApplyOrCancelChanges(This->pService, &GUID_DEVCLASS_NETSERVICE, TRUE, (INetCfgPnpReconfigCallback *)&This->lpVtblPnpReconfigCallback);
+    ApplyOrCancelChanges(This->pProtocol, &GUID_DEVCLASS_NETTRANS, TRUE, (INetCfgPnpReconfigCallback *)&This->lpVtblPnpReconfigCallback);
 
     return S_OK;
 }
@@ -763,9 +836,9 @@ INetCfg_fnCancel(
     if (!This->bInitialized)
         return NETCFG_E_NOT_INITIALIZED;
 
-    ApplyOrCancelChanges(This->pClient, &GUID_DEVCLASS_NETCLIENT, FALSE);
-    ApplyOrCancelChanges(This->pService, &GUID_DEVCLASS_NETSERVICE, FALSE);
-    ApplyOrCancelChanges(This->pProtocol, &GUID_DEVCLASS_NETTRANS, FALSE);
+    ApplyOrCancelChanges(This->pClient, &GUID_DEVCLASS_NETCLIENT, FALSE, NULL);
+    ApplyOrCancelChanges(This->pService, &GUID_DEVCLASS_NETSERVICE, FALSE, NULL);
+    ApplyOrCancelChanges(This->pProtocol, &GUID_DEVCLASS_NETTRANS, FALSE, NULL);
 
     return S_OK;
 }

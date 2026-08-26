@@ -15,7 +15,7 @@
 
 #ifndef SHSTDAPI
 #if defined(_SHELL32_) /* DECLSPEC_IMPORT disabled because of CORE-6504: */ || TRUE
-#define SHSTDAPI_(type) type WINAPI
+#define SHSTDAPI_(type) EXTERN_C type WINAPI
 #else
 #define SHSTDAPI_(type) EXTERN_C DECLSPEC_IMPORT type WINAPI
 #endif
@@ -139,6 +139,17 @@ BOOL WINAPI StrRetToStrNA(LPSTR,DWORD,LPSTRRET,const ITEMIDLIST*);
 BOOL WINAPI StrRetToStrNW(LPWSTR,DWORD,LPSTRRET,const ITEMIDLIST*);
 
 /****************************************************************************
+ * Misc.
+ */
+
+VOID WINAPI
+CDefFolderMenu_MergeMenu(
+    _In_ HINSTANCE hInstance,
+    _In_ UINT uMainMerge,
+    _In_ UINT uPopupMerge,
+    _Inout_ LPQCMINFO lpQcmInfo);
+
+/****************************************************************************
  * SHChangeNotifyRegister API
  */
 #define SHCNRF_InterruptLevel       0x0001
@@ -163,6 +174,29 @@ typedef struct _SHCNF_PRINTJOB_INFO
 #define SHCNF_PRINTJOBW 0x0007
 
 HRESULT WINAPI SHUpdateRecycleBinIcon(void);
+
+// Used in SHChangeNotify(SHCNE_UPDATEIMAGE)
+#include <pshpack1.h>
+typedef struct tagSHCNF_UPDATEIMAGE_DATA_1
+{
+    WORD   cbSize;
+    INT    iIndex;
+    INT    iEffective;
+    UINT   uFlags;
+    INT    iEffective2;
+    USHORT terminator;
+} SHCNF_UPDATEIMAGE_DATA_1, *PSHCNF_UPDATEIMAGE_DATA_1;
+typedef struct tagSHCNF_UPDATEIMAGE_DATA_2
+{
+    WORD  cbOffset;
+    INT   iIndex;
+    INT   iEffectiveImageIndex;
+    UINT  uFlags;
+    DWORD dwProcessId;
+    WCHAR szHashItem[MAX_PATH];
+    USHORT terminator;
+} SHCNF_UPDATEIMAGE_DATA_2, *PSHCNF_UPDATEIMAGE_DATA_2;
+#include <poppack.h>
 
 /****************************************************************************
  * Shell Common Dialogs
@@ -303,6 +337,17 @@ ExtractIconResInfoW(
     _In_ WORD wIndex,
     _Out_ LPWORD lpSize,
     _Out_ LPHANDLE lpIcon);
+
+INT WINAPI SHLookupIconIndexA(LPCSTR  lpName, INT iIndex, UINT uFlags);
+INT WINAPI SHLookupIconIndexW(LPCWSTR lpName, INT iIndex, UINT uFlags);
+
+#ifdef UNICODE
+    #define ExtractIconResInfo ExtractIconResInfoW
+    #define SHLookupIconIndex SHLookupIconIndexW
+#else
+    #define ExtractIconResInfo ExtractIconResInfoA
+    #define SHLookupIconIndex SHLookupIconIndexA
+#endif
 
 /****************************************************************************
  * File Menu Routines
@@ -910,6 +955,9 @@ Activate_RunDLL(
 
 BOOL WINAPI SHSettingsChanged(LPCVOID unused, LPCWSTR pszKey);
 
+BOOL WINAPI LinkWindow_RegisterClass(VOID);
+BOOL WINAPI LinkWindow_UnregisterClass(_In_ DWORD dwUnused);
+
 /*****************************************************************************
  * Shell32 resources
  */
@@ -952,6 +1000,8 @@ BOOL WINAPI SHSettingsChanged(LPCVOID unused, LPCWSTR pszKey);
 #define TRAYCMD_TILE_V              405
 #define TRAYCMD_TOGGLE_DESKTOP      407
 #define TRAYCMD_DATE_AND_TIME       408
+#define TRAYCMD_SUSPEND             409
+#define TRAYCMD_EJECT               410
 #define TRAYCMD_TASKBAR_PROPERTIES  413
 #define TRAYCMD_MINIMIZE_ALL        415
 #define TRAYCMD_RESTORE_ALL         416
@@ -965,8 +1015,10 @@ BOOL WINAPI SHSettingsChanged(LPCVOID unused, LPCWSTR pszKey);
 #define TRAYCMD_PRINTERS_AND_FAXES  510
 #define TRAYCMD_LOCK_DESKTOP        517
 #define TRAYCMD_SWITCH_USER_DIALOG  5000
+#define TRAYCMD_RELOAD_STARTMENUCFG 41061
 #define TRAYCMD_SEARCH_FILES        41093
 #define TRAYCMD_SEARCH_COMPUTERS    41094
+#define TRAYCMD_REFRESH_MENU        41504
 
 // Explorer Tray Application Bar Data Message Commands
 #define TABDMC_APPBAR     0
@@ -1055,12 +1107,12 @@ typedef struct tagSHELL_LINK_HEADER
     FILETIME ftCreationTime;
     FILETIME ftLastAccessTime;
     FILETIME ftLastWriteTime;
-    DWORD nFileSizeLow; /* only the least significant 32 bits */
-    /* The index of an icon (signed?) */
-    DWORD nIconIndex;
+    DWORD nFileSizeLow; /* Only the least significant 32 bits */
+    /* The signed icon index */
+    INT nIconIndex;
     /* The expected window state of an application launched by the link */
     DWORD nShowCommand;
-    /* The keystrokes used to launch the application */
+    /* The hotkey used to launch the application */
     WORD wHotKey;
     /* Reserved (must be zero) */
     WORD wReserved1;

@@ -168,7 +168,11 @@ endif()
 add_compile_options(-march=${OARCH} -mtune=${TUNE})
 
 # Warnings, errors
-if((NOT CMAKE_BUILD_TYPE STREQUAL "Release") AND (NOT CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo") AND (NOT CMAKE_C_COMPILER_ID STREQUAL Clang))
+if(NOT CMAKE_C_COMPILER_ID STREQUAL "Clang" AND
+   NOT ARCH STREQUAL "amd64" AND
+   NOT CMAKE_BUILD_TYPE STREQUAL "Release" AND
+   NOT CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo" AND
+   NOT CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
     add_compile_options(-Werror)
 endif()
 
@@ -249,7 +253,6 @@ elseif(ARCH STREQUAL "amd64")
     if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
         add_compile_options(-mpreferred-stack-boundary=4)
     endif()
-    add_compile_options(-Wno-error)
 endif()
 
 # Other
@@ -654,12 +657,19 @@ set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${LIBGCC_LOCATION})
 # libgcc needs kernel32 and winpthread (an appropriate CRT must be linked manually)
 target_link_libraries(libgcc INTERFACE libwinpthread libkernel32)
 
+add_library(libgcc_eh INTERFACE)
+target_link_libraries(libgcc_eh INTERFACE libgcc)
+# only add libgcc_eh.a if it exists (SEH toolchains have it, SJLJ/DWARF do not)
+execute_process(COMMAND ${GXX_EXECUTABLE} -print-file-name=libgcc_eh.a OUTPUT_VARIABLE _LIBGCC_EH_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(EXISTS "${_LIBGCC_EH_PATH}")
+    target_link_libraries(libgcc_eh INTERFACE "${_LIBGCC_EH_PATH}")
+endif()
+
 add_library(libsupc++ STATIC IMPORTED GLOBAL)
 execute_process(COMMAND ${GXX_EXECUTABLE} -print-file-name=libsupc++.a OUTPUT_VARIABLE LIBSUPCXX_LOCATION)
 string(STRIP ${LIBSUPCXX_LOCATION} LIBSUPCXX_LOCATION)
 set_target_properties(libsupc++ PROPERTIES IMPORTED_LOCATION ${LIBSUPCXX_LOCATION})
-# libsupc++ requires libgcc and stdc++compat
-target_link_libraries(libsupc++ INTERFACE libgcc stdc++compat)
+target_link_libraries(libsupc++ INTERFACE libgcc_eh libgcc stdc++compat)
 
 add_library(libmingwex STATIC IMPORTED)
 execute_process(COMMAND ${GXX_EXECUTABLE} -print-file-name=libmingwex.a OUTPUT_VARIABLE LIBMINGWEX_LOCATION)

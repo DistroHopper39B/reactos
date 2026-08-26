@@ -34,7 +34,7 @@ Chkdsk(
     WCHAR DriveName[MAX_PATH];
     WCHAR VolumeName[MAX_PATH];
 
-    Provider = GetProvider(Format);
+    Provider = LoadProvider(Format);
     if (!Provider)
     {
         /* Unknown file system */
@@ -88,8 +88,11 @@ Chkdsk(
     RtlFreeUnicodeString(&usDriveRoot);
 
 Quit:
+    if (Provider)
+        UnloadProvider(Provider);
+
     /* Report result */
-    Callback(DONE, 0, &Success);
+    Callback(DONE, Status, &Success);
 }
 
 /* EOF */

@@ -106,11 +106,16 @@ MakeSCID(SHCOLUMNID &scid, REFCLSID fmtid, UINT pid)
 HRESULT
 SHELL_MapSCIDToColumn(IShellFolder2 *pSF, const SHCOLUMNID *pscid);
 HRESULT
+SHELL_GetDetailsOfAsStringVariant(IShellFolder *pSF, PCUITEMID_CHILD pidl, UINT Column, VARIANT *pVar);
+HRESULT
 SHELL_GetDetailsOfAsStringVariant(IShellFolder2 *pSF, PCUITEMID_CHILD pidl, UINT Column, VARIANT *pVar);
 HRESULT
 SHELL_GetDetailsOfColumnAsVariant(IShellFolder2 *pSF, PCUITEMID_CHILD pidl, UINT Column, VARTYPE vt, VARIANT *pVar);
 HRESULT
 SH32_GetDetailsOfPKeyAsVariant(IShellFolder2 *pSF, PCUITEMID_CHILD pidl, const SHCOLUMNID *pscid, VARIANT *pVar, BOOL UseFsColMap);
+
+HRESULT
+SHELL_QueryInfoTipAlloc(_In_ IShellFolder* pSF, _In_ DWORD dwFlags, _In_ LPCITEMIDLIST pidl, _Out_ PWSTR *ppTip);
 
 HRESULT
 SHELL_CreateAbsolutePidl(IShellFolder *pSF, PCUIDLIST_RELATIVE pidlChild, PIDLIST_ABSOLUTE *ppPidl);
@@ -166,7 +171,7 @@ static __inline int SHELL32_GUIDToStringW (REFGUID guid, LPWSTR str)
      '%','0','2','X','%','0','2','X','-',
      '%','0','2','X','%','0','2','X','%','0','2','X','%','0','2','X',
      '%','0','2','X','%','0','2','X','}',0 };
-    return swprintf(str, fmtW,
+    return _swprintf(str, fmtW,
             guid.Data1, guid.Data2, guid.Data3,
             guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3],
             guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]);

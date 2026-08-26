@@ -487,7 +487,7 @@ FstubCreateDiskRaw(IN PDEVICE_OBJECT DeviceObject)
     /* Only zero useful stuff */
     MasterBootRecord = (PMASTER_BOOT_RECORD)Disk->Buffer;
     MasterBootRecord->Signature = 0;
-    RtlZeroMemory(MasterBootRecord->PartitionTable, sizeof(PARTITION_TABLE_ENTRY));
+    RtlZeroMemory(MasterBootRecord->PartitionTable, sizeof(PARTITION_TABLE_ENTRY) * NUM_PARTITION_TABLE_ENTRIES);
     MasterBootRecord->MasterBootRecordMagic = 0;
 
     /* Write back that destroyed MBR */
@@ -1964,15 +1964,17 @@ IoGetBootDiskInformation(IN OUT PBOOTDISK_INFORMATION BootDiskInformation,
             ArcDiskSignature = CONTAINING_RECORD(NextEntry,
                                                  ARC_DISK_SIGNATURE,
                                                  ListEntry);
-            /* If they match, i.e.
-             * - There's only one disk for both BIOS and detected
-             * - Signatures are matching
-             * - This is MBR
-             * (We don't check checksums here)
+
+            /*
+             * If this is the only MBR disk in the ARC list and detected in
+             * the device tree, just go ahead and retrieve the information.
+             * Otherwise, verify whether the signatures match before proceeding.
+             * Note that contrary to IopCreateArcNamesDisk(), we don't verify
+             * the checksums here.
              */
-            if (((SingleDisk && DiskCount == 1) ||
-                (IopVerifyDiskSignature(DriveLayout, ArcDiskSignature, &Signature))) &&
-                (DriveLayout->PartitionStyle == PARTITION_STYLE_MBR))
+            if ((SingleDisk && (DiskCount == 1) &&
+                 (DriveLayout->PartitionStyle == PARTITION_STYLE_MBR)) ||
+                IopVerifyDiskSignature(DriveLayout, ArcDiskSignature, &Signature))
             {
                 /* Create ARC name */
                 sprintf(ArcBuffer, "\\ArcName\\%s", ArcDiskSignature->ArcName);

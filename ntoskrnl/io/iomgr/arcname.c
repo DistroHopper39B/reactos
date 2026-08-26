@@ -701,10 +701,10 @@ IopCreateArcNamesDisk(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
                                                  ListEntry);
 
             /*
-             * If this is the only MBR disk in the ARC list and detected
-             * in the device tree, just go ahead and create the ArcName link.
-             * Otherwise, check whether the signatures and checksums match
-             * before creating the ArcName link.
+             * If this is the only MBR disk in the ARC list and detected in
+             * the device tree, just go ahead and create the ArcName links.
+             * Otherwise, verify whether the signatures and checksums match
+             * before proceeding.
              */
             if ((SingleDisk && (DiskCount == 1) &&
                  (DriveLayout->PartitionStyle == PARTITION_STYLE_MBR)) ||

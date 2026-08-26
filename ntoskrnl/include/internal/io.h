@@ -414,11 +414,11 @@ typedef struct _DRIVER_INFORMATION
 //
 typedef struct _IO_BUS_TYPE_GUID_LIST
 {
-    ULONG GuidCount;
     FAST_MUTEX Lock;
-    GUID Guids[1];
+    ULONG AllocatedCount;
+    ULONG GuidCount;
+    PGUID Guids;
 } IO_BUS_TYPE_GUID_LIST, *PIO_BUS_TYPE_GUID_LIST;
-extern PIO_BUS_TYPE_GUID_LIST IopBusTypeGuidList;
 
 //
 // Shutdown entry for registed devices
@@ -1193,7 +1193,8 @@ IopGetSetSecurityObject(
     IN OUT PULONG BufferLength,
     OUT PSECURITY_DESCRIPTOR *OldSecurityDescriptor,
     IN POOL_TYPE PoolType,
-    IN OUT PGENERIC_MAPPING GenericMapping
+    IN OUT PGENERIC_MAPPING GenericMapping,
+    IN KPROCESSOR_MODE AccessMode
 );
 
 NTSTATUS
@@ -1225,8 +1226,8 @@ IopCloseFile(
     IN PEPROCESS Process OPTIONAL,
     IN PVOID Object,
     IN ACCESS_MASK GrantedAccess,
-    IN ULONG ProcessHandleCount,
-    IN ULONG SystemHandleCount
+    IN ULONG_PTR ProcessHandleCount,
+    IN ULONG_PTR SystemHandleCount
 );
 
 NTSTATUS
@@ -1445,7 +1446,7 @@ extern LIST_ENTRY IopErrorLogListHead;
 extern ULONG IopAutoReboot;
 extern ULONG IopNumTriageDumpDataBlocks;
 extern PVOID IopTriageDumpDataBlocks[64];
-extern PIO_BUS_TYPE_GUID_LIST PnpBusTypeGuidList;
+extern IO_BUS_TYPE_GUID_LIST PnpBusTypeGuidList;
 extern PDRIVER_OBJECT IopRootDriverObject;
 extern KSPIN_LOCK IopDeviceActionLock;
 extern LIST_ENTRY IopDeviceActionRequestList;

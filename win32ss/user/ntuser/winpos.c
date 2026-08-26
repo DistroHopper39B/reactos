@@ -3021,7 +3021,6 @@ co_WinPosWindowFromPoint(
    return Window;
 }
 
-/* Win: _RealChildWindowFromPoint */
 PWND FASTCALL
 IntRealChildWindowFromPoint(PWND Parent, LONG x, LONG y)
 {
@@ -3064,7 +3063,6 @@ IntRealChildWindowFromPoint(PWND Parent, LONG x, LONG y)
    return pwndHit ? pwndHit : Parent;
 }
 
-/* Win: _ChildWindowFromPointEx */
 PWND APIENTRY
 IntChildWindowFromPointEx(PWND Parent, LONG x, LONG y, UINT uiFlags)
 {
@@ -3116,7 +3114,6 @@ IntChildWindowFromPointEx(PWND Parent, LONG x, LONG y, UINT uiFlags)
    return pwndHit ? pwndHit : Parent;
 }
 
-/* Win: _DeferWindowPos(PSMWP, PWND, PWND, ...) */
 HDWP
 FASTCALL
 IntDeferWindowPos( HDWP hdwp,
@@ -3207,7 +3204,6 @@ END:
     return retvalue;
 }
 
-/* Win: xxxEndDeferWindowPosEx */
 BOOL FASTCALL IntEndDeferWindowPosEx(HDWP hdwp, BOOL bAsync)
 {
     PSMWP pDWP;
@@ -3287,7 +3283,7 @@ NtUserChildWindowFromPointEx(HWND hwndParent,
 {
    PWND pwndParent;
    TRACE("Enter NtUserChildWindowFromPointEx\n");
-   UserEnterExclusive();
+   UserEnterShared();
    if ((pwndParent = UserGetWindowObject(hwndParent)))
    {
       pwndParent = IntChildWindowFromPointEx(pwndParent, x, y, uiFlags);

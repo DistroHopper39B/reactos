@@ -2,7 +2,7 @@
  * PROJECT:     ReactOS Kernel
  * LICENSE:     MIT (https://spdx.org/licenses/MIT)
  * PURPOSE:     PnP manager Root Memory Arbiter
- * COPYRIGHT:   Copyright 2025 Justin Miller <justin.miller@reactos.org>
+ * COPYRIGHT:   Copyright 2025-2026 Justin Miller <justin.miller@reactos.org>
  */
 
 /* INCLUDES *****************************************************************/
@@ -23,8 +23,8 @@ IopArbMemUnpackRequirements(
     _In_ PIO_RESOURCE_DESCRIPTOR IoDescriptor,
     _Out_ PUINT64 OutMinimumAddress,
     _Out_ PUINT64 OutMaximumAddress,
-    _Out_ PUINT32 OutLength,
-    _Out_ PUINT32 OutAlignment)
+    _Out_ PUINT64 OutLength,
+    _Out_ PUINT64 OutAlignment)
 {
     PAGED_CODE();
     DPRINT("IopArbMemUnpackRequirements: IoDescriptor: %p, OutMinimumAddress: %p, OutMaximumAddress: %p, OutLength: %p, OutAlignment: %p\n",
@@ -60,7 +60,7 @@ NTAPI
 IopArbMemUnpackResource(
     _In_ PCM_PARTIAL_RESOURCE_DESCRIPTOR CmDescriptor,
     _Out_ PUINT64 Start,
-    _Out_ PUINT32 OutLength)
+    _Out_ PUINT64 OutLength)
 {
     PAGED_CODE();
     DPRINT("IopArbMemUnpackResource: CmDescriptor: %p, Start: %p, OutLength: %p\n",
@@ -98,15 +98,15 @@ IopArbMemInitialize(VOID)
     IopRootMemArbiter.UnpackResource = IopArbMemUnpackResource;
     IopRootMemArbiter.ScoreRequirement = IopArbMemScoreRequirement;
 
-    Status = ArbInitializeArbiterInstance(&IopRootMemArbiter,
+    Status = ArbiterLibInitializeInstance(&IopRootMemArbiter,
                                           NULL,
-                                          CmResourceTypeBusNumber,
+                                          CmResourceTypeMemory,
                                           IopRootMemArbiter.Name,
                                           L"Root",
                                           NULL);
     if (!NT_SUCCESS(Status))
     {
-        DPRINT1("IopArbDmaInitialize: Failed with %X", Status);
+        DPRINT1("IopArbMemInitialize: Failed with %X", Status);
     }
 
     return Status;

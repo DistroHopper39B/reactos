@@ -703,7 +703,7 @@ SpiSetWallpaper(PVOID pvParam, FLONG fl)
         ustr.Length = 0;
         if (!W32kDosPathNameToNtPathName(gspv.awcWallpaper, &ustr))
         {
-            ERR("RtlDosPathNameToNtPathName_U failed\n");
+            ERR("W32kDosPathNameToNtPathName failed\n");
             return 0;
         }
 
@@ -1442,7 +1442,7 @@ SpiGetSet(UINT uiAction, UINT uiParam, PVOID pvParam, FLONG fl)
             return SpiSetInt(&gspv.iPwrOffTimeout, uiParam, KEY_DESKTOP, L"PowerOffTimeOut", fl);
 
         case SPI_GETLOWPOWERACTIVE:
-            return SpiGetInt(pvParam, &gspv.iPwrOffTimeout, fl);
+            return SpiGetInt(pvParam, &gspv.bLowPwrActive, fl);
 
         case SPI_GETPOWEROFFACTIVE:
             return SpiGetInt(pvParam, &gspv.bPwrOffActive, fl);
