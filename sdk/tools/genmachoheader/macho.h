@@ -1,9 +1,8 @@
 /*
- * COPYRIGHT:       See COPYING in the top level directory
- * PROJECT:         ReactOS genmachoheader
- * FILE:            tools/genmachoheader/macho.h
- * PURPOSE:         Mach-O executable format
- * PROGRAMMER:      Sylas Hollander
+ * PROJECT:     genmachoheader
+ * LICENSE:     MIT (https://spdx.org/licenses/MIT)
+ * PURPOSE:     Header 
+ * COPYRIGHT:   Copyright 2024-2026 Sylas Hollander <distrohopper39b.business@gmail.com>
  */
 
 #pragma once

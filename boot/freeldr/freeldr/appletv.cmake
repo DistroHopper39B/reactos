@@ -154,9 +154,12 @@ endif()
 
 add_dependencies(freeldr_pe asm)
 
-# Apple TV loader stuff
+# Create Mach-O header for FreeLoader
 add_custom_command(OUTPUT freeldr_header.macho
-                    COMMAND native-genmachoheader ${CMAKE_CURRENT_BINARY_DIR}/$<TARGET_FILE_NAME:freeldr_pe> ${CMAKE_CURRENT_BINARY_DIR}/freeldr_header.macho
+                    COMMAND native-genmachoheader
+                            ${CMAKE_CURRENT_BINARY_DIR}/$<TARGET_FILE_NAME:freeldr_pe>
+                            ${CMAKE_CURRENT_BINARY_DIR}/freeldr_header.macho
+                            "__FREELDR__"
                     DEPENDS native-genmachoheader freeldr_pe)
 
 
